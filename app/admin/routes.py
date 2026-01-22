@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -8,12 +8,19 @@ from app.models.models import User, College, Page, Section, SectionContent
 from datetime import timedelta
 from typing import Optional
 import json
+import os
+import shutil
+from pathlib import Path
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 # Session cookie name
 SESSION_COOKIE_NAME = "admin_session"
+
+# Upload directory
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 async def get_current_admin_from_cookie(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
@@ -190,17 +197,32 @@ async def create_college(
     request: Request,
     name: str = Form(...),
     slug: str = Form(...),
-    logo: str = Form(""),
+    logo: UploadFile = File(None),
     domain: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
     """Create new college"""
+    logo_path = None
+    
+    # Handle logo upload
+    if logo and logo.filename:
+        # Create safe filename
+        file_extension = os.path.splitext(logo.filename)[1]
+        safe_filename = f"{slug}_logo{file_extension}"
+        file_path = UPLOAD_DIR / safe_filename
+        
+        # Save file
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(logo.file, buffer)
+        
+        logo_path = f"/uploads/{safe_filename}"
+    
     college = College(
         name=name,
         slug=slug,
-        logo=logo if logo else None,
+        logo=logo_path,
         domain=domain if domain else None,
         is_active=is_active
     )
@@ -245,7 +267,7 @@ async def update_college(
     college_id: int,
     name: str = Form(...),
     slug: str = Form(...),
-    logo: str = Form(""),
+    logo: UploadFile = File(None),
     domain: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
@@ -256,9 +278,27 @@ async def update_college(
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
     
+    # Handle logo upload if new file provided
+    if logo and logo.filename:
+        # Delete old logo if exists
+        if college.logo and college.logo.startswith("/uploads/"):
+            old_file_path = Path(college.logo.lstrip("/"))
+            if old_file_path.exists():
+                old_file_path.unlink()
+        
+        # Create safe filename
+        file_extension = os.path.splitext(logo.filename)[1]
+        safe_filename = f"{slug}_logo{file_extension}"
+        file_path = UPLOAD_DIR / safe_filename
+        
+        # Save file
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(logo.file, buffer)
+        
+        college.logo = f"/uploads/{safe_filename}"
+    
     college.name = name
     college.slug = slug
-    college.logo = logo if logo else None
     college.domain = domain if domain else None
     college.is_active = is_active
     
