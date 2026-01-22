@@ -10,24 +10,23 @@
         <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">← Back to Sections</a>
     </div>
 
-    <form method="POST">
+    <form method="POST" id="sectionForm" enctype="multipart/form-data">
         <div class="form-group">
             <label class="form-label">Section Key * (unique identifier)</label>
-            <input type="text" name="section_key" class="form-control" value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+" placeholder="e.g., hero, why_college, stats">
+            <input type="text" name="section_key" id="section_key" class="form-control" value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+" placeholder="e.g., hero, why_college, stats">
             <small style="color: #95a5a6;">Only lowercase letters, numbers, and underscores</small>
         </div>
 
         <div class="form-group">
             <label class="form-label">Section Type *</label>
-            <select name="section_type" class="form-control" required>
+            <select name="section_type" id="section_type" class="form-control" required>
                 <option value="">-- Select Type --</option>
-                <option value="hero" {% if section and section.section_type == 'hero' %}selected{% endif %}>Hero</option>
-                <option value="text" {% if section and section.section_type == 'text' %}selected{% endif %}>Text</option>
-                <option value="stats" {% if section and section.section_type == 'stats' %}selected{% endif %}>Stats</option>
+                <option value="hero" {% if section and section.section_type == 'hero' %}selected{% endif %}>Hero Section</option>
+                <option value="text" {% if section and section.section_type == 'text' %}selected{% endif %}>Text/Content</option>
+                <option value="stats" {% if section and section.section_type == 'stats' %}selected{% endif %}>Statistics</option>
                 <option value="accordion" {% if section and section.section_type == 'accordion' %}selected{% endif %}>Accordion/FAQ</option>
-                <option value="gallery" {% if section and section.section_type == 'gallery' %}selected{% endif %}>Gallery</option>
-                <option value="contact" {% if section and section.section_type == 'contact' %}selected{% endif %}>Contact</option>
-                <option value="custom" {% if section and section.section_type == 'custom' %}selected{% endif %}>Custom</option>
+                <option value="gallery" {% if section and section.section_type == 'gallery' %}selected{% endif %}>Image Gallery</option>
+                <option value="contact" {% if section and section.section_type == 'contact' %}selected{% endif %}>Contact Info</option>
             </select>
         </div>
 
@@ -37,11 +36,13 @@
             <small style="color: #95a5a6;">Lower numbers appear first</small>
         </div>
 
-        <div class="form-group">
-            <label class="form-label">Content (JSON Format) *</label>
-            <textarea name="content_json" class="form-control" rows="15" required>{{ section.content.content_json|tojson(indent=2) if section and section.content else '{}' }}</textarea>
-            <small style="color: #95a5a6;">Enter valid JSON data for this section</small>
+        <!-- Dynamic Content Builder -->
+        <div id="contentBuilder" style="margin-top: 20px;">
+            <!-- Content fields will be inserted here based on section type -->
         </div>
+
+        <!-- Hidden field to store JSON -->
+        <input type="hidden" name="content_json" id="content_json" value="">
 
         <div class="form-group">
             <label class="form-check">
@@ -57,41 +58,413 @@
     </form>
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">📋 Example JSON Templates</h3>
-    </div>
+<script>
+// Store existing content if editing
+const existingContent = {{ section.content.content_json|tojson if section and section.content else '{}' }};
+
+const contentTemplates = {
+    hero: () => `
+        <div class="form-group">
+            <label class="form-label">Hero Description</label>
+            <textarea class="form-control" id="hero_description" rows="3" placeholder="Welcome message or tagline">${existingContent.description || ''}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Hero Media (Images/Videos)</label>
+            <div id="hero_media_container">
+                ${(existingContent.images || ['']).map((media, index) => `
+                    <div class="media-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                        ${media ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                        <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                                <input type="file" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" value="${media || ''}" style="padding: 10px;">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+                    </div>
+                `).join('')}
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addHeroMedia()" style="margin-top: 10px;">+ Add Media</button>
+            <small style="display: block; color: #95a5a6; margin-top: 5px;">Upload images (JPG, PNG, GIF) or videos (MP4, WebM), or enter direct URLs</small>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Call-to-Action Button Text</label>
+            <input type="text" class="form-control" id="hero_cta_text" placeholder="Apply Now" value="${existingContent.cta_text || ''}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Button Link</label>
+            <input type="text" class="form-control" id="hero_cta_link" placeholder="/apply" value="${existingContent.cta_link || ''}">
+        </div>
+    `,
     
-    <h4 style="margin-top: 20px;">Hero Section:</h4>
-    <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{
-  "images": ["/uploads/hero-1.jpg", "/uploads/hero-2.jpg"],
-  "description": "Welcome to Our College",
-  "cta_text": "Apply Now",
-  "cta_link": "/apply"
-}</code></pre>
-
-    <h4 style="margin-top: 20px;">Stats Section:</h4>
-    <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{
-  "stats": [
-    {"label": "Students", "value": "5000+"},
-    {"label": "Faculty", "value": "200+"},
-    {"label": "Courses", "value": "50+"}
-  ]
-}</code></pre>
-
-    <h4 style="margin-top: 20px;">Accordion/FAQ Section:</h4>
-    <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{
-  "title": "Frequently Asked Questions",
-  "items": [
-    {
-      "question": "What courses do you offer?",
-      "answer": "We offer B.Tech, MBA, and more..."
+    text: () => `
+        <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-control" id="text_title" placeholder="Section Title" value="${existingContent.title || ''}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Content</label>
+            <textarea class="form-control" id="text_content" rows="8" placeholder="Your content here...">${existingContent.content || ''}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Image or Video (optional)</label>
+            ${existingContent.image ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? '🎥' : '🖼️'} <a href="${existingContent.image}" target="_blank">${existingContent.image}</a></div>` : ''}
+            <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                    <input type="file" class="form-control" id="text_image_file" accept="image/*,video/*">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                    <input type="text" class="form-control" id="text_image" placeholder="/uploads/image.jpg or video.mp4" value="${existingContent.image || ''}">
+                </div>
+            </div>
+            <small style="color: #95a5a6;">Upload or link to an image (JPG, PNG, GIF) or video (MP4, WebM)</small>
+        </div>
+    `,
+    
+    stats: () => {
+        const stats = existingContent.stats || [{label: '', value: ''}];
+        return `
+            <div class="form-group">
+                <label class="form-label">Statistics</label>
+                <div id="stats_container">
+                    ${stats.map((stat, index) => `
+                        <div class="stat-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" class="form-control stat-label" placeholder="Label (e.g., Students)" value="${stat.label || ''}" style="flex: 1;">
+                            <input type="text" class="form-control stat-value" placeholder="Value (e.g., 5000+)" value="${stat.value || ''}" style="flex: 1;">
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addStat()" style="margin-top: 10px;">+ Add Stat</button>
+            </div>
+        `;
     },
-    {
-      "question": "What is the admission process?",
-      "answer": "Admissions are based on entrance exams..."
+    
+    accordion: () => {
+        const items = existingContent.items || [{question: '', answer: ''}];
+        return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="accordion_title" placeholder="Frequently Asked Questions" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Questions & Answers</label>
+                <div id="accordion_container">
+                    ${items.map((item, index) => `
+                        <div class="accordion-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            <input type="text" class="form-control accordion-question" placeholder="Question" value="${item.question || ''}" style="margin-bottom: 10px; font-weight: 600;">
+                            <textarea class="form-control accordion-answer" placeholder="Answer" rows="3" style="margin-bottom: 10px;">${item.answer || ''}</textarea>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addAccordionItem()" style="margin-top: 10px;">+ Add Question</button>
+            </div>
+        `;
+    },
+    
+    gallery: () => {
+        const images = existingContent.images || [''];
+        return `
+            <div class="form-group">
+                <label class="form-label">Gallery Title (optional)</label>
+                <input type="text" class="form-control" id="gallery_title" placeholder="Photo Gallery" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Gallery Media (Images & Videos)</label>
+                <div id="gallery_container">
+                    ${images.map((media, index) => `
+                        <div class="gallery-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            ${media ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                            <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                                    <input type="file" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                                    <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" value="${media || ''}" style="padding: 10px;">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addGalleryImage()" style="margin-top: 10px;">+ Add Media</button>
+                <small style="display: block; color: #95a5a6; margin-top: 5px;">Upload images (JPG, PNG, GIF) or videos (MP4, WebM), or enter direct URLs</small>
+            </div>
+        `;
+    },
+    
+    contact: () => `
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" id="contact_email" placeholder="info@college.edu" value="${existingContent.email || ''}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" class="form-control" id="contact_phone" placeholder="+1 234 567 8900" value="${existingContent.phone || ''}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Address</label>
+            <textarea class="form-control" id="contact_address" rows="3" placeholder="Street, City, State, ZIP">${existingContent.address || ''}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Map Embed URL (optional)</label>
+            <input type="text" class="form-control" id="contact_map" placeholder="https://maps.google.com/..." value="${existingContent.map || ''}">
+        </div>
+    `
+};
+
+// Helper functions for dynamic fields
+function addStat() {
+    const container = document.getElementById('stats_container');
+    const newStat = document.createElement('div');
+    newStat.className = 'stat-item';
+    newStat.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+    newStat.innerHTML = `
+        <input type="text" class="form-control stat-label" placeholder="Label (e.g., Students)" style="flex: 1;">
+        <input type="text" class="form-control stat-value" placeholder="Value (e.g., 5000+)" style="flex: 1;">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+    `;
+    container.appendChild(newStat);
+}
+
+function addAccordionItem() {
+    const container = document.getElementById('accordion_container');
+    const newItem = document.createElement('div');
+    newItem.className = 'accordion-item';
+    newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+    newItem.innerHTML = `
+        <input type="text" class="form-control accordion-question" placeholder="Question" style="margin-bottom: 10px; font-weight: 600;">
+        <textarea class="form-control accordion-answer" placeholder="Answer" rows="3" style="margin-bottom: 10px;"></textarea>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(newItem);
+}
+
+function addHeroMedia() {
+    const container = document.getElementById('hero_media_container');
+    const newMedia = document.createElement('div');
+    newMedia.className = 'media-item';
+    newMedia.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+    newMedia.innerHTML = `
+        <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                <input type="file" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" style="padding: 10px;">
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(newMedia);
+}
+
+function addGalleryImage() {
+    const container = document.getElementById('gallery_container');
+    const newImage = document.createElement('div');
+    newImage.className = 'gallery-item';
+    newImage.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+    newImage.innerHTML = `
+        <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                <input type="file" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" style="padding: 10px;">
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    container.appendChild(newImage);
+}
+
+// Build JSON from form fields (for text-based fields only, files handled separately)
+async function buildJSON() {
+    const sectionType = document.getElementById('section_type').value;
+    let jsonData = {};
+    
+    switch(sectionType) {
+        case 'hero':
+            const heroMedia = [];
+            const mediaItems = document.querySelectorAll('#hero_media_container .media-item');
+            for (const item of mediaItems) {
+                const urlInput = item.querySelector('.hero-media-url');
+                const fileInput = item.querySelector('.hero-media-file');
+                
+                if (fileInput && fileInput.files.length > 0) {
+                    // File will be uploaded, store placeholder that backend will replace
+                    heroMedia.push('__UPLOAD__' + fileInput.files[0].name);
+                } else if (urlInput && urlInput.value.trim()) {
+                    heroMedia.push(urlInput.value.trim());
+                }
+            }
+            jsonData = {
+                description: document.getElementById('hero_description').value,
+                images: heroMedia,
+                cta_text: document.getElementById('hero_cta_text').value,
+                cta_link: document.getElementById('hero_cta_link').value
+            };
+            break;
+            
+        case 'text':
+            const textImageFile = document.getElementById('text_image_file');
+            let textImage = document.getElementById('text_image').value;
+            
+            if (textImageFile && textImageFile.files.length > 0) {
+                textImage = '__UPLOAD__' + textImageFile.files[0].name;
+            }
+            
+            jsonData = {
+                title: document.getElementById('text_title').value,
+                content: document.getElementById('text_content').value,
+                image: textImage
+            };
+            break;
+            
+        case 'stats':
+            const stats = [];
+            document.querySelectorAll('.stat-item').forEach(item => {
+                const label = item.querySelector('.stat-label').value;
+                const value = item.querySelector('.stat-value').value;
+                if (label || value) {
+                    stats.push({label, value});
+                }
+            });
+            jsonData = {stats};
+            break;
+            
+        case 'accordion':
+            const items = [];
+            document.querySelectorAll('.accordion-item').forEach(item => {
+                const question = item.querySelector('.accordion-question').value;
+                const answer = item.querySelector('.accordion-answer').value;
+                if (question || answer) {
+                    items.push({question, answer});
+                }
+            });
+            jsonData = {
+                title: document.getElementById('accordion_title').value,
+                items
+            };
+            break;
+            
+        case 'gallery':
+            const galleryMedia = [];
+            const galleryItems = document.querySelectorAll('#gallery_container .gallery-item');
+            for (const item of galleryItems) {
+                const urlInput = item.querySelector('.gallery-image');
+                const fileInput = item.querySelector('.gallery-media-file');
+                
+                if (fileInput && fileInput.files.length > 0) {
+                    galleryMedia.push('__UPLOAD__' + fileInput.files[0].name);
+                } else if (urlInput && urlInput.value.trim()) {
+                    galleryMedia.push(urlInput.value.trim());
+                }
+            }
+            jsonData = {
+                title: document.getElementById('gallery_title').value,
+                images: galleryMedia
+            };
+            break;
+            
+        case 'contact':
+            jsonData = {
+                email: document.getElementById('contact_email').value,
+                phone: document.getElementById('contact_phone').value,
+                address: document.getElementById('contact_address').value,
+                map: document.getElementById('contact_map').value
+            };
+            break;
     }
-  ]
-}</code></pre>
-</div>
+    
+    return JSON.stringify(jsonData);
+}
+
+// Update content builder when section type changes
+document.getElementById('section_type').addEventListener('change', function() {
+    const type = this.value;
+    const builder = document.getElementById('contentBuilder');
+    
+    if (type && contentTemplates[type]) {
+        builder.innerHTML = contentTemplates[type]();
+    } else {
+        builder.innerHTML = '';
+    }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const currentType = document.getElementById('section_type').value;
+    if (currentType && contentTemplates[currentType]) {
+        document.getElementById('contentBuilder').innerHTML = contentTemplates[currentType]();
+    }
+});
+
+// Build JSON before form submission
+document.getElementById('sectionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Build JSON with placeholders for uploads
+    const json = await buildJSON();
+    document.getElementById('content_json').value = json;
+    
+    // Create FormData to handle file uploads
+    const formData = new FormData(this);
+    
+    // Collect all uploaded files
+    const sectionType = document.getElementById('section_type').value;
+    
+    if (sectionType === 'hero') {
+        document.querySelectorAll('.hero-media-file').forEach((input, index) => {
+            if (input.files.length > 0) {
+                formData.append('hero_media_files', input.files[0]);
+            }
+        });
+    } else if (sectionType === 'text') {
+        const textFile = document.getElementById('text_image_file');
+        if (textFile && textFile.files.length > 0) {
+            formData.append('text_media_file', textFile.files[0]);
+        }
+    } else if (sectionType === 'gallery') {
+        document.querySelectorAll('.gallery-media-file').forEach((input, index) => {
+            if (input.files.length > 0) {
+                formData.append('gallery_media_files', input.files[0]);
+            }
+        });
+    }
+    
+    // Submit the form
+    this.submit();
+});
+</script>
+
+<style>
+.stat-item, .accordion-item, .gallery-item {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
 {% endblock %}
