@@ -4,6 +4,7 @@ from app.core.database import get_db
 from app.models.models import College, Page, Section, SectionContent
 from app.schemas.schemas import PagePublicResponse
 from typing import Dict, Any
+from typing import List, Dict, Any
 
 
 router = APIRouter()
@@ -78,7 +79,7 @@ async def get_page_by_college(
     )
 
 
-@router.get("/{college_slug}/pages", response_model=list[Dict[str, Any]])
+@router.get("/{college_slug}/pages", response_model=List[Dict[str, Any]])
 async def list_pages_by_college(
     college_slug: str,
     db: Session = Depends(get_db)
