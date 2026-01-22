@@ -73,15 +73,15 @@ const contentTemplates = {
             <div id="hero_media_container">
                 ${(existingContent.images || ['']).map((media, index) => `
                     <div class="media-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
-                        ${media ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                        ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
                         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                                <input type="file" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+                                <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
                             </div>
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" value="${media || ''}" style="padding: 10px;">
+                                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
                             </div>
                         </div>
                         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
@@ -112,15 +112,15 @@ const contentTemplates = {
         </div>
         <div class="form-group">
             <label class="form-label">Image or Video (optional)</label>
-            ${existingContent.image ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? '🎥' : '🖼️'} <a href="${existingContent.image}" target="_blank">${existingContent.image}</a></div>` : ''}
+            ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? '🎥' : '🖼️'} <a href="${existingContent.image}" target="_blank">${existingContent.image}</a></div>` : ''}
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                    <input type="file" class="form-control" id="text_image_file" accept="image/*,video/*">
+                    <input type="file" name="text_media_file" class="form-control" id="text_image_file" accept="image/*,video/*">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                    <input type="text" class="form-control" id="text_image" placeholder="/uploads/image.jpg or video.mp4" value="${existingContent.image || ''}">
+                    <input type="text" class="form-control" id="text_image" placeholder="/uploads/image.jpg or video.mp4" value="${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? existingContent.image : ''}">
                 </div>
             </div>
             <small style="color: #95a5a6;">Upload or link to an image (JPG, PNG, GIF) or video (MP4, WebM)</small>
@@ -181,15 +181,15 @@ const contentTemplates = {
                 <div id="gallery_container">
                     ${images.map((media, index) => `
                         <div class="gallery-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
-                            ${media ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                            ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
                             <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                                    <input type="file" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
+                                    <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                    <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" value="${media || ''}" style="padding: 10px;">
+                                    <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
                                 </div>
                             </div>
                             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
@@ -258,7 +258,7 @@ function addHeroMedia() {
         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                <input type="file" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+                <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
             </div>
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -279,7 +279,7 @@ function addGalleryImage() {
         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                <input type="file" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
+                <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
             </div>
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -292,7 +292,7 @@ function addGalleryImage() {
 }
 
 // Build JSON from form fields (for text-based fields only, files handled separately)
-async function buildJSON() {
+function buildJSON() {
     const sectionType = document.getElementById('section_type').value;
     let jsonData = {};
     
@@ -414,40 +414,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Build JSON before form submission
-document.getElementById('sectionForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
+document.getElementById('sectionForm').addEventListener('submit', function(e) {
     // Build JSON with placeholders for uploads
-    const json = await buildJSON();
+    const json = buildJSON();
     document.getElementById('content_json').value = json;
     
-    // Create FormData to handle file uploads
-    const formData = new FormData(this);
-    
-    // Collect all uploaded files
-    const sectionType = document.getElementById('section_type').value;
-    
-    if (sectionType === 'hero') {
-        document.querySelectorAll('.hero-media-file').forEach((input, index) => {
-            if (input.files.length > 0) {
-                formData.append('hero_media_files', input.files[0]);
-            }
-        });
-    } else if (sectionType === 'text') {
-        const textFile = document.getElementById('text_image_file');
-        if (textFile && textFile.files.length > 0) {
-            formData.append('text_media_file', textFile.files[0]);
-        }
-    } else if (sectionType === 'gallery') {
-        document.querySelectorAll('.gallery-media-file').forEach((input, index) => {
-            if (input.files.length > 0) {
-                formData.append('gallery_media_files', input.files[0]);
-            }
-        });
-    }
-    
-    // Submit the form
-    this.submit();
+    // Form will submit normally with multipart/form-data
+    // Files with name attributes will be uploaded automatically
 });
 </script>
 
