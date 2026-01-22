@@ -16,7 +16,7 @@ templates = Jinja2Templates(directory="templates")
 SESSION_COOKIE_NAME = "admin_session"
 
 
-def get_current_admin_from_cookie(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
+async def get_current_admin_from_cookie(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     """Get current admin from session cookie"""
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
@@ -26,17 +26,51 @@ def get_current_admin_from_cookie(request: Request, db: Session = Depends(get_db
         from jose import jwt
         from app.core.security import SECRET_KEY, ALGORITHM
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
             return None
         
+        user_id = int(user_id_str)
         user = db.query(User).filter(User.id == user_id).first()
         if user and user.is_active:
             return user
-    except:
+    except Exception:
         return None
     
     return None
+
+
+def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
+    """Require admin authentication - raises redirect if not authenticated"""
+    user = None
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    
+    if token:
+        try:
+            from jose import jwt
+            from app.core.security import SECRET_KEY, ALGORITHM
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id_str: str = payload.get("sub")
+            if user_id_str:
+                user_id = int(user_id_str)
+                user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+        except Exception:
+            pass
+    
+    if not user:
+        raise HTTPException(status_code=303, headers={"Location": "/admin/login"})
+    
+    return user
+
+
+# ============= ROOT REDIRECT =============
+@router.get("/")
+async def admin_root(request: Request, db: Session = Depends(get_db)):
+    """Redirect to dashboard if logged in, otherwise to login"""
+    current_user = await get_current_admin_from_cookie(request, db)
+    if current_user:
+        return RedirectResponse(url="/admin/dashboard", status_code=303)
+    return RedirectResponse(url="/admin/login", status_code=303)
 
 
 # ============= LOGIN PAGE =============
@@ -56,12 +90,15 @@ async def admin_login(
     db: Session = Depends(get_db)
 ):
     """Handle admin login"""
-    user = db.query(User).filter(User.username == username).first()
+    # Allow login with either username or email
+    user = db.query(User).filter(
+        (User.username == username) | (User.email == username)
+    ).first()
     
     if not user or not verify_password(password, user.hashed_password):
         return templates.TemplateResponse("admin/login.html", {
             "request": request,
-            "error": "Invalid username or password"
+            "error": "Invalid username/email or password"
         }, status_code=400)
     
     if not user.is_active:
@@ -72,13 +109,19 @@ async def admin_login(
     
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.id},
+        data={"sub": str(user.id)},
         expires_delta=timedelta(hours=8)
     )
     
     # Redirect to dashboard
     response = RedirectResponse(url="/admin/dashboard", status_code=303)
-    response.set_cookie(key=SESSION_COOKIE_NAME, value=access_token, httponly=True, max_age=28800)
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME, 
+        value=access_token, 
+        httponly=True, 
+        max_age=28800,
+        samesite="lax"
+    )
     return response
 
 
@@ -95,12 +138,9 @@ async def admin_logout():
 async def admin_dashboard(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Admin dashboard"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     # Get stats
     colleges_count = db.query(College).count()
     pages_count = db.query(Page).count()
@@ -120,12 +160,9 @@ async def admin_dashboard(
 async def list_colleges_page(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """List all colleges"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     colleges = db.query(College).all()
     return templates.TemplateResponse("admin/colleges/list.html", {
         "request": request,
@@ -137,12 +174,9 @@ async def list_colleges_page(
 @router.get("/colleges/new", response_class=HTMLResponse)
 async def create_college_page(
     request: Request,
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create new college form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     return templates.TemplateResponse("admin/colleges/form.html", {
         "request": request,
         "user": current_user,
@@ -160,12 +194,9 @@ async def create_college(
     domain: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create new college"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = College(
         name=name,
         slug=slug,
@@ -193,12 +224,9 @@ async def edit_college_page(
     request: Request,
     college_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Edit college form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = db.query(College).filter(College.id == college_id).first()
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
@@ -221,12 +249,9 @@ async def update_college(
     domain: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Update college"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = db.query(College).filter(College.id == college_id).first()
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
@@ -254,12 +279,9 @@ async def update_college(
 async def delete_college(
     college_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Delete college"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = db.query(College).filter(College.id == college_id).first()
     if college:
         db.delete(college)
@@ -274,12 +296,9 @@ async def list_pages_page(
     request: Request,
     college_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """List pages for a college"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = db.query(College).filter(College.id == college_id).first()
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
@@ -299,12 +318,9 @@ async def create_page_form(
     request: Request,
     college_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create page form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     college = db.query(College).filter(College.id == college_id).first()
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
@@ -327,12 +343,9 @@ async def create_page(
     meta_description: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create new page"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = Page(
         college_id=college_id,
         slug=slug,
@@ -352,12 +365,9 @@ async def edit_page_form(
     request: Request,
     page_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Edit page form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -380,12 +390,9 @@ async def update_page(
     meta_description: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Update page"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -404,12 +411,9 @@ async def update_page(
 async def delete_page(
     page_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Delete page"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if page:
         college_id = page.college_id
@@ -426,12 +430,9 @@ async def list_sections_page(
     request: Request,
     page_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """List sections for a page"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -451,12 +452,9 @@ async def create_section_form(
     request: Request,
     page_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create section form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -480,12 +478,9 @@ async def create_section(
     content_json: str = Form("{}"),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Create new section"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     page = db.query(Page).filter(Page.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
@@ -523,12 +518,9 @@ async def edit_section_form(
     request: Request,
     section_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Edit section form"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     section = db.query(Section).filter(Section.id == section_id).first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
@@ -552,12 +544,9 @@ async def update_section(
     content_json: str = Form("{}"),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Update section"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     section = db.query(Section).filter(Section.id == section_id).first()
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
@@ -591,12 +580,9 @@ async def update_section(
 async def delete_section(
     section_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_from_cookie)
+    current_user: User = Depends(require_admin)
 ):
     """Delete section"""
-    if not current_user:
-        return RedirectResponse(url="/admin/login", status_code=303)
-    
     section = db.query(Section).filter(Section.id == section_id).first()
     if section:
         page_id = section.page_id
@@ -605,3 +591,4 @@ async def delete_section(
         return RedirectResponse(url=f"/admin/pages/{page_id}/sections", status_code=303)
     
     return RedirectResponse(url="/admin/colleges", status_code=303)
+

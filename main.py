@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.api import public, admin, auth
+from app.admin import routes as admin_ui
 import os
 
 app = FastAPI(
@@ -31,6 +32,7 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 app.include_router(public.router, prefix=settings.API_V1_PREFIX, tags=["Public API"])
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Admin API (Protected)"])
+app.include_router(admin_ui.router, prefix="/admin", tags=["Admin UI"])
 
 
 @app.get("/")

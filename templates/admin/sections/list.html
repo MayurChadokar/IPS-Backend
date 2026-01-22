@@ -1,0 +1,75 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Sections - {{ page.title }}{% endblock %}
+{% block page_title %}{{ page.title }} - Sections{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2 class="card-title">Sections for "{{ page.title }}"</h2>
+            <small style="color: #95a5a6;">{{ page.college.name }} / {{ page.slug }}</small>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="/admin/pages/{{ page.id }}/sections/new" class="btn btn-primary">+ Add New Section</a>
+            <a href="/admin/colleges/{{ page.college_id }}/pages" class="btn btn-secondary">← Back to Pages</a>
+        </div>
+    </div>
+
+    {% if sections %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Section Key</th>
+                <th>Type</th>
+                <th>Sort Order</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for section in sections %}
+            <tr>
+                <td>{{ section.id }}</td>
+                <td><code>{{ section.section_key }}</code></td>
+                <td><span class="badge badge-success">{{ section.section_type }}</span></td>
+                <td>{{ section.sort_order }}</td>
+                <td>
+                    {% if section.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="table-actions">
+                    <a href="/admin/sections/{{ section.id }}/edit" class="btn btn-primary btn-sm">Edit</a>
+                    <form method="POST" action="/admin/sections/{{ section.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this section?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; padding: 40px; color: #95a5a6;">
+        No sections found. Create your first section for this page.
+    </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">💡 Common Section Types</h3>
+    </div>
+    <ul style="line-height: 2;">
+        <li><strong>hero</strong> - Hero/Banner section with images and CTA</li>
+        <li><strong>text</strong> - Text content section</li>
+        <li><strong>stats</strong> - Statistics/Numbers display</li>
+        <li><strong>accordion</strong> - FAQ/Accordion section</li>
+        <li><strong>gallery</strong> - Image gallery</li>
+        <li><strong>contact</strong> - Contact form section</li>
+    </ul>
+</div>
+{% endblock %}
