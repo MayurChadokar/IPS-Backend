@@ -117,7 +117,7 @@ async def list_pages_by_college(
     ]
 
 
-@router.get("/colleges", response_model=list[Dict[str, Any]])
+@router.get("/colleges", response_model=List[Dict[str, Any]])
 async def list_active_colleges(db: Session = Depends(get_db)):
     """
     List all active colleges
