@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Page{% endblock %}
+{% block page_title %}{{ action }} Page - {{ college.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">{{ action }} Page</h2>
+        <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">← Back to Pages</a>
+    </div>
+
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Page Title *</label>
+            <input type="text" name="title" class="form-control" value="{{ page.title if page else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Slug * (URL path)</label>
+            <input type="text" name="slug" class="form-control" value="{{ page.slug if page else '' }}" required pattern="[a-z0-9-]+" placeholder="e.g., home, about-us">
+            <small style="color: #95a5a6;">Only lowercase letters, numbers, and hyphens</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Meta Description (for SEO)</label>
+            <textarea name="meta_description" class="form-control">{{ page.meta_description if page else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-check">
+                <input type="checkbox" name="is_active" value="true" {% if not page or page.is_active %}checked{% endif %}>
+                <span>Active</span>
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">{{ action }} Page</button>
+            <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

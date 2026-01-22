@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} College{% endblock %}
+{% block page_title %}{{ action }} College{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">{{ action }} College</h2>
+        <a href="/admin/colleges" class="btn btn-secondary">← Back to Colleges</a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">College Name *</label>
+            <input type="text" name="name" class="form-control" value="{{ college.name if college else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Slug * (URL-friendly identifier)</label>
+            <input type="text" name="slug" class="form-control" value="{{ college.slug if college else '' }}" required pattern="[a-z0-9-]+" placeholder="e.g., ipsa, college-a">
+            <small style="color: #95a5a6;">Only lowercase letters, numbers, and hyphens</small>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Logo URL</label>
+            <input type="text" name="logo" class="form-control" value="{{ college.logo if college else '' }}" placeholder="/uploads/logo.png">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Domain (optional)</label>
+            <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}" placeholder="college.edu">
+        </div>
+
+        <div class="form-group">
+            <label class="form-check">
+                <input type="checkbox" name="is_active" value="true" {% if not college or college.is_active %}checked{% endif %}>
+                <span>Active</span>
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-success">{{ action }} College</button>
+            <a href="/admin/colleges" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

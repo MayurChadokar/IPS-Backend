@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pages - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Pages{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h2 class="card-title">Pages for {{ college.name }}</h2>
+            <small style="color: #95a5a6;">Manage pages for this college</small>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="/admin/colleges/{{ college.id }}/pages/new" class="btn btn-primary">+ Add New Page</a>
+            <a href="/admin/colleges" class="btn btn-secondary">← Back to Colleges</a>
+        </div>
+    </div>
+
+    {% if pages %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Slug</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for page in pages %}
+            <tr>
+                <td>{{ page.id }}</td>
+                <td><strong>{{ page.title }}</strong></td>
+                <td><code>{{ page.slug }}</code></td>
+                <td>
+                    {% if page.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="table-actions">
+                    <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary btn-sm">📝 Sections</a>
+                    <a href="/admin/pages/{{ page.id }}/edit" class="btn btn-primary btn-sm">Edit</a>
+                    <form method="POST" action="/admin/pages/{{ page.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this page?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; padding: 40px; color: #95a5a6;">
+        No pages found. Create your first page for this college.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

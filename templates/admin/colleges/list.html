@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Colleges{% endblock %}
+{% block page_title %}Manage Colleges{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">All Colleges</h2>
+        <a href="/admin/colleges/new" class="btn btn-primary">+ Add New College</a>
+    </div>
+
+    {% if colleges %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Domain</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for college in colleges %}
+            <tr>
+                <td>{{ college.id }}</td>
+                <td><strong>{{ college.name }}</strong></td>
+                <td><code>{{ college.slug }}</code></td>
+                <td>{{ college.domain or '-' }}</td>
+                <td>
+                    {% if college.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="table-actions">
+                    <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary btn-sm">📄 Pages</a>
+                    <a href="/admin/colleges/{{ college.id }}/edit" class="btn btn-primary btn-sm">Edit</a>
+                    <form method="POST" action="/admin/colleges/{{ college.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this college and all its pages?');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; padding: 40px; color: #95a5a6;">
+        No colleges found. Create your first college to get started.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
