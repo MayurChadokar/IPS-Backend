@@ -11,6 +11,8 @@ import json
 import os
 import shutil
 from pathlib import Path
+from typing import List, Dict, Any
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -517,9 +519,9 @@ async def create_section(
     sort_order: int = Form(0),
     content_json: str = Form("{}"),
     is_active: bool = Form(True),
-    hero_media_files: list[UploadFile] = File(None),
+    hero_media_files: List[UploadFile] = File(None),
     text_media_file: UploadFile = File(None),
-    gallery_media_files: list[UploadFile] = File(None),
+    gallery_media_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -645,9 +647,9 @@ async def update_section(
     sort_order: int = Form(0),
     content_json: str = Form("{}"),
     is_active: bool = Form(True),
-    hero_media_files: list[UploadFile] = File(None),
+    hero_media_files: List[UploadFile] = File(None),
     text_media_file: UploadFile = File(None),
-    gallery_media_files: list[UploadFile] = File(None),
+    gallery_media_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
