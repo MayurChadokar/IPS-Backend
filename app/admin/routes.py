@@ -522,6 +522,7 @@ async def create_section(
     hero_media_files: List[UploadFile] = File(None),
     text_media_file: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
+    team_media_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -595,6 +596,25 @@ async def create_section(
                     new_images.append(img)
             content_data['images'] = new_images
     
+    elif section_type == 'team' and team_media_files:
+        for file in team_media_files:
+            if file and file.filename:
+                file_extension = os.path.splitext(file.filename)[1]
+                safe_filename = f"{section_key}_team_{len(uploaded_files)}{file_extension}"
+                file_path = UPLOAD_DIR / safe_filename
+                with file_path.open("wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                uploaded_files.append(f"/uploads/{safe_filename}")
+        
+        # Replace __UPLOAD__ placeholders in members array
+        if 'members' in content_data:
+            upload_index = 0
+            for member in content_data['members']:
+                if 'image' in member and member['image'].startswith('__UPLOAD__'):
+                    if upload_index < len(uploaded_files):
+                        member['image'] = uploaded_files[upload_index]
+                        upload_index += 1
+    
     section = Section(
         college_id=page.college_id,
         page_id=page_id,
@@ -650,6 +670,7 @@ async def update_section(
     hero_media_files: List[UploadFile] = File(None),
     text_media_file: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
+    team_media_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -722,6 +743,25 @@ async def update_section(
                 else:
                     new_images.append(img)
             content_data['images'] = new_images
+    
+    elif section_type == 'team' and team_media_files:
+        for file in team_media_files:
+            if file and file.filename:
+                file_extension = os.path.splitext(file.filename)[1]
+                safe_filename = f"{section_key}_team_{len(uploaded_files)}{file_extension}"
+                file_path = UPLOAD_DIR / safe_filename
+                with file_path.open("wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                uploaded_files.append(f"/uploads/{safe_filename}")
+        
+        # Replace __UPLOAD__ placeholders in members array
+        if 'members' in content_data:
+            upload_index = 0
+            for member in content_data['members']:
+                if 'image' in member and member['image'].startswith('__UPLOAD__'):
+                    if upload_index < len(uploaded_files):
+                        member['image'] = uploaded_files[upload_index]
+                        upload_index += 1
     
     section.section_key = section_key
     section.section_type = section_type
