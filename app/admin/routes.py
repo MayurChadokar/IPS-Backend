@@ -8,10 +8,9 @@ from app.models.models import User, College, Page, Section, SectionContent
 from datetime import timedelta
 from typing import Optional
 import json
-import os
-import shutil
 from pathlib import Path
 from typing import List, Dict, Any
+from app.core.cloudinary import upload_image
 
 
 router = APIRouter()
@@ -210,16 +209,16 @@ async def create_college(
     
     # Handle logo upload
     if logo and logo.filename:
-        # Create safe filename
-        file_extension = os.path.splitext(logo.filename)[1]
-        safe_filename = f"{slug}_logo{file_extension}"
-        file_path = UPLOAD_DIR / safe_filename
-        
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(logo.file, buffer)
-        
-        logo_path = f"/uploads/{safe_filename}"
+        try:
+            logo_path = upload_image(logo.file, folder="college_logos")
+        except Exception as e:
+            return templates.TemplateResponse("admin/colleges/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": None,
+                "action": "Create",
+                "error": f"Logo upload failed: {str(e)}"
+            })
     
     college = College(
         name=name,
@@ -282,22 +281,16 @@ async def update_college(
     
     # Handle logo upload if new file provided
     if logo and logo.filename:
-        # Delete old logo if exists
-        if college.logo and college.logo.startswith("/uploads/"):
-            old_file_path = Path(college.logo.lstrip("/"))
-            if old_file_path.exists():
-                old_file_path.unlink()
-        
-        # Create safe filename
-        file_extension = os.path.splitext(logo.filename)[1]
-        safe_filename = f"{slug}_logo{file_extension}"
-        file_path = UPLOAD_DIR / safe_filename
-        
-        # Save file
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(logo.file, buffer)
-        
-        college.logo = f"/uploads/{safe_filename}"
+        try:
+            college.logo = upload_image(logo.file, folder="college_logos")
+        except Exception as e:
+            return templates.TemplateResponse("admin/colleges/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "action": "Edit",
+                "error": f"Logo upload failed: {str(e)}"
+            })
     
     college.name = name
     college.slug = slug
@@ -523,6 +516,9 @@ async def create_section(
     text_media_file: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     team_media_files: List[UploadFile] = File(None),
+    cards_media_files: List[UploadFile] = File(None),
+    facilities_media_files: List[UploadFile] = File(None),
+    split_media_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -540,80 +536,116 @@ async def create_section(
     # Handle file uploads based on section type
     uploaded_files = []
     
-    if section_type == 'hero' and hero_media_files:
-        for file in hero_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_hero_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+    try:
+        if section_type == 'hero' and hero_media_files:
+            for file in hero_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in images array
+            if 'images' in content_data:
+                new_images = []
+                upload_index = 0
+                for img in content_data['images']:
+                    if img.startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            new_images.append(uploaded_files[upload_index])
+                            upload_index += 1
+                    else:
+                        new_images.append(img)
+                content_data['images'] = new_images
         
-        # Replace __UPLOAD__ placeholders in images array
-        if 'images' in content_data:
-            new_images = []
-            upload_index = 0
-            for img in content_data['images']:
-                if img.startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        new_images.append(uploaded_files[upload_index])
-                        upload_index += 1
-                else:
-                    new_images.append(img)
-            content_data['images'] = new_images
-    
-    elif section_type == 'text' and text_media_file and text_media_file.filename:
-        file_extension = os.path.splitext(text_media_file.filename)[1]
-        safe_filename = f"{section_key}_media{file_extension}"
-        file_path = UPLOAD_DIR / safe_filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(text_media_file.file, buffer)
+        elif section_type == 'text' and text_media_file and text_media_file.filename:
+            url = upload_image(text_media_file.file, folder=f"sections/{section_key}")
+            if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
+                content_data['image'] = url
         
-        if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
-            content_data['image'] = f"/uploads/{safe_filename}"
-    
-    elif section_type == 'gallery' and gallery_media_files:
-        for file in gallery_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_gallery_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+        elif section_type == 'gallery' and gallery_media_files:
+            for file in gallery_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in images array
+            if 'images' in content_data:
+                new_images = []
+                upload_index = 0
+                for img in content_data['images']:
+                    if img.startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            new_images.append(uploaded_files[upload_index])
+                            upload_index += 1
+                    else:
+                        new_images.append(img)
+                content_data['images'] = new_images
         
-        # Replace __UPLOAD__ placeholders in images array
-        if 'images' in content_data:
-            new_images = []
-            upload_index = 0
-            for img in content_data['images']:
-                if img.startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        new_images.append(uploaded_files[upload_index])
-                        upload_index += 1
-                else:
-                    new_images.append(img)
-            content_data['images'] = new_images
-    
-    elif section_type == 'team' and team_media_files:
-        for file in team_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_team_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+        elif section_type == 'team' and team_media_files:
+            for file in team_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in members array
+            if 'members' in content_data:
+                upload_index = 0
+                for member in content_data['members']:
+                    if 'image' in member and member['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            member['image'] = uploaded_files[upload_index]
+                            upload_index += 1
         
-        # Replace __UPLOAD__ placeholders in members array
-        if 'members' in content_data:
-            upload_index = 0
-            for member in content_data['members']:
-                if 'image' in member and member['image'].startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        member['image'] = uploaded_files[upload_index]
-                        upload_index += 1
+        elif section_type == 'cards' and cards_media_files:
+            for file in cards_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in cards array
+            if 'cards' in content_data:
+                upload_index = 0
+                for card in content_data['cards']:
+                    if 'icon' in card and card['icon'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            card['icon'] = uploaded_files[upload_index]
+                            upload_index += 1
+        
+        elif section_type == 'facilities' and facilities_media_files:
+            for file in facilities_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in facilities array
+            if 'facilities' in content_data:
+                upload_index = 0
+                for facility in content_data['facilities']:
+                    if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            facility['image'] = uploaded_files[upload_index]
+                            upload_index += 1
+        
+        elif section_type == 'split' and split_media_file and split_media_file.filename:
+            url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
+            if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
+                content_data['image'] = url
+    except Exception as e:
+        # Create a mock section object to preserve form state
+        mock_section = {
+            "section_key": section_key,
+            "section_type": section_type,
+            "sort_order": sort_order,
+            "is_active": is_active,
+            "content": {"content_json": content_data}
+        }
+        return templates.TemplateResponse("admin/sections/form.html", {
+            "request": request,
+            "user": current_user,
+            "page": page,
+            "section": mock_section,
+            "action": "Create",
+            "error": f"Upload failed: {str(e)}"
+        })
     
     section = Section(
         college_id=page.college_id,
@@ -671,6 +703,9 @@ async def update_section(
     text_media_file: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     team_media_files: List[UploadFile] = File(None),
+    cards_media_files: List[UploadFile] = File(None),
+    facilities_media_files: List[UploadFile] = File(None),
+    split_media_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -688,80 +723,119 @@ async def update_section(
     # Handle file uploads based on section type
     uploaded_files = []
     
-    if section_type == 'hero' and hero_media_files:
-        for file in hero_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_hero_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+    try:
+        if section_type == 'hero' and hero_media_files:
+            for file in hero_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in images array
+            if 'images' in content_data:
+                new_images = []
+                upload_index = 0
+                for img in content_data['images']:
+                    if img.startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            new_images.append(uploaded_files[upload_index])
+                            upload_index += 1
+                    else:
+                        new_images.append(img)
+                content_data['images'] = new_images
         
-        # Replace __UPLOAD__ placeholders in images array
-        if 'images' in content_data:
-            new_images = []
-            upload_index = 0
-            for img in content_data['images']:
-                if img.startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        new_images.append(uploaded_files[upload_index])
-                        upload_index += 1
-                else:
-                    new_images.append(img)
-            content_data['images'] = new_images
-    
-    elif section_type == 'text' and text_media_file and text_media_file.filename:
-        file_extension = os.path.splitext(text_media_file.filename)[1]
-        safe_filename = f"{section_key}_media{file_extension}"
-        file_path = UPLOAD_DIR / safe_filename
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(text_media_file.file, buffer)
+        elif section_type == 'text' and text_media_file and text_media_file.filename:
+            url = upload_image(text_media_file.file, folder=f"sections/{section_key}")
+            if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
+                content_data['image'] = url
         
-        if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
-            content_data['image'] = f"/uploads/{safe_filename}"
-    
-    elif section_type == 'gallery' and gallery_media_files:
-        for file in gallery_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_gallery_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+        elif section_type == 'gallery' and gallery_media_files:
+            for file in gallery_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in images array
+            if 'images' in content_data:
+                new_images = []
+                upload_index = 0
+                for img in content_data['images']:
+                    if img.startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            new_images.append(uploaded_files[upload_index])
+                            upload_index += 1
+                    else:
+                        new_images.append(img)
+                content_data['images'] = new_images
         
-        # Replace __UPLOAD__ placeholders in images array
-        if 'images' in content_data:
-            new_images = []
-            upload_index = 0
-            for img in content_data['images']:
-                if img.startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        new_images.append(uploaded_files[upload_index])
-                        upload_index += 1
-                else:
-                    new_images.append(img)
-            content_data['images'] = new_images
-    
-    elif section_type == 'team' and team_media_files:
-        for file in team_media_files:
-            if file and file.filename:
-                file_extension = os.path.splitext(file.filename)[1]
-                safe_filename = f"{section_key}_team_{len(uploaded_files)}{file_extension}"
-                file_path = UPLOAD_DIR / safe_filename
-                with file_path.open("wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-                uploaded_files.append(f"/uploads/{safe_filename}")
+        elif section_type == 'team' and team_media_files:
+            for file in team_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in members array
+            if 'members' in content_data:
+                upload_index = 0
+                for member in content_data['members']:
+                    if 'image' in member and member['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            member['image'] = uploaded_files[upload_index]
+                            upload_index += 1
         
-        # Replace __UPLOAD__ placeholders in members array
-        if 'members' in content_data:
-            upload_index = 0
-            for member in content_data['members']:
-                if 'image' in member and member['image'].startswith('__UPLOAD__'):
-                    if upload_index < len(uploaded_files):
-                        member['image'] = uploaded_files[upload_index]
-                        upload_index += 1
+        elif section_type == 'cards' and cards_media_files:
+            for file in cards_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in cards array
+            if 'cards' in content_data:
+                upload_index = 0
+                for card in content_data['cards']:
+                    if 'icon' in card and card['icon'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            card['icon'] = uploaded_files[upload_index]
+                            upload_index += 1
+        
+        elif section_type == 'facilities' and facilities_media_files:
+            for file in facilities_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in facilities array
+            if 'facilities' in content_data:
+                upload_index = 0
+                for facility in content_data['facilities']:
+                    if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            facility['image'] = uploaded_files[upload_index]
+                            upload_index += 1
+        
+        elif section_type == 'split' and split_media_file and split_media_file.filename:
+            url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
+            if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
+                content_data['image'] = url
+    except Exception as e:
+        # Update current section object with submitted data to preserve form state
+        section.section_key = section_key
+        section.section_type = section_type
+        section.sort_order = sort_order
+        section.is_active = is_active
+        if not section.content:
+            from app.models.models import SectionContent
+            section.content = SectionContent(content_json=content_data)
+        else:
+            section.content.content_json = content_data
+            
+        return templates.TemplateResponse("admin/sections/form.html", {
+            "request": request,
+            "user": current_user,
+            "page": section.page,
+            "section": section,
+            "action": "Edit",
+            "error": f"Upload failed: {str(e)}"
+        })
     
     section.section_key = section_key
     section.section_type = section_type

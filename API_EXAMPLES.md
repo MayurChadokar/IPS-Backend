@@ -69,13 +69,20 @@ curl -X PUT http://localhost:3000/api/admin/sections/1 \
   -H "Content-Type: application/json" \
   -d '{
     "content_json": {
-      "images": ["/uploads/new-hero.jpg"],
+      "images": ["https://res.cloudinary.com/.../new-hero.jpg"],
       "description": "Updated description"
     }
   }'
 ```
 
-### 9. Clone Page Between Colleges
+### 9. Upload File to Cloudinary (Admin)
+```bash
+curl -X POST http://localhost:3000/api/admin/upload \
+  -F "file=@your_image.jpg" \
+  -F "folder=college_logos"
+```
+
+### 10. Clone Page Between Colleges
 ```bash
 curl -X POST http://localhost:3000/api/admin/pages/clone \
   -H "Content-Type: application/json" \
@@ -87,7 +94,7 @@ curl -X POST http://localhost:3000/api/admin/pages/clone \
   }'
 ```
 
-### 10. List All Pages for a College
+### 11. List All Pages for a College
 ```bash
 curl http://localhost:3000/api/admin/colleges/1/pages
 ```

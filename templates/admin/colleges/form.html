@@ -11,7 +11,10 @@
     </div>
 
     {% if error %}
-    <div class="alert alert-error">{{ error }}</div>
+    <div class="alert alert-danger"
+        style="margin: 20px; background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border-left: 5px solid #ef4444;">
+        {{ error }}
+    </div>
     {% endif %}
 
     <form method="POST" enctype="multipart/form-data">
@@ -22,7 +25,8 @@
 
         <div class="form-group">
             <label class="form-label">Slug * (URL-friendly identifier)</label>
-            <input type="text" name="slug" class="form-control" value="{{ college.slug if college else '' }}" required pattern="[a-z0-9-]+" placeholder="e.g., ipsa, college-a">
+            <input type="text" name="slug" class="form-control" value="{{ college.slug if college else '' }}" required
+                pattern="[a-z0-9-]+" placeholder="e.g., ipsa, college-a">
             <small style="color: #95a5a6;">Only lowercase letters, numbers, and hyphens</small>
         </div>
 
@@ -30,7 +34,8 @@
             <label class="form-label">Logo</label>
             {% if college and college.logo %}
             <div style="margin-bottom: 10px;">
-                <img src="{{ college.logo }}" alt="Current logo" style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+                <img src="{{ college.logo }}" alt="Current logo"
+                    style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
                 <p style="font-size: 12px; color: #95a5a6; margin-top: 5px;">Current logo</p>
             </div>
             {% endif %}
@@ -40,12 +45,14 @@
 
         <div class="form-group">
             <label class="form-label">Domain (optional)</label>
-            <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}" placeholder="college.edu">
+            <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}"
+                placeholder="college.edu">
         </div>
 
         <div class="form-group">
             <label class="form-check">
-                <input type="checkbox" name="is_active" value="true" {% if not college or college.is_active %}checked{% endif %}>
+                <input type="checkbox" name="is_active" value="true" {% if not college or college.is_active %}checked{%
+                    endif %}>
                 <span>Active</span>
             </label>
         </div>

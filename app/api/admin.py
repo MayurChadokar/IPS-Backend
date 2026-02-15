@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
@@ -10,7 +10,8 @@ from app.schemas.schemas import (
     SectionCreate, SectionUpdate, SectionResponse,
     ClonePageRequest, CreateCollegeFromTemplate
 )
-from typing import List
+from typing import List, Dict, Any
+from app.core.cloudinary import upload_image
 
 
 router = APIRouter()
@@ -387,3 +388,23 @@ async def clone_page(
     db.commit()
     db.refresh(new_page)
     return new_page
+
+
+@router.post("/upload", response_model=Dict[str, Any])
+async def upload_file(
+    file: UploadFile = File(...),
+    folder: str = "general",
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Upload a file to Cloudinary
+    Returns the secure URL
+    """
+    try:
+        url = upload_image(file.file, folder=folder)
+        return {"url": url, "filename": file.filename}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload failed: {str(e)}"
+        )

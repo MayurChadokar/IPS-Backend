@@ -10,10 +10,19 @@
         <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">← Back to Sections</a>
     </div>
 
+    {% if error %}
+    <div class="alert alert-danger"
+        style="margin: 20px; background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border-left: 5px solid #ef4444;">
+        {{ error }}
+    </div>
+    {% endif %}
+
     <form method="POST" id="sectionForm" enctype="multipart/form-data">
         <div class="form-group">
             <label class="form-label">Section Key * (unique identifier)</label>
-            <input type="text" name="section_key" id="section_key" class="form-control" value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+" placeholder="e.g., hero, why_college, stats">
+            <input type="text" name="section_key" id="section_key" class="form-control"
+                value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+"
+                placeholder="e.g., hero, why_college, stats">
             <small style="color: #95a5a6;">Only lowercase letters, numbers, and underscores</small>
         </div>
 
@@ -21,19 +30,37 @@
             <label class="form-label">Section Type *</label>
             <select name="section_type" id="section_type" class="form-control" required>
                 <option value="">-- Select Type --</option>
-                <option value="hero" {% if section and section.section_type == 'hero' %}selected{% endif %}>Hero Section</option>
-                <option value="text" {% if section and section.section_type == 'text' %}selected{% endif %}>Text/Content</option>
-                <option value="stats" {% if section and section.section_type == 'stats' %}selected{% endif %}>Statistics</option>
-                <option value="accordion" {% if section and section.section_type == 'accordion' %}selected{% endif %}>Accordion/FAQ</option>
-                <option value="gallery" {% if section and section.section_type == 'gallery' %}selected{% endif %}>Image Gallery</option>
-                <option value="team" {% if section and section.section_type == 'team' %}selected{% endif %}>Leadership Team</option>
-                <option value="contact" {% if section and section.section_type == 'contact' %}selected{% endif %}>Contact Info</option>
+                <option value="hero" {% if section and section.section_type=='hero' %}selected{% endif %}>Hero Section
+                </option>
+                <option value="text" {% if section and section.section_type=='text' %}selected{% endif %}>Text/Content
+                </option>
+                <option value="stats" {% if section and section.section_type=='stats' %}selected{% endif %}>Statistics
+                </option>
+                <option value="accordion" {% if section and section.section_type=='accordion' %}selected{% endif %}>
+                    Accordion/FAQ</option>
+                <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>Image
+                    Gallery</option>
+                <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>Leadership
+                    Team</option>
+                <option value="features" {% if section and section.section_type=='features' %}selected{% endif %}>
+                    Features/List</option>
+                <option value="cards" {% if section and section.section_type=='cards' %}selected{% endif %}>
+                    Advantage/Cards (Icons)</option>
+                <option value="facilities" {% if section and section.section_type=='facilities' %}selected{% endif %}>
+                    Facilities (Image Grid)</option>
+                <option value="split" {% if section and section.section_type=='split' %}selected{% endif %}>
+                    Feature with Image (Split)</option>
+                <option value="programs" {% if section and section.section_type=='programs' %}selected{% endif %}>
+                    Programs/Table</option>
+                <option value="contact" {% if section and section.section_type=='contact' %}selected{% endif %}>Contact
+                    Info</option>
             </select>
         </div>
 
         <div class="form-group">
             <label class="form-label">Sort Order</label>
-            <input type="number" name="sort_order" class="form-control" value="{{ section.sort_order if section else 0 }}" min="0">
+            <input type="number" name="sort_order" class="form-control"
+                value="{{ section.sort_order if section else 0 }}" min="0">
             <small style="color: #95a5a6;">Lower numbers appear first</small>
         </div>
 
@@ -47,7 +74,8 @@
 
         <div class="form-group">
             <label class="form-check">
-                <input type="checkbox" name="is_active" value="true" {% if not section or section.is_active %}checked{% endif %}>
+                <input type="checkbox" name="is_active" value="true" {% if not section or section.is_active %}checked{%
+                    endif %}>
                 <span>Active</span>
             </label>
         </div>
@@ -60,11 +88,11 @@
 </div>
 
 <script>
-// Store existing content if editing
-const existingContent = {{ section.content.content_json|tojson if section and section.content else '{}' }};
+    // Store existing content if editing
+    const existingContent = {{ section.content.content_json| tojson if section and section.content else '{}' }};
 
-const contentTemplates = {
-    hero: () => `
+    const contentTemplates = {
+        hero: () => `
         <div class="form-group">
             <label class="form-label">Hero Description</label>
             <textarea class="form-control" id="hero_description" rows="3" placeholder="Welcome message or tagline">${existingContent.description || ''}</textarea>
@@ -77,12 +105,12 @@ const contentTemplates = {
                         ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
                         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
-                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
                                 <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
                             </div>
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
+                                <input type="text" class="form-control hero-media-url" placeholder="https://example.com/image.jpg" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
                             </div>
                         </div>
                         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
@@ -101,8 +129,8 @@ const contentTemplates = {
             <input type="text" class="form-control" id="hero_cta_link" placeholder="/apply" value="${existingContent.cta_link || ''}">
         </div>
     `,
-    
-    text: () => `
+
+        text: () => `
         <div class="form-group">
             <label class="form-label">Title</label>
             <input type="text" class="form-control" id="text_title" placeholder="Section Title" value="${existingContent.title || ''}">
@@ -116,21 +144,21 @@ const contentTemplates = {
             ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? '🎥' : '🖼️'} <a href="${existingContent.image}" target="_blank">${existingContent.image}</a></div>` : ''}
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <div style="flex: 1;">
-                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
                     <input type="file" name="text_media_file" class="form-control" id="text_image_file" accept="image/*,video/*">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                    <input type="text" class="form-control" id="text_image" placeholder="/uploads/image.jpg or video.mp4" value="${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? existingContent.image : ''}">
+                    <input type="text" class="form-control" id="text_image" placeholder="https://example.com/image.jpg" value="${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? existingContent.image : ''}">
                 </div>
             </div>
             <small style="color: #95a5a6;">Upload or link to an image (JPG, PNG, GIF) or video (MP4, WebM)</small>
         </div>
     `,
-    
-    stats: () => {
-        const stats = existingContent.stats || [{label: '', value: ''}];
-        return `
+
+        stats: () => {
+            const stats = existingContent.stats || [{ label: '', value: '' }];
+            return `
             <div class="form-group">
                 <label class="form-label">Statistics</label>
                 <div id="stats_container">
@@ -145,11 +173,11 @@ const contentTemplates = {
                 <button type="button" class="btn btn-secondary" onclick="addStat()" style="margin-top: 10px;">+ Add Stat</button>
             </div>
         `;
-    },
-    
-    accordion: () => {
-        const items = existingContent.items || [{question: '', answer: ''}];
-        return `
+        },
+
+        accordion: () => {
+            const items = existingContent.items || [{ question: '', answer: '' }];
+            return `
             <div class="form-group">
                 <label class="form-label">Section Title</label>
                 <input type="text" class="form-control" id="accordion_title" placeholder="Frequently Asked Questions" value="${existingContent.title || ''}">
@@ -168,11 +196,11 @@ const contentTemplates = {
                 <button type="button" class="btn btn-secondary" onclick="addAccordionItem()" style="margin-top: 10px;">+ Add Question</button>
             </div>
         `;
-    },
-    
-    gallery: () => {
-        const images = existingContent.images || [''];
-        return `
+        },
+
+        gallery: () => {
+            const images = existingContent.images || [''];
+            return `
             <div class="form-group">
                 <label class="form-label">Gallery Title (optional)</label>
                 <input type="text" class="form-control" id="gallery_title" placeholder="Photo Gallery" value="${existingContent.title || ''}">
@@ -185,12 +213,12 @@ const contentTemplates = {
                             ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
                             <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
-                                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
                                     <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                    <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
+                                    <input type="text" class="form-control gallery-image" placeholder="https://example.com/image.jpg" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
                                 </div>
                             </div>
                             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
@@ -201,11 +229,11 @@ const contentTemplates = {
                 <small style="display: block; color: #95a5a6; margin-top: 5px;">Upload images (JPG, PNG, GIF) or videos (MP4, WebM), or enter direct URLs</small>
             </div>
         `;
-    },
-    
-    team: () => {
-        const members = existingContent.members || [{name: '', title: '', description: '', image: ''}];
-        return `
+        },
+
+        team: () => {
+            const members = existingContent.members || [{ name: '', title: '', description: '', image: '' }];
+            return `
             <div class="form-group">
                 <label class="form-label">Section Title</label>
                 <input type="text" class="form-control" id="team_title" placeholder="Our Leadership Team" value="${existingContent.title || ''}">
@@ -236,12 +264,12 @@ const contentTemplates = {
                                 ${member.image && !member.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${member.image}" target="_blank">${member.image}</a></div>` : ''}
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
-                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo</label>
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
                                         <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                        <input type="text" class="form-control team-image" placeholder="/uploads/photo.jpg" value="${member.image && !member.image.startsWith('__UPLOAD__') ? member.image : ''}" style="padding: 10px;">
+                                        <input type="text" class="form-control team-image" placeholder="https://example.com/photo.jpg" value="${member.image && !member.image.startsWith('__UPLOAD__') ? member.image : ''}" style="padding: 10px;">
                                     </div>
                                 </div>
                             </div>
@@ -254,9 +282,9 @@ const contentTemplates = {
                 <small style="display: block; color: #95a5a6; margin-top: 5px;">Add leadership team members with their photos, titles, and descriptions</small>
             </div>
         `;
-    },
-    
-    contact: () => `
+        },
+
+        contact: () => `
         <div class="form-group">
             <label class="form-label">Email</label>
             <input type="email" class="form-control" id="contact_email" placeholder="info@college.edu" value="${existingContent.email || ''}">
@@ -273,84 +301,290 @@ const contentTemplates = {
             <label class="form-label">Map Embed URL (optional)</label>
             <input type="text" class="form-control" id="contact_map" placeholder="https://maps.google.com/..." value="${existingContent.map || ''}">
         </div>
-    `
-};
+    `,
 
-// Helper functions for dynamic fields
-function addStat() {
-    const container = document.getElementById('stats_container');
-    const newStat = document.createElement('div');
-    newStat.className = 'stat-item';
-    newStat.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
-    newStat.innerHTML = `
+        features: () => {
+            const items = existingContent.items || [''];
+            return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="features_title" placeholder="Campus To Business Boardrooms" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Section Subtitle</label>
+                <input type="text" class="form-control" id="features_subtitle" placeholder="Make it happen at IBMR" value="${existingContent.subtitle || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Feature List Items</label>
+                <div id="features_container">
+                    ${items.map((item, index) => `
+                        <div class="feature-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" class="form-control feature-text" placeholder="e.g., Legacy of 30 years" value="${item || ''}" style="flex: 1;">
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addFeatureItem()" style="margin-top: 10px;">+ Add Item</button>
+            </div>
+        `;
+        },
+
+        cards: () => {
+            const cards = existingContent.cards || [{ title: '', description: '', icon: '' }];
+            return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="cards_title" placeholder="Experience, Learn, Lead: The IBMR Advantage" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Grid Cards</label>
+                <div id="cards_container">
+                    ${cards.map((card, index) => `
+                        <div class="card-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Card Title *</label>
+                                    <input type="text" class="form-control card-title" placeholder="Experiential Learning" value="${card.title || ''}">
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
+                                <textarea class="form-control card-description" rows="2" placeholder="Short description...">${card.description || ''}</textarea>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Icon/Image</label>
+                                ${card.icon && !card.icon.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${card.icon}" target="_blank">${card.icon.split('/').pop()}</a></div>` : ''}
+                                <div style="display: flex; gap: 10px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Icon (Cloudinary)</label>
+                                        <input type="file" name="cards_media_files" class="form-control card-icon-file" accept="image/*" style="padding: 8px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                                        <input type="text" class="form-control card-icon-url" placeholder="https://example.com/icon.png" value="${card.icon && !card.icon.startsWith('__UPLOAD__') ? card.icon : ''}" style="padding: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top: 10px;">Remove Card</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addCardItem()" style="margin-top: 10px;">+ Add Card</button>
+            </div>
+        `;
+        },
+
+        programs: () => {
+            const programs = existingContent.programs || [{ name: '', details: '', eligibility: '' }];
+            return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="programs_title" placeholder="Programmes Offered" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Program List</label>
+                <div id="programs_container">
+                    ${programs.map((prog, index) => `
+                        <div class="program-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Programme Name *</label>
+                                <input type="text" class="form-control program-name" placeholder="MBA (Core)" value="${prog.name || ''}" style="margin-bottom: 10px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Programme Details (HTML supported) *</label>
+                                <textarea class="form-control program-details" rows="5" placeholder="Details highlights, career pathways...">${prog.details || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Eligibility *</label>
+                                <textarea class="form-control program-eligibility" rows="3" placeholder="Admission criteria...">${prog.eligibility || ''}</textarea>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Program</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addProgramItem()" style="margin-top: 10px;">+ Add Program</button>
+            </div>
+        `;
+        },
+
+        facilities: () => {
+            const facilities = existingContent.facilities || [{ name: '', description: '', image: '' }];
+            return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="facilities_title" placeholder="Facilities" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Section Subtitle</label>
+                <input type="text" class="form-control" id="facilities_subtitle" placeholder="60 acres of excellence. Limitless success for you." value="${existingContent.subtitle || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Section Description</label>
+                <textarea class="form-control" id="facilities_description" rows="3" placeholder="IBMR is more than a campus...">${existingContent.description || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Facility Grid</label>
+                <div id="facilities_container">
+                    ${facilities.map((fac, index) => `
+                        <div class="facility-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Facility Name * (e.g., LIBRARY)</label>
+                                <input type="text" class="form-control facility-name" placeholder="LIBRARY" value="${fac.name || ''}" style="margin-bottom: 10px; font-weight: bold;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
+                                <textarea class="form-control facility-description" rows="2" placeholder="State-of-the-art library...">${fac.description || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Image</label>
+                                ${fac.image && !fac.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${fac.image}" target="_blank">${fac.image.split('/').pop()}</a></div>` : ''}
+                                <div style="display: flex; gap: 10px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
+                                        <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*" style="padding: 8px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                                        <input type="text" class="form-control facility-image-url" placeholder="https://example.com/library.jpg" value="${fac.image && !fac.image.startsWith('__UPLOAD__') ? fac.image : ''}" style="padding: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Facility</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addFacilityItem()" style="margin-top: 10px;">+ Add Facility</button>
+            </div>
+        `;
+        },
+
+        split: () => {
+            const items = existingContent.items || [''];
+            return `
+            <div class="form-group">
+                <label class="form-label">Category Tag (optional)</label>
+                <input type="text" class="form-control" id="split_tag" placeholder="PLACEMENT" value="${existingContent.tag || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Main Title</label>
+                <input type="text" class="form-control" id="split_title" placeholder="So Will You They Made It Happen At IBMR" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description Paragraph</label>
+                <textarea class="form-control" id="split_description" rows="4" placeholder="Brief description...">${existingContent.description || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Feature Highlights (Checklist)</label>
+                <div id="split_items_container">
+                    ${items.map((item, index) => `
+                        <div class="feature-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" class="form-control split-item-text" placeholder="e.g., Tailored career guidance" value="${item || ''}" style="flex: 1;">
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addSplitItem()" style="margin-top: 10px;">+ Add Item</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Section Image</label>
+                ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${existingContent.image}" target="_blank">${existingContent.image.split('/').pop()}</a></div>` : ''}
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
+                        <input type="file" name="split_media_file" class="form-control" id="split_image_file" accept="image/*" style="padding: 8px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                        <input type="text" class="form-control" id="split_image_url" placeholder="https://example.com/image.jpg" value="${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? existingContent.image : ''}" style="padding: 10px;">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Image Position</label>
+                <select id="split_image_position" class="form-control">
+                    <option value="right" ${existingContent.image_position === 'right' ? 'selected' : ''}>Right</option>
+                    <option value="left" ${existingContent.image_position === 'left' ? 'selected' : ''}>Left</option>
+                </select>
+            </div>
+        `;
+        }
+    };
+
+    // Helper functions for dynamic fields
+    function addStat() {
+        const container = document.getElementById('stats_container');
+        const newStat = document.createElement('div');
+        newStat.className = 'stat-item';
+        newStat.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+        newStat.innerHTML = `
         <input type="text" class="form-control stat-label" placeholder="Label (e.g., Students)" style="flex: 1;">
         <input type="text" class="form-control stat-value" placeholder="Value (e.g., 5000+)" style="flex: 1;">
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
     `;
-    container.appendChild(newStat);
-}
+        container.appendChild(newStat);
+    }
 
-function addAccordionItem() {
-    const container = document.getElementById('accordion_container');
-    const newItem = document.createElement('div');
-    newItem.className = 'accordion-item';
-    newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
-    newItem.innerHTML = `
+    function addAccordionItem() {
+        const container = document.getElementById('accordion_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'accordion-item';
+        newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newItem.innerHTML = `
         <input type="text" class="form-control accordion-question" placeholder="Question" style="margin-bottom: 10px; font-weight: 600;">
         <textarea class="form-control accordion-answer" placeholder="Answer" rows="3" style="margin-bottom: 10px;"></textarea>
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
-    container.appendChild(newItem);
-}
+        container.appendChild(newItem);
+    }
 
-function addHeroMedia() {
-    const container = document.getElementById('hero_media_container');
-    const newMedia = document.createElement('div');
-    newMedia.className = 'media-item';
-    newMedia.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
-    newMedia.innerHTML = `
-        <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
-                <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+    function addHeroMedia() {
+        const container = document.getElementById('hero_media_container');
+        const newMedia = document.createElement('div');
+        newMedia.className = 'media-item';
+        newMedia.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newMedia.innerHTML = `
+            <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
+                    <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                    <input type="text" class="form-control hero-media-url" placeholder="https://example.com/image.jpg" style="padding: 10px;">
+                </div>
             </div>
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                <input type="text" class="form-control hero-media-url" placeholder="/uploads/media.jpg or .mp4" style="padding: 10px;">
-            </div>
-        </div>
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
-    container.appendChild(newMedia);
-}
+        container.appendChild(newMedia);
+    }
 
-function addGalleryImage() {
-    const container = document.getElementById('gallery_container');
-    const newImage = document.createElement('div');
-    newImage.className = 'gallery-item';
-    newImage.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
-    newImage.innerHTML = `
+    function addGalleryImage() {
+        const container = document.getElementById('gallery_container');
+        const newImage = document.createElement('div');
+        newImage.className = 'gallery-item';
+        newImage.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newImage.innerHTML = `
         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
             <div style="flex: 1;">
-                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File</label>
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
                 <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
             </div>
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                <input type="text" class="form-control gallery-image" placeholder="/uploads/media.jpg or .mp4" style="padding: 10px;">
+                <input type="text" class="form-control gallery-image" placeholder="https://example.com/image.jpg" style="padding: 10px;">
             </div>
         </div>
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
-    container.appendChild(newImage);
-}
+        container.appendChild(newImage);
+    }
 
-function addTeamMember() {
-    const container = document.getElementById('team_container');
-    const newMember = document.createElement('div');
-    newMember.className = 'team-item';
-    newMember.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
-    newMember.innerHTML = `
+    function addTeamMember() {
+        const container = document.getElementById('team_container');
+        const newMember = document.createElement('div');
+        newMember.className = 'team-item';
+        newMember.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newMember.innerHTML = `
         <div style="display: flex; gap: 15px; margin-bottom: 15px;">
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Name *</label>
@@ -371,200 +605,455 @@ function addTeamMember() {
             <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
-                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo</label>
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
                     <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                    <input type="text" class="form-control team-image" placeholder="/uploads/photo.jpg" style="padding: 10px;">
+                    <input type="text" class="form-control team-image" placeholder="https://example.com/photo.jpg" style="padding: 10px;">
                 </div>
             </div>
         </div>
         
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Member</button>
     `;
-    container.appendChild(newMember);
-}
-
-// Build JSON from form fields (for text-based fields only, files handled separately)
-function buildJSON() {
-    const sectionType = document.getElementById('section_type').value;
-    let jsonData = {};
-    
-    switch(sectionType) {
-        case 'hero':
-            const heroMedia = [];
-            const mediaItems = document.querySelectorAll('#hero_media_container .media-item');
-            for (const item of mediaItems) {
-                const urlInput = item.querySelector('.hero-media-url');
-                const fileInput = item.querySelector('.hero-media-file');
-                
-                if (fileInput && fileInput.files.length > 0) {
-                    // File will be uploaded, store placeholder that backend will replace
-                    heroMedia.push('__UPLOAD__' + fileInput.files[0].name);
-                } else if (urlInput && urlInput.value.trim()) {
-                    heroMedia.push(urlInput.value.trim());
-                }
-            }
-            jsonData = {
-                description: document.getElementById('hero_description').value,
-                images: heroMedia,
-                cta_text: document.getElementById('hero_cta_text').value,
-                cta_link: document.getElementById('hero_cta_link').value
-            };
-            break;
-            
-        case 'text':
-            const textImageFile = document.getElementById('text_image_file');
-            let textImage = document.getElementById('text_image').value;
-            
-            if (textImageFile && textImageFile.files.length > 0) {
-                textImage = '__UPLOAD__' + textImageFile.files[0].name;
-            }
-            
-            jsonData = {
-                title: document.getElementById('text_title').value,
-                content: document.getElementById('text_content').value,
-                image: textImage
-            };
-            break;
-            
-        case 'stats':
-            const stats = [];
-            document.querySelectorAll('.stat-item').forEach(item => {
-                const label = item.querySelector('.stat-label').value;
-                const value = item.querySelector('.stat-value').value;
-                if (label || value) {
-                    stats.push({label, value});
-                }
-            });
-            jsonData = {stats};
-            break;
-            
-        case 'accordion':
-            const items = [];
-            document.querySelectorAll('.accordion-item').forEach(item => {
-                const question = item.querySelector('.accordion-question').value;
-                const answer = item.querySelector('.accordion-answer').value;
-                if (question || answer) {
-                    items.push({question, answer});
-                }
-            });
-            jsonData = {
-                title: document.getElementById('accordion_title').value,
-                items
-            };
-            break;
-            
-        case 'gallery':
-            const galleryMedia = [];
-            const galleryItems = document.querySelectorAll('#gallery_container .gallery-item');
-            for (const item of galleryItems) {
-                const urlInput = item.querySelector('.gallery-image');
-                const fileInput = item.querySelector('.gallery-media-file');
-                
-                if (fileInput && fileInput.files.length > 0) {
-                    galleryMedia.push('__UPLOAD__' + fileInput.files[0].name);
-                } else if (urlInput && urlInput.value.trim()) {
-                    galleryMedia.push(urlInput.value.trim());
-                }
-            }
-            jsonData = {
-                title: document.getElementById('gallery_title').value,
-                images: galleryMedia
-            };
-            break;
-            
-        case 'team':
-            const teamMembers = [];
-            const teamItems = document.querySelectorAll('#team_container .team-item');
-            for (const item of teamItems) {
-                const nameInput = item.querySelector('.team-name');
-                const titleInput = item.querySelector('.team-title');
-                const descInput = item.querySelector('.team-description');
-                const urlInput = item.querySelector('.team-image');
-                const fileInput = item.querySelector('.team-image-file');
-                
-                let memberImage = '';
-                if (fileInput && fileInput.files.length > 0) {
-                    memberImage = '__UPLOAD__' + fileInput.files[0].name;
-                } else if (urlInput && urlInput.value.trim()) {
-                    memberImage = urlInput.value.trim();
-                }
-                
-                if (nameInput && nameInput.value.trim()) {
-                    teamMembers.push({
-                        name: nameInput.value.trim(),
-                        title: titleInput ? titleInput.value.trim() : '',
-                        description: descInput ? descInput.value.trim() : '',
-                        image: memberImage
-                    });
-                }
-            }
-            jsonData = {
-                title: document.getElementById('team_title').value,
-                members: teamMembers
-            };
-            break;
-            
-        case 'contact':
-            jsonData = {
-                email: document.getElementById('contact_email').value,
-                phone: document.getElementById('contact_phone').value,
-                address: document.getElementById('contact_address').value,
-                map: document.getElementById('contact_map').value
-            };
-            break;
+        container.appendChild(newMember);
     }
-    
-    return JSON.stringify(jsonData);
-}
 
-// Update content builder when section type changes
-document.getElementById('section_type').addEventListener('change', function() {
-    const type = this.value;
-    const builder = document.getElementById('contentBuilder');
-    
-    if (type && contentTemplates[type]) {
-        builder.innerHTML = contentTemplates[type]();
-    } else {
-        builder.innerHTML = '';
+    function addFeatureItem() {
+        const container = document.getElementById('features_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'feature-item';
+        newItem.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+        newItem.innerHTML = `
+        <input type="text" class="form-control feature-text" placeholder="e.g., Legacy of 30 years" style="flex: 1;">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+    `;
+        container.appendChild(newItem);
     }
-});
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const currentType = document.getElementById('section_type').value;
-    if (currentType && contentTemplates[currentType]) {
-        document.getElementById('contentBuilder').innerHTML = contentTemplates[currentType]();
+    function addCardItem() {
+        const container = document.getElementById('cards_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'card-item';
+        newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newItem.innerHTML = `
+        <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Card Title *</label>
+                <input type="text" class="form-control card-title" placeholder="Experiential Learning">
+            </div>
+        </div>
+        <div style="margin-bottom: 10px;">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
+            <textarea class="form-control card-description" rows="2" placeholder="Short description..."></textarea>
+        </div>
+        <div>
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Icon/Image</label>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Icon (Cloudinary)</label>
+                    <input type="file" name="cards_media_files" class="form-control card-icon-file" accept="image/*" style="padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                    <input type="text" class="form-control card-icon-url" placeholder="https://example.com/icon.png" style="padding: 10px;">
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top: 10px;">Remove Card</button>
+    `;
+        container.appendChild(newItem);
     }
-});
 
-// Build JSON before form submission
-document.getElementById('sectionForm').addEventListener('submit', function(e) {
-    // Build JSON with placeholders for uploads
-    const json = buildJSON();
-    document.getElementById('content_json').value = json;
-    
-    // Form will submit normally with multipart/form-data
-    // Files with name attributes will be uploaded automatically
-});
+    function addProgramItem() {
+        const container = document.getElementById('programs_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'program-item';
+        newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newItem.innerHTML = `
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Programme Name *</label>
+            <input type="text" class="form-control program-name" placeholder="MBA (Core)" style="margin-bottom: 10px;">
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Programme Details (HTML supported) *</label>
+            <textarea class="form-control program-details" rows="5" placeholder="Details highlights, career pathways..."></textarea>
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Eligibility *</label>
+            <textarea class="form-control program-eligibility" rows="3" placeholder="Admission criteria..."></textarea>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Program</button>
+    `;
+        container.appendChild(newItem);
+    }
+
+    function addFacilityItem() {
+        const container = document.getElementById('facilities_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'facility-item';
+        newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newItem.innerHTML = `
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Facility Name * (e.g., LIBRARY)</label>
+            <input type="text" class="form-control facility-name" placeholder="LIBRARY" style="margin-bottom: 10px; font-weight: bold;">
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
+            <textarea class="form-control facility-description" rows="2" placeholder="State-of-the-art library..."></textarea>
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Image</label>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
+                    <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*" style="padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                    <input type="text" class="form-control facility-image-url" placeholder="https://example.com/library.jpg" style="padding: 10px;">
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Facility</button>
+    `;
+        container.appendChild(newItem);
+    }
+
+    function addSplitItem() {
+        const container = document.getElementById('split_items_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'feature-item';
+        newItem.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+        newItem.innerHTML = `
+        <input type="text" class="form-control split-item-text" placeholder="e.g., Tailored career guidance" style="flex: 1;">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+    `;
+        container.appendChild(newItem);
+    }
+
+    // Build JSON from form fields (for text-based fields only, files handled separately)
+    function buildJSON() {
+        const sectionType = document.getElementById('section_type').value;
+        let jsonData = {};
+
+        switch (sectionType) {
+            case 'hero':
+                const heroMedia = [];
+                const mediaItems = document.querySelectorAll('#hero_media_container .media-item');
+                for (const item of mediaItems) {
+                    const urlInput = item.querySelector('.hero-media-url');
+                    const fileInput = item.querySelector('.hero-media-file');
+
+                    if (fileInput && fileInput.files.length > 0) {
+                        // File will be uploaded, store placeholder that backend will replace
+                        heroMedia.push('__UPLOAD__' + fileInput.files[0].name);
+                    } else if (urlInput && urlInput.value.trim()) {
+                        heroMedia.push(urlInput.value.trim());
+                    }
+                }
+                jsonData = {
+                    description: document.getElementById('hero_description').value,
+                    images: heroMedia,
+                    cta_text: document.getElementById('hero_cta_text').value,
+                    cta_link: document.getElementById('hero_cta_link').value
+                };
+                break;
+
+            case 'text':
+                const textImageFile = document.getElementById('text_image_file');
+                let textImage = document.getElementById('text_image').value;
+
+                if (textImageFile && textImageFile.files.length > 0) {
+                    textImage = '__UPLOAD__' + textImageFile.files[0].name;
+                }
+
+                jsonData = {
+                    title: document.getElementById('text_title').value,
+                    content: document.getElementById('text_content').value,
+                    image: textImage
+                };
+                break;
+
+            case 'stats':
+                const stats = [];
+                document.querySelectorAll('.stat-item').forEach(item => {
+                    const label = item.querySelector('.stat-label').value;
+                    const value = item.querySelector('.stat-value').value;
+                    if (label || value) {
+                        stats.push({ label, value });
+                    }
+                });
+                jsonData = { stats };
+                break;
+
+            case 'accordion':
+                const items = [];
+                document.querySelectorAll('.accordion-item').forEach(item => {
+                    const question = item.querySelector('.accordion-question').value;
+                    const answer = item.querySelector('.accordion-answer').value;
+                    if (question || answer) {
+                        items.push({ question, answer });
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('accordion_title').value,
+                    items
+                };
+                break;
+
+            case 'gallery':
+                const galleryMedia = [];
+                const galleryItems = document.querySelectorAll('#gallery_container .gallery-item');
+                for (const item of galleryItems) {
+                    const urlInput = item.querySelector('.gallery-image');
+                    const fileInput = item.querySelector('.gallery-media-file');
+
+                    if (fileInput && fileInput.files.length > 0) {
+                        galleryMedia.push('__UPLOAD__' + fileInput.files[0].name);
+                    } else if (urlInput && urlInput.value.trim()) {
+                        galleryMedia.push(urlInput.value.trim());
+                    }
+                }
+                jsonData = {
+                    title: document.getElementById('gallery_title').value,
+                    images: galleryMedia
+                };
+                break;
+
+            case 'team':
+                const teamMembers = [];
+                const teamItems = document.querySelectorAll('#team_container .team-item');
+                for (const item of teamItems) {
+                    const nameInput = item.querySelector('.team-name');
+                    const titleInput = item.querySelector('.team-title');
+                    const descInput = item.querySelector('.team-description');
+                    const urlInput = item.querySelector('.team-image');
+                    const fileInput = item.querySelector('.team-image-file');
+
+                    let memberImage = '';
+                    if (fileInput && fileInput.files.length > 0) {
+                        memberImage = '__UPLOAD__' + fileInput.files[0].name;
+                    } else if (urlInput && urlInput.value.trim()) {
+                        memberImage = urlInput.value.trim();
+                    }
+
+                    if (nameInput && nameInput.value.trim()) {
+                        teamMembers.push({
+                            name: nameInput.value.trim(),
+                            title: titleInput ? titleInput.value.trim() : '',
+                            description: descInput ? descInput.value.trim() : '',
+                            image: memberImage
+                        });
+                    }
+                }
+                jsonData = {
+                    title: document.getElementById('team_title').value,
+                    members: teamMembers
+                };
+                break;
+
+            case 'contact':
+                jsonData = {
+                    email: document.getElementById('contact_email').value,
+                    phone: document.getElementById('contact_phone').value,
+                    address: document.getElementById('contact_address').value,
+                    map: document.getElementById('contact_map').value
+                };
+                break;
+
+            case 'features':
+                const featureItems = [];
+                document.querySelectorAll('.feature-text').forEach(input => {
+                    if (input.value.trim()) {
+                        featureItems.push(input.value.trim());
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('features_title').value,
+                    subtitle: document.getElementById('features_subtitle').value,
+                    items: featureItems
+                };
+                break;
+
+            case 'cards':
+                const cards = [];
+                document.querySelectorAll('.card-item').forEach(item => {
+                    const title = item.querySelector('.card-title').value;
+                    const description = item.querySelector('.card-description').value;
+                    const urlInput = item.querySelector('.card-icon-url');
+                    const fileInput = item.querySelector('.card-icon-file');
+
+                    let icon = '';
+                    if (fileInput && fileInput.files.length > 0) {
+                        icon = '__UPLOAD__' + fileInput.files[0].name;
+                    } else if (urlInput && urlInput.value.trim()) {
+                        icon = urlInput.value.trim();
+                    }
+
+                    if (title.trim()) {
+                        cards.push({ title, description, icon });
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('cards_title').value,
+                    cards
+                };
+                break;
+
+            case 'programs':
+                const programList = [];
+                document.querySelectorAll('.program-item').forEach(item => {
+                    const name = item.querySelector('.program-name').value;
+                    const details = item.querySelector('.program-details').value;
+                    const eligibility = item.querySelector('.program-eligibility').value;
+
+                    if (name.trim()) {
+                        programList.push({ name, details, eligibility });
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('programs_title').value,
+                    programs: programList
+                };
+                break;
+
+            case 'facilities':
+                const facilityList = [];
+                document.querySelectorAll('.facility-item').forEach(item => {
+                    const name = item.querySelector('.facility-name').value;
+                    const description = item.querySelector('.facility-description').value;
+                    const urlInput = item.querySelector('.facility-image-url');
+                    const fileInput = item.querySelector('.facility-image-file');
+
+                    let image = '';
+                    if (fileInput && fileInput.files.length > 0) {
+                        image = '__UPLOAD__' + fileInput.files[0].name;
+                    } else if (urlInput && urlInput.value.trim()) {
+                        image = urlInput.value.trim();
+                    }
+
+                    if (name.trim()) {
+                        facilityList.push({ name, description, image });
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('facilities_title').value,
+                    subtitle: document.getElementById('facilities_subtitle').value,
+                    description: document.getElementById('facilities_description').value,
+                    facilities: facilityList
+                };
+                break;
+
+            case 'split':
+                const splitItems = [];
+                document.querySelectorAll('.split-item-text').forEach(input => {
+                    if (input.value.trim()) {
+                        splitItems.push(input.value.trim());
+                    }
+                });
+                const splitUrlInput = document.getElementById('split_image_url');
+                const splitFileInput = document.getElementById('split_image_file');
+                let splitImage = '';
+                if (splitFileInput && splitFileInput.files.length > 0) {
+                    splitImage = '__UPLOAD__' + splitFileInput.files[0].name;
+                } else if (splitUrlInput && splitUrlInput.value.trim()) {
+                    splitImage = splitUrlInput.value.trim();
+                }
+
+                jsonData = {
+                    tag: document.getElementById('split_tag').value,
+                    title: document.getElementById('split_title').value,
+                    description: document.getElementById('split_description').value,
+                    items: splitItems,
+                    image: splitImage,
+                    image_position: document.getElementById('split_image_position').value
+                };
+                break;
+        }
+
+        return JSON.stringify(jsonData);
+    }
+
+    // Update content builder when section type changes
+    document.getElementById('section_type').addEventListener('change', function () {
+        const type = this.value;
+        const builder = document.getElementById('contentBuilder');
+
+        if (type && contentTemplates[type]) {
+            builder.innerHTML = contentTemplates[type]();
+        } else {
+            builder.innerHTML = '';
+        }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentType = document.getElementById('section_type').value;
+        if (currentType && contentTemplates[currentType]) {
+            document.getElementById('contentBuilder').innerHTML = contentTemplates[currentType]();
+        }
+    });
+
+    // Build JSON before form submission
+    document.getElementById('sectionForm').addEventListener('submit', function (e) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB Cloudinary limit
+        let filesTooLarge = [];
+
+        // Check all file inputs
+        const fileInputs = this.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            if (input.files.length > 0) {
+                for (let i = 0; i < input.files.length; i++) {
+                    if (input.files[i].size > MAX_SIZE) {
+                        filesTooLarge.push(`${input.files[i].name} (${(input.files[i].size / (1024 * 1024)).toFixed(2)} MB)`);
+                    }
+                }
+            }
+        });
+
+        if (filesTooLarge.length > 0) {
+            e.preventDefault();
+            alert(`⚠️ Files too large!\n\n${filesTooLarge.join('\n')}\n\nMaximum size allowed by Cloudinary is 10MB. Please compress your files or use an external URL.`);
+            return;
+        }
+
+        // Build JSON with placeholders for uploads
+        const json = buildJSON();
+        document.getElementById('content_json').value = json;
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px;"></span> Uploading to Cloudinary...';
+    });
 </script>
 
 <style>
-.stat-item, .accordion-item, .gallery-item, .team-item {
-    animation: slideIn 0.3s ease;
-}
+    .stat-item,
+    .accordion-item,
+    .gallery-item,
+    .team-item {
+        animation: slideIn 0.3s ease;
+    }
 
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
-}
 </style>
 {% endblock %}
