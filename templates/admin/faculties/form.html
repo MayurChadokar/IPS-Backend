@@ -1,0 +1,135 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Faculty{% endblock %}
+{% block page_title %}{{ action }} Faculty - {{ college.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-person me-2"></i>{{ action }} Faculty Member</h2>
+            <small class="text-muted">{{ college.name }}</small>
+        </div>
+        <a href="/admin/colleges/{{ college.id }}/faculties" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Faculties
+        </a>
+    </div>
+
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="college_id" value="{{ college.id }}">
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="name" class="form-control"
+                            value="{{ faculty.name if faculty else '' }}" required placeholder="e.g., Dr. John Doe">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                value="{{ faculty.email if faculty else '' }}" placeholder="john.doe@example.com">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Number</label>
+                            <input type="text" name="contact" class="form-control"
+                                value="{{ faculty.contact if faculty else '' }}" placeholder="+91 9876543210">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Designation</label>
+                            <input type="text" name="designation" class="form-control"
+                                value="{{ faculty.designation if faculty else '' }}" placeholder="e.g., Professor, HOD">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            <input type="text" name="department" class="form-control"
+                                value="{{ faculty.department if faculty else '' }}"
+                                placeholder="e.g., Computer Science">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                            <label class="form-label d-block mb-3">Profile Photo</label>
+
+                            <div class="mb-3">
+                                {% if faculty and faculty.image %}
+                                <img src="{{ faculty.image }}" id="imagePreview" class="img-fluid rounded-circle mb-3"
+                                    style="width: 150px; height: 150px; object-fit: cover; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                {% else %}
+                                <div id="placeholderPreview"
+                                    class="rounded-circle mb-3 mx-auto d-flex align-items-center justify-content-center bg-white"
+                                    style="width: 150px; height: 150px; border: 3px solid #e2e8f0;">
+                                    <i class="bi bi-person" style="font-size: 64px; color: #cbd5e1;"></i>
+                                </div>
+                                <img id="imagePreview" class="img-fluid rounded-circle mb-3 d-none"
+                                    style="width: 150px; height: 150px; object-fit: cover; border: 3px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                {% endif %}
+                            </div>
+
+                            <input type="file" name="image" class="form-control form-control-sm" accept="image/*"
+                                onchange="previewImage(this)">
+                            <small class="text-muted d-block mt-2">Recommended: 400x400px</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {%
+                        if not faculty or faculty.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActiveSwitch">
+                        <strong>Active</strong> <small class="text-muted">- Faculty member will be listed on the
+                            website</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> {{ action }} Faculty
+                </button>
+                <a href="/admin/colleges/{{ college.id }}/faculties" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function previewImage(input) {
+        const preview = document.getElementById('imagePreview');
+        const placeholder = document.getElementById('placeholderPreview');
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            }
+
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>
+{% endblock %}

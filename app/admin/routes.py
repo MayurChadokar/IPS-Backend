@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course
 from datetime import timedelta
 from typing import Optional
 import json
@@ -869,6 +869,330 @@ async def delete_section(
         db.delete(section)
         db.commit()
         return RedirectResponse(url=f"/admin/pages/{page_id}/sections", status_code=303)
+    
+    return RedirectResponse(url="/admin/colleges", status_code=303)
+
+
+# ============= FACULTY MANAGEMENT =============
+@router.get("/colleges/{college_id}/faculties", response_class=HTMLResponse)
+async def list_faculties_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List faculties for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+    
+    faculties = db.query(Faculty).filter(Faculty.college_id == college_id).all()
+    
+    return templates.TemplateResponse("admin/faculties/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "faculties": faculties
+    })
+
+
+@router.get("/colleges/{college_id}/faculties/new", response_class=HTMLResponse)
+async def create_faculty_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create faculty form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+    
+    return templates.TemplateResponse("admin/faculties/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "faculty": None,
+        "action": "Create"
+    })
+
+
+@router.post("/colleges/{college_id}/faculties/new")
+async def create_faculty(
+    request: Request,
+    college_id: int,
+    name: str = Form(...),
+    email: str = Form(""),
+    contact: str = Form(""),
+    designation: str = Form(""),
+    department: str = Form(""),
+    image: UploadFile = File(None),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create new faculty"""
+    image_path = None
+    if image and image.filename:
+        try:
+            image_path = upload_image(image.file, folder="faculty")
+        except Exception as e:
+            college = db.query(College).filter(College.id == college_id).first()
+            return templates.TemplateResponse("admin/faculties/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "faculty": None,
+                "action": "Create",
+                "error": f"Image upload failed: {str(e)}"
+            })
+    
+    faculty = Faculty(
+        college_id=college_id,
+        name=name,
+        email=email if email else None,
+        contact=contact if contact else None,
+        designation=designation if designation else None,
+        department=department if department else None,
+        image=image_path,
+        is_active=is_active
+    )
+    
+    db.add(faculty)
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/faculties", status_code=303)
+
+
+@router.get("/faculties/{faculty_id}/edit", response_class=HTMLResponse)
+async def edit_faculty_form(
+    request: Request,
+    faculty_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Edit faculty form"""
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+    
+    return templates.TemplateResponse("admin/faculties/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": faculty.college,
+        "faculty": faculty,
+        "action": "Edit"
+    })
+
+
+@router.post("/faculties/{faculty_id}/edit")
+async def update_faculty(
+    request: Request,
+    faculty_id: int,
+    name: str = Form(...),
+    email: str = Form(""),
+    contact: str = Form(""),
+    designation: str = Form(""),
+    department: str = Form(""),
+    image: UploadFile = File(None),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update faculty"""
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(status_code=404, detail="Faculty not found")
+    
+    # Handle image upload if provided
+    if image and image.filename:
+        try:
+            faculty.image = upload_image(image.file, folder="faculty")
+        except Exception as e:
+            return templates.TemplateResponse("admin/faculties/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": faculty.college,
+                "faculty": faculty,
+                "action": "Edit",
+                "error": f"Image upload failed: {str(e)}"
+            })
+    
+    faculty.name = name
+    faculty.email = email if email else None
+    faculty.contact = contact if contact else None
+    faculty.designation = designation if designation else None
+    faculty.department = department if department else None
+    faculty.is_active = is_active
+    
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/colleges/{faculty.college_id}/faculties", status_code=303)
+
+
+@router.post("/faculties/{faculty_id}/delete")
+async def delete_faculty(
+    faculty_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete faculty"""
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if faculty:
+        college_id = faculty.college_id
+        db.delete(faculty)
+        db.commit()
+        return RedirectResponse(url=f"/admin/colleges/{college_id}/faculties", status_code=303)
+    
+    return RedirectResponse(url="/admin/colleges", status_code=303)
+
+
+# ============= COURSES MANAGEMENT =============
+@router.get("/colleges/{college_id}/courses", response_class=HTMLResponse)
+async def list_courses_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List courses for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+    
+    courses = db.query(Course).filter(Course.college_id == college_id).all()
+    
+    return templates.TemplateResponse("admin/courses/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "courses": courses
+    })
+
+
+@router.get("/colleges/{college_id}/courses/new", response_class=HTMLResponse)
+async def create_course_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create course form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+    
+    return templates.TemplateResponse("admin/courses/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "course": None,
+        "action": "Create"
+    })
+
+
+@router.post("/colleges/{college_id}/courses/new")
+async def create_course(
+    request: Request,
+    college_id: int,
+    name: str = Form(...),
+    description: str = Form(""),
+    eligibility: str = Form(""),
+    fee_structure: str = Form("{}"),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create new course"""
+    # Parse JSON fee structure
+    try:
+        fee_data = json.loads(fee_structure)
+    except:
+        fee_data = {}
+        
+    course = Course(
+        college_id=college_id,
+        name=name,
+        description=description if description else None,
+        eligibility=eligibility if eligibility else None,
+        fee_structure=fee_data,
+        is_active=is_active
+    )
+    
+    db.add(course)
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/courses", status_code=303)
+
+
+@router.get("/courses/{course_id}/edit", response_class=HTMLResponse)
+async def edit_course_form(
+    request: Request,
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Edit course form"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    return templates.TemplateResponse("admin/courses/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": course.college,
+        "course": course,
+        "action": "Edit"
+    })
+
+
+@router.post("/courses/{course_id}/edit")
+async def update_course(
+    request: Request,
+    course_id: int,
+    name: str = Form(...),
+    description: str = Form(""),
+    eligibility: str = Form(""),
+    fee_structure: str = Form("{}"),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update course"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Parse JSON fee structure
+    try:
+        fee_data = json.loads(fee_structure)
+    except:
+        fee_data = {}
+    
+    course.name = name
+    course.description = description if description else None
+    course.eligibility = eligibility if eligibility else None
+    course.fee_structure = fee_data
+    course.is_active = is_active
+    
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/colleges/{course.college_id}/courses", status_code=303)
+
+
+@router.post("/courses/{course_id}/delete")
+async def delete_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete course"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if course:
+        college_id = course.college_id
+        db.delete(course)
+        db.commit()
+        return RedirectResponse(url=f"/admin/colleges/{college_id}/courses", status_code=303)
     
     return RedirectResponse(url="/admin/colleges", status_code=303)
 

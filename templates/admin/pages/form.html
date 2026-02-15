@@ -5,49 +5,65 @@
 
 {% block content %}
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{{ action }} Page</h2>
-        <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">← Back to Pages</a>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-file-earmark-text me-2"></i>{{ action }} Page</h2>
+            <small class="text-muted">{{ college.name }}</small>
+        </div>
+        <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Pages
+        </a>
     </div>
 
-    {% if error %}
-    <div class="alert alert-danger"
-        style="margin: 20px; background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border-left: 5px solid #ef4444;">
-        {{ error }}
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Page Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ page.title if page else '' }}" required
+                    placeholder="e.g., Home, About Us, Admissions">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Slug * <small class="text-muted">(URL path)</small></label>
+                <input type="text" name="slug" class="form-control" value="{{ page.slug if page else '' }}" required
+                    pattern="[a-z0-9-]+" placeholder="e.g., home, about-us">
+                <div class="form-text">Only lowercase letters, numbers, and hyphens</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Meta Description <small class="text-muted">(for SEO)</small></label>
+                <textarea name="meta_description" class="form-control" rows="3"
+                    placeholder="Brief description of this page for search engines">{{ page.meta_description if page else '' }}</textarea>
+                <div class="form-text">Recommended length: 150-160 characters</div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {%
+                        if not page or page.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActiveSwitch">
+                        <strong>Active</strong> <small class="text-muted">- Page will be visible on the website</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {{ action }} Page
+                </button>
+                <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
     </div>
-    {% endif %}
-
-    <form method="POST">
-        <div class="form-group">
-            <label class="form-label">Page Title *</label>
-            <input type="text" name="title" class="form-control" value="{{ page.title if page else '' }}" required>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Slug * (URL path)</label>
-            <input type="text" name="slug" class="form-control" value="{{ page.slug if page else '' }}" required
-                pattern="[a-z0-9-]+" placeholder="e.g., home, about-us">
-            <small style="color: #95a5a6;">Only lowercase letters, numbers, and hyphens</small>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Meta Description (for SEO)</label>
-            <textarea name="meta_description"
-                class="form-control">{{ page.meta_description if page else '' }}</textarea>
-        </div>
-
-        <div class="form-group">
-            <label class="form-check">
-                <input type="checkbox" name="is_active" value="true" {% if not page or page.is_active %}checked{% endif
-                    %}>
-                <span>Active</span>
-            </label>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn btn-success">{{ action }} Page</button>
-            <a href="/admin/colleges/{{ college.id }}/pages" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
 </div>
 {% endblock %}

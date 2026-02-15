@@ -105,6 +105,68 @@ class SectionResponse(SectionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============= Faculty Schemas =============
+class FacultyBase(BaseModel):
+    name: str
+    email: Optional[str] = None
+    contact: Optional[str] = None
+    image: Optional[str] = None
+    designation: Optional[str] = None
+    department: Optional[str] = None
+    is_active: bool = True
+
+
+class FacultyCreate(FacultyBase):
+    college_id: int
+
+
+class FacultyUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    contact: Optional[str] = None
+    image: Optional[str] = None
+    designation: Optional[str] = None
+    department: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class FacultyResponse(FacultyBase):
+    id: int
+    college_id: int
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============= Course Schemas =============
+class CourseBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    eligibility: Optional[str] = None
+    fee_structure: Optional[Dict[str, Any]] = None
+    is_active: bool = True
+
+
+class CourseCreate(CourseBase):
+    college_id: int
+
+
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    eligibility: Optional[str] = None
+    fee_structure: Optional[Dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
+class CourseResponse(CourseBase):
+    id: int
+    college_id: int
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============= Public API Response (Frontend) =============
 class SectionPublicResponse(BaseModel):
     """Simplified section response for public API"""

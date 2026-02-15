@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
 from app.core.security import get_current_active_admin
-from app.models.models import College, Page, Section, SectionContent, PageTemplate, User
+from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course
 from app.schemas.schemas import (
     CollegeCreate, CollegeUpdate, CollegeResponse,
     PageCreate, PageUpdate, PageResponse,
     SectionCreate, SectionUpdate, SectionResponse,
+    FacultyCreate, FacultyUpdate, FacultyResponse,
+    CourseCreate, CourseUpdate, CourseResponse,
     ClonePageRequest, CreateCollegeFromTemplate
 )
 from typing import List, Dict, Any
@@ -304,6 +306,177 @@ async def delete_section(
         )
     
     db.delete(db_section)
+    db.commit()
+    return None
+
+
+
+# ============= FACULTY MANAGEMENT =============
+@router.post("/faculties", response_model=FacultyResponse, status_code=status.HTTP_201_CREATED)
+async def create_faculty(
+    faculty: FacultyCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Create a new faculty member"""
+    # Verify college exists
+    college = db.query(College).filter(College.id == faculty.college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="College not found"
+        )
+    
+    db_faculty = Faculty(**faculty.model_dump())
+    db.add(db_faculty)
+    db.commit()
+    db.refresh(db_faculty)
+    return db_faculty
+
+
+@router.get("/colleges/{college_id}/faculties", response_model=List[FacultyResponse])
+async def list_faculties_by_college(college_id: int, db: Session = Depends(get_db)):
+    """List all faculty members for a college"""
+    faculties = db.query(Faculty).filter(Faculty.college_id == college_id).all()
+    return faculties
+
+
+@router.get("/faculties/{faculty_id}", response_model=FacultyResponse)
+async def get_faculty(faculty_id: int, db: Session = Depends(get_db)):
+    """Get faculty by ID"""
+    faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Faculty not found"
+        )
+    return faculty
+
+
+@router.put("/faculties/{faculty_id}", response_model=FacultyResponse)
+async def update_faculty(
+    faculty_id: int,
+    faculty_update: FacultyUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Update faculty member"""
+    db_faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not db_faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Faculty not found"
+        )
+    
+    update_data = faculty_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_faculty, field, value)
+    
+    db.commit()
+    db.refresh(db_faculty)
+    return db_faculty
+
+
+@router.delete("/faculties/{faculty_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_faculty(
+    faculty_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Delete faculty member"""
+    db_faculty = db.query(Faculty).filter(Faculty.id == faculty_id).first()
+    if not db_faculty:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Faculty not found"
+        )
+    
+    db.delete(db_faculty)
+    db.commit()
+    return None
+
+
+# ============= COURSE MANAGEMENT =============
+@router.post("/courses", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
+async def create_course(
+    course: CourseCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Create a new course"""
+    # Verify college exists
+    college = db.query(College).filter(College.id == course.college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="College not found"
+        )
+    
+    db_course = Course(**course.model_dump())
+    db.add(db_course)
+    db.commit()
+    db.refresh(db_course)
+    return db_course
+
+
+@router.get("/colleges/{college_id}/courses", response_model=List[CourseResponse])
+async def list_courses_by_college(college_id: int, db: Session = Depends(get_db)):
+    """List all courses for a college"""
+    courses = db.query(Course).filter(Course.college_id == college_id).all()
+    return courses
+
+
+@router.get("/courses/{course_id}", response_model=CourseResponse)
+async def get_course(course_id: int, db: Session = Depends(get_db)):
+    """Get course by ID"""
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
+        )
+    return course
+
+
+@router.put("/courses/{course_id}", response_model=CourseResponse)
+async def update_course(
+    course_id: int,
+    course_update: CourseUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Update course"""
+    db_course = db.query(Course).filter(Course.id == course_id).first()
+    if not db_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
+        )
+    
+    update_data = course_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_course, field, value)
+    
+    db.commit()
+    db.refresh(db_course)
+    return db_course
+
+
+@router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Delete course"""
+    db_course = db.query(Course).filter(Course.id == course_id).first()
+    if not db_course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
+        )
+    
+    db.delete(db_course)
     db.commit()
     return None
 

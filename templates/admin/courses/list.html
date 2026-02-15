@@ -1,0 +1,87 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Courses - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Courses{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-mortarboard me-2"></i>Courses for {{ college.name }}</h2>
+            <small class="text-muted">Manage courses for this college</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/colleges/{{ college.id }}/courses/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Course
+            </a>
+            <a href="/admin/colleges" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Colleges
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if courses %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th>Course Name</th>
+                        <th>Description</th>
+                        <th>Eligibility</th>
+                        <th>Fee Structure</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 150px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark">{{ course.id }}</span></td>
+                        <td><strong>{{ course.name }}</strong></td>
+                        <td>{{ course.description[:50] }}...</td>
+                        <td>{{ course.eligibility[:30] }}...</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info"
+                                onclick="alert('{{ course.fee_structure | tojson }}')">
+                                <i class="bi bi-eye"></i> View JSON
+                            </button>
+                        </td>
+                        <td>
+                            {% if course.is_active %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge badge-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="/admin/courses/{{ course.id }}/edit" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="/admin/courses/{{ course.id }}/delete"
+                                    style="display: inline;" onsubmit="return confirm('Delete this course?');">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-mortarboard" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No courses found. Add your first course.</p>
+            <a href="/admin/colleges/{{ college.id }}/courses/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add First Course
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

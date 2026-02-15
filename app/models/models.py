@@ -51,6 +51,8 @@ class College(Base):
     # Relationships
     pages = relationship("Page", back_populates="college", cascade="all, delete-orphan")
     sections = relationship("Section", back_populates="college", cascade="all, delete-orphan")
+    faculties = relationship("Faculty", back_populates="college", cascade="all, delete-orphan")
+    courses = relationship("Course", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -138,6 +140,56 @@ class PageTemplate(Base):
     template_json = Column(JSON, nullable=False)  # Contains sections structure
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Faculty(Base):
+    """
+    Faculty/Staff members for each college
+    """
+    __tablename__ = "faculties"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
+    contact = Column(String(20), nullable=True)
+    image = Column(String(500), nullable=True)  # Profile photo URL
+    designation = Column(String(255), nullable=True)  # Professor, Assistant Professor, etc.
+    department = Column(String(255), nullable=True)  # Computer Science, Management, etc.
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    college = relationship("College", back_populates="faculties")
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Course(Base):
+    """
+    Courses offered by each college
+    """
+    __tablename__ = "courses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)  # MBA, BBA, B.Tech, etc.
+    description = Column(Text, nullable=True)
+    eligibility = Column(Text, nullable=True)  # Eligibility criteria
+    fee_structure = Column(JSON, nullable=True)  # JSON for flexible fee structure
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    college = relationship("College", back_populates="courses")
     
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}

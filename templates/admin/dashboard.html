@@ -4,29 +4,38 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="stats-grid">
-    <div class="stat-card" style="border-left-color: #3498db;">
-        <h3>Total Colleges</h3>
-        <div class="stat-value">{{ colleges_count }}</div>
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #4f46e5;">
+            <h3><i class="bi bi-building me-2"></i>Total Colleges</h3>
+            <div class="stat-value">{{ colleges_count }}</div>
+        </div>
     </div>
 
-    <div class="stat-card" style="border-left-color: #27ae60;">
-        <h3>Total Pages</h3>
-        <div class="stat-value">{{ pages_count }}</div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #10b981;">
+            <h3><i class="bi bi-file-earmark-text me-2"></i>Total Pages</h3>
+            <div class="stat-value">{{ pages_count }}</div>
+        </div>
     </div>
 
-    <div class="stat-card" style="border-left-color: #f39c12;">
-        <h3>Total Sections</h3>
-        <div class="stat-value">{{ sections_count }}</div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #f59e0b;">
+            <h3><i class="bi bi-grid-3x3-gap me-2"></i>Total Sections</h3>
+            <div class="stat-value">{{ sections_count }}</div>
+        </div>
     </div>
 </div>
 
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">Welcome to Multi-College CMS</h2>
+        <h2 class="card-title"><i class="bi bi-house-door me-2"></i>Welcome to Multi-College CMS</h2>
     </div>
-    <p>Manage multiple colleges, their pages, and content sections from one central platform.</p>
-    <br>
-    <a href="/admin/colleges" class="btn btn-primary">Manage Colleges</a>
+    <div class="card-body">
+        <p class="mb-4">Manage multiple colleges, their pages, and content sections from one central platform.</p>
+        <a href="/admin/colleges" class="btn btn-primary">
+            <i class="bi bi-building"></i> Manage Colleges
+        </a>
+    </div>
 </div>
 {% endblock %}

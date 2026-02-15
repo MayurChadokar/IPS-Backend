@@ -5,62 +5,78 @@
 
 {% block content %}
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{{ action }} College</h2>
-        <a href="/admin/colleges" class="btn btn-secondary">← Back to Colleges</a>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title"><i class="bi bi-building me-2"></i>{{ action }} College</h2>
+        <a href="/admin/colleges" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Colleges
+        </a>
     </div>
 
-    {% if error %}
-    <div class="alert alert-danger"
-        style="margin: 20px; background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border-left: 5px solid #ef4444;">
-        {{ error }}
-    </div>
-    {% endif %}
-
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label class="form-label">College Name *</label>
-            <input type="text" name="name" class="form-control" value="{{ college.name if college else '' }}" required>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
         </div>
+        {% endif %}
 
-        <div class="form-group">
-            <label class="form-label">Slug * (URL-friendly identifier)</label>
-            <input type="text" name="slug" class="form-control" value="{{ college.slug if college else '' }}" required
-                pattern="[a-z0-9-]+" placeholder="e.g., ipsa, college-a">
-            <small style="color: #95a5a6;">Only lowercase letters, numbers, and hyphens</small>
-        </div>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">College Name *</label>
+                    <input type="text" name="name" class="form-control" value="{{ college.name if college else '' }}"
+                        required placeholder="e.g., Institute of Professional Studies">
+                </div>
 
-        <div class="form-group">
-            <label class="form-label">Logo</label>
-            {% if college and college.logo %}
-            <div style="margin-bottom: 10px;">
-                <img src="{{ college.logo }}" alt="Current logo"
-                    style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
-                <p style="font-size: 12px; color: #95a5a6; margin-top: 5px;">Current logo</p>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Slug * <small class="text-muted">(URL-friendly identifier)</small></label>
+                    <input type="text" name="slug" class="form-control" value="{{ college.slug if college else '' }}"
+                        required pattern="[a-z0-9-]+" placeholder="e.g., ipsa, college-a">
+                    <div class="form-text">Only lowercase letters, numbers, and hyphens</div>
+                </div>
             </div>
-            {% endif %}
-            <input type="file" name="logo" class="form-control" accept="image/*">
-            <small style="color: #95a5a6;">Upload a new logo image (JPG, PNG, or GIF)</small>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label">Domain (optional)</label>
-            <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}"
-                placeholder="college.edu">
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Logo</label>
+                {% if college and college.logo %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <img src="{{ college.logo }}" alt="Current logo"
+                        style="max-width: 200px; max-height: 100px; border: 1px solid #dee2e6; padding: 8px; border-radius: 8px; background: white;">
+                    <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Current logo</p>
+                </div>
+                {% endif %}
+                <input type="file" name="logo" class="form-control" accept="image/*">
+                <div class="form-text">Upload a new logo image (JPG, PNG, or GIF)</div>
+            </div>
 
-        <div class="form-group">
-            <label class="form-check">
-                <input type="checkbox" name="is_active" value="true" {% if not college or college.is_active %}checked{%
-                    endif %}>
-                <span>Active</span>
-            </label>
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Domain <small class="text-muted">(optional)</small></label>
+                <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}"
+                    placeholder="college.edu">
+                <div class="form-text">Custom domain for this college</div>
+            </div>
 
-        <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn btn-success">{{ action }} College</button>
-            <a href="/admin/colleges" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
+            <hr class="my-4">
+
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {%
+                        if not college or college.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActiveSwitch">
+                        <strong>Active</strong> <small class="text-muted">- College will be visible on the
+                            website</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {{ action }} College
+                </button>
+                <a href="/admin/colleges" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -5,86 +5,110 @@
 
 {% block content %}
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">{{ action }} Section</h2>
-        <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">← Back to Sections</a>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1">{{ action }} Section</h2>
+            <small class="text-muted">{{ page.title }}</small>
+        </div>
+        <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sections
+        </a>
     </div>
 
-    {% if error %}
-    <div class="alert alert-danger"
-        style="margin: 20px; background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 8px; border-left: 5px solid #ef4444;">
-        {{ error }}
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" id="sectionForm" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Section Key * <small class="text-muted">(unique
+                            identifier)</small></label>
+                    <input type="text" name="section_key" id="section_key" class="form-control"
+                        value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+"
+                        placeholder="e.g., hero, why_college, stats">
+                    <div class="form-text">Only lowercase letters, numbers, and underscores</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Section Type *</label>
+                    <select name="section_type" id="section_type" class="form-select" required>
+                        <option value="">-- Select Type --</option>
+                        <option value="hero" {% if section and section.section_type=='hero' %}selected{% endif %}>
+                            🎯 Hero Section</option>
+                        <option value="text" {% if section and section.section_type=='text' %}selected{% endif %}>
+                            📝 Text/Content</option>
+                        <option value="stats" {% if section and section.section_type=='stats' %}selected{% endif %}>
+                            📊 Statistics</option>
+                        <option value="accordion" {% if section and section.section_type=='accordion' %}selected{% endif
+                            %}>
+                            📋 Accordion/FAQ</option>
+                        <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>
+                            🖼️ Image Gallery</option>
+                        <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>
+                            👥 Leadership Team</option>
+                        <option value="features" {% if section and section.section_type=='features' %}selected{% endif
+                            %}>
+                            ⭐ Features/List</option>
+                        <option value="cards" {% if section and section.section_type=='cards' %}selected{% endif %}>
+                            🎴 Advantage/Cards (Icons)</option>
+                        <option value="facilities" {% if section and section.section_type=='facilities' %}selected{%
+                            endif %}>
+                            🏢 Facilities (Image Grid)</option>
+                        <option value="split" {% if section and section.section_type=='split' %}selected{% endif %}>
+                            🔀 Feature with Image (Split)</option>
+                        <option value="programs" {% if section and section.section_type=='programs' %}selected{% endif
+                            %}>
+                            🎓 Programs/Table</option>
+                        <option value="contact" {% if section and section.section_type=='contact' %}selected{% endif %}>
+                            📞 Contact Info</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Sort Order</label>
+                <input type="number" name="sort_order" class="form-control" style="max-width: 200px;"
+                    value="{{ section.sort_order if section else 0 }}" min="0">
+                <div class="form-text">Lower numbers appear first</div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Dynamic Content Builder -->
+            <div id="contentBuilder">
+                <!-- Content fields will be inserted here based on section type -->
+            </div>
+
+            <!-- Hidden field to store JSON -->
+            <input type="hidden" name="content_json" id="content_json" value="">
+
+            <hr class="my-4">
+
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {%
+                        if not section or section.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActiveSwitch">
+                        <strong>Active</strong> <small class="text-muted">- Section will be visible on the
+                            website</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {{ action }} Section
+                </button>
+                <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
     </div>
-    {% endif %}
-
-    <form method="POST" id="sectionForm" enctype="multipart/form-data">
-        <div class="form-group">
-            <label class="form-label">Section Key * (unique identifier)</label>
-            <input type="text" name="section_key" id="section_key" class="form-control"
-                value="{{ section.section_key if section else '' }}" required pattern="[a-z0-9_]+"
-                placeholder="e.g., hero, why_college, stats">
-            <small style="color: #95a5a6;">Only lowercase letters, numbers, and underscores</small>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Section Type *</label>
-            <select name="section_type" id="section_type" class="form-control" required>
-                <option value="">-- Select Type --</option>
-                <option value="hero" {% if section and section.section_type=='hero' %}selected{% endif %}>Hero Section
-                </option>
-                <option value="text" {% if section and section.section_type=='text' %}selected{% endif %}>Text/Content
-                </option>
-                <option value="stats" {% if section and section.section_type=='stats' %}selected{% endif %}>Statistics
-                </option>
-                <option value="accordion" {% if section and section.section_type=='accordion' %}selected{% endif %}>
-                    Accordion/FAQ</option>
-                <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>Image
-                    Gallery</option>
-                <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>Leadership
-                    Team</option>
-                <option value="features" {% if section and section.section_type=='features' %}selected{% endif %}>
-                    Features/List</option>
-                <option value="cards" {% if section and section.section_type=='cards' %}selected{% endif %}>
-                    Advantage/Cards (Icons)</option>
-                <option value="facilities" {% if section and section.section_type=='facilities' %}selected{% endif %}>
-                    Facilities (Image Grid)</option>
-                <option value="split" {% if section and section.section_type=='split' %}selected{% endif %}>
-                    Feature with Image (Split)</option>
-                <option value="programs" {% if section and section.section_type=='programs' %}selected{% endif %}>
-                    Programs/Table</option>
-                <option value="contact" {% if section and section.section_type=='contact' %}selected{% endif %}>Contact
-                    Info</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Sort Order</label>
-            <input type="number" name="sort_order" class="form-control"
-                value="{{ section.sort_order if section else 0 }}" min="0">
-            <small style="color: #95a5a6;">Lower numbers appear first</small>
-        </div>
-
-        <!-- Dynamic Content Builder -->
-        <div id="contentBuilder" style="margin-top: 20px;">
-            <!-- Content fields will be inserted here based on section type -->
-        </div>
-
-        <!-- Hidden field to store JSON -->
-        <input type="hidden" name="content_json" id="content_json" value="">
-
-        <div class="form-group">
-            <label class="form-check">
-                <input type="checkbox" name="is_active" value="true" {% if not section or section.is_active %}checked{%
-                    endif %}>
-                <span>Active</span>
-            </label>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <button type="submit" class="btn btn-success">{{ action }} Section</button>
-            <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-secondary">Cancel</a>
-        </div>
-    </form>
 </div>
 
 <script>
@@ -102,7 +126,25 @@
             <div id="hero_media_container">
                 ${(existingContent.images || ['']).map((media, index) => `
                     <div class="media-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
-                        ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                        ${media && !media.startsWith('__UPLOAD__') ? `
+                            <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                <div class="d-flex align-items-start gap-3">
+                                    ${media.includes('.mp4') || media.includes('.webm') ?
+                    `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
+                                            <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
+                                        </div>` :
+                    `<img src="${media}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
+                }
+                                    <div class="flex-grow-1">
+                                        <p class="mb-2"><strong>Current ${media.includes('.mp4') || media.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                                        <small class="d-block text-muted mb-2"><a href="${media}" target="_blank" class="text-primary">${media.split('/').pop()}</a></small>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.media-item').querySelector('.hero-media-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                            <i class="bi bi-x-circle"></i> Remove Current
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
                         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
@@ -141,7 +183,25 @@
         </div>
         <div class="form-group">
             <label class="form-label">Image or Video (optional)</label>
-            ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? '🎥' : '🖼️'} <a href="${existingContent.image}" target="_blank">${existingContent.image}</a></div>` : ''}
+            ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `
+                <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                    <div class="d-flex align-items-start gap-3">
+                        ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ?
+                    `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
+                                <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
+                            </div>` :
+                    `<img src="${existingContent.image}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
+                }
+                        <div class="flex-grow-1">
+                            <p class="mb-2"><strong>Current ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                            <small class="d-block text-muted mb-2"><a href="${existingContent.image}" target="_blank" class="text-primary">${existingContent.image.split('/').pop()}</a></small>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('text_image').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                <i class="bi bi-x-circle"></i> Remove Current
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
@@ -210,7 +270,25 @@
                 <div id="gallery_container">
                     ${images.map((media, index) => `
                         <div class="gallery-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
-                            ${media && !media.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> ${media.includes('.mp4') || media.includes('.webm') ? '🎥' : '🖼️'} <a href="${media}" target="_blank">${media}</a></div>` : ''}
+                            ${media && !media.startsWith('__UPLOAD__') ? `
+                                <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                    <div class="d-flex align-items-start gap-3">
+                                        ${media.includes('.mp4') || media.includes('.webm') ?
+                        `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
+                                                <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
+                                            </div>` :
+                        `<img src="${media}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
+                    }
+                                        <div class="flex-grow-1">
+                                            <p class="mb-2"><strong>Current ${media.includes('.mp4') || media.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                                            <small class="d-block text-muted mb-2"><a href="${media}" target="_blank" class="text-primary">${media.split('/').pop()}</a></small>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.gallery-item').querySelector('.gallery-media-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                <i class="bi bi-x-circle"></i> Remove Current
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
                             <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
@@ -218,14 +296,14 @@
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                    <input type="text" class="form-control gallery-image" placeholder="https://example.com/image.jpg" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
+                                    <input type="text" class="form-control gallery-media-url" placeholder="https://example.com/image.jpg" value="${media && !media.startsWith('__UPLOAD__') ? media : ''}" style="padding: 10px;">
                                 </div>
                             </div>
                             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
                         </div>
                     `).join('')}
                 </div>
-                <button type="button" class="btn btn-secondary" onclick="addGalleryImage()" style="margin-top: 10px;">+ Add Media</button>
+                <button type="button" class="btn btn-secondary" onclick="addGalleryMedia()" style="margin-top: 10px;">+ Add Media</button>
                 <small style="display: block; color: #95a5a6; margin-top: 5px;">Upload images (JPG, PNG, GIF) or videos (MP4, WebM), or enter direct URLs</small>
             </div>
         `;
@@ -261,11 +339,24 @@
                             
                             <div style="margin-bottom: 15px;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
-                                ${member.image && !member.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${member.image}" target="_blank">${member.image}</a></div>` : ''}
+                                ${member.image && !member.image.startsWith('__UPLOAD__') ? `
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <img src="${member.image}" alt="Current" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd;">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-2"><strong>Current Photo:</strong></p>
+                                                <small class="d-block text-muted mb-2"><a href="${member.image}" target="_blank" class="text-primary">${member.image.split('/').pop()}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.team-item').querySelector('.team-image').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                    <i class="bi bi-x-circle"></i> Remove Photo
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                                        <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="team_media_files" class="form-control team-media-file" accept="image/*" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -353,11 +444,24 @@
                             </div>
                             <div>
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Icon/Image</label>
-                                ${card.icon && !card.icon.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${card.icon}" target="_blank">${card.icon.split('/').pop()}</a></div>` : ''}
+                                ${card.icon && !card.icon.startsWith('__UPLOAD__') ? `
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <img src="${card.icon}" alt="Current" style="width: 80px; height: 80px; object-fit: contain; border-radius: 8px; border: 2px solid #ddd; padding: 5px; background: #f9fafb;">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-2"><strong>Current Icon:</strong></p>
+                                                <small class="d-block text-muted mb-2"><a href="${card.icon}" target="_blank" class="text-primary">${card.icon.split('/').pop()}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.card-item').querySelector('.card-icon-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                    <i class="bi bi-x-circle"></i> Remove Icon
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Icon (Cloudinary)</label>
-                                        <input type="file" name="cards_media_files" class="form-control card-icon-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="cards_media_files" class="form-control card-media-file" accept="image/*" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -437,7 +541,20 @@
                             </div>
                             <div class="form-group">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Image</label>
-                                ${fac.image && !fac.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${fac.image}" target="_blank">${fac.image.split('/').pop()}</a></div>` : ''}
+                                ${fac.image && !fac.image.startsWith('__UPLOAD__') ? `
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <img src="${fac.image}" alt="Current" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-2"><strong>Current Image:</strong></p>
+                                                <small class="d-block text-muted mb-2"><a href="${fac.image}" target="_blank" class="text-primary">${fac.image.split('/').pop()}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.facility-item').querySelector('.facility-image-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                    <i class="bi bi-x-circle"></i> Remove Image
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
@@ -445,7 +562,7 @@
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                        <input type="text" class="form-control facility-image-url" placeholder="https://example.com/library.jpg" value="${fac.image && !fac.image.startsWith('__UPLOAD__') ? fac.image : ''}" style="padding: 10px;">
+                                        <input type="text" class="form-control facility-image-url" placeholder="https://example.com/facility.jpg" value="${fac.image && !fac.image.startsWith('__UPLOAD__') ? fac.image : ''}" style="padding: 10px;">
                                     </div>
                                 </div>
                             </div>
@@ -487,7 +604,20 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Section Image</label>
-                ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `<div style="margin-bottom: 10px;"><strong>Current:</strong> 🖼️ <a href="${existingContent.image}" target="_blank">${existingContent.image.split('/').pop()}</a></div>` : ''}
+                ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `
+                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                        <div class="d-flex align-items-start gap-3">
+                            <img src="${existingContent.image}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">
+                            <div class="flex-grow-1">
+                                <p class="mb-2"><strong>Current Image:</strong></p>
+                                <small class="d-block text-muted mb-2"><a href="${existingContent.image}" target="_blank" class="text-primary">${existingContent.image.split('/').pop()}</a></small>
+                                <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('split_image_url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                    <i class="bi bi-x-circle"></i> Remove Image
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
                 <div style="display: flex; gap: 10px;">
                     <div style="flex: 1;">
                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
@@ -1026,8 +1156,134 @@
 
         // Show loading state
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px;"></span> Uploading to Cloudinary...';
+        submitBtn.innerHTML = '<span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px;"></span> Image is optimizing, please wait...';
     });
+
+    // Image preview and loading indicator functionality
+    function setupImagePreview(fileInput, previewContainerId) {
+        if (!fileInput) return;
+
+        const previewContainer = document.getElementById(previewContainerId) || createPreviewContainer(fileInput, previewContainerId);
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) {
+                previewContainer.innerHTML = '';
+                return;
+            }
+
+            // Check if it's an image
+            if (file.type.startsWith('image/')) {
+                // Show loading state
+                previewContainer.innerHTML = `
+                    <div class="image-preview-loading" style="padding: 20px; background: #f8f9fa; border: 2px dashed #4f46e5; border-radius: 8px; text-align: center; margin-top: 10px;">
+                        <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 mb-0 text-primary"><strong>📸 Processing image...</strong></p>
+                        <small class="text-muted">Converting to WebP format for optimization</small>
+                    </div>
+                `;
+
+                // Create preview
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const img = new Image();
+                    img.onload = function () {
+                        const isWebP = file.type === 'image/webp';
+                        previewContainer.innerHTML = `
+                            <div class="image-preview-success" style="padding: 15px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; margin-top: 10px;">
+                                <div class="d-flex align-items-start gap-3">
+                                    <img src="${event.target.result}" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: cover; border: 2px solid #ddd;">
+                                    <div class="flex-grow-1">
+                                        <p class="mb-2"><strong> Image ready for upload</strong></p>
+                                        <small class="d-block text-muted"> Dimensions: ${img.width} × ${img.height}px</small>
+                                        <small class="d-block text-muted"> Size: ${(file.size / 1024).toFixed(2)} KB</small>
+                                        <small class="d-block text-muted"> Format: ${file.type}</small>
+                                        ${!isWebP ? '<small class="d-block text-primary mt-2"><strong>🔄 Will be converted to WebP on upload</strong></small>' : '<small class="d-block text-success mt-2"><strong>✨ Already in WebP format</strong></small>'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                previewContainer.innerHTML = `
+                    <div class="video-preview" style="padding: 15px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; margin-top: 10px;">
+                        <p class="mb-2"><strong>🎥 Video ready for upload</strong></p>
+                        <small class="d-block text-muted">📦 Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                        <small class="d-block text-muted">🎬 Format: ${file.type}</small>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    function createPreviewContainer(fileInput, containerId) {
+        const container = document.createElement('div');
+        container.id = containerId;
+        container.className = 'image-preview-container';
+        fileInput.parentNode.appendChild(container);
+        return container;
+    }
+
+    // Setup preview for text section image
+    document.addEventListener('DOMContentLoaded', function () {
+        // Wait a bit for dynamic content to load
+        setTimeout(() => {
+            const textImageFile = document.getElementById('text_image_file');
+            if (textImageFile) {
+                setupImagePreview(textImageFile, 'text_image_preview');
+            }
+
+            const splitImageFile = document.querySelector('input[name="split_media_file"]');
+            if (splitImageFile) {
+                setupImagePreview(splitImageFile, 'split_image_preview');
+            }
+
+            // Setup for hero media files
+            document.querySelectorAll('.hero-media-file').forEach((input, index) => {
+                setupImagePreview(input, `hero_media_preview_${index}`);
+            });
+
+            // Setup for gallery files
+            document.querySelectorAll('.gallery-media-file').forEach((input, index) => {
+                setupImagePreview(input, `gallery_media_preview_${index}`);
+            });
+
+            // Setup for team member photos
+            document.querySelectorAll('.team-media-file').forEach((input, index) => {
+                setupImagePreview(input, `team_media_preview_${index}`);
+            });
+
+            // Setup for facility images
+            document.querySelectorAll('.facility-media-file').forEach((input, index) => {
+                setupImagePreview(input, `facility_media_preview_${index}`);
+            });
+
+            // Setup for card icons
+            document.querySelectorAll('.card-media-file').forEach((input, index) => {
+                setupImagePreview(input, `card_media_preview_${index}`);
+            });
+        }, 500);
+    });
+
+    // Re-setup previews when section type changes
+    document.getElementById('section_type').addEventListener('change', function () {
+        setTimeout(() => {
+            // Re-attach event listeners to new file inputs
+            document.querySelectorAll('input[type="file"]').forEach((input, index) => {
+                if (!input.dataset.previewSetup) {
+                    const previewId = input.id ? `${input.id}_preview` : `file_preview_${index}`;
+                    setupImagePreview(input, previewId);
+                    input.dataset.previewSetup = 'true';
+                }
+            });
+        }, 300);
+    });
+
 </script>
 
 <style>

@@ -1,0 +1,93 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Faculties - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Faculties{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-people me-2"></i>Faculties for {{ college.name }}</h2>
+            <small class="text-muted">Manage faculty members for this college</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/colleges/{{ college.id }}/faculties/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Faculty
+            </a>
+            <a href="/admin/colleges" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Colleges
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if faculties %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">Image</th>
+                        <th>Name</th>
+                        <th>Designation</th>
+                        <th>Department</th>
+                        <th>Contact</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 150px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for faculty in faculties %}
+                    <tr>
+                        <td>
+                            {% if faculty.image %}
+                            <img src="{{ faculty.image }}" alt="{{ faculty.name }}"
+                                style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; font-weight: bold;">
+                                {{ faculty.name[0] }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ faculty.name }}</strong><br><small class="text-muted">{{ faculty.email }}</small>
+                        </td>
+                        <td>{{ faculty.designation }}</td>
+                        <td>{{ faculty.department }}</td>
+                        <td>{{ faculty.contact }}</td>
+                        <td>
+                            {% if faculty.is_active %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge badge-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="/admin/faculties/{{ faculty.id }}/edit" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="/admin/faculties/{{ faculty.id }}/delete"
+                                    style="display: inline;" onsubmit="return confirm('Delete this faculty member?');">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-people" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No faculty members found. Add your first faculty member.</p>
+            <a href="/admin/colleges/{{ college.id }}/faculties/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add First Faculty
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
