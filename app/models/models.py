@@ -181,6 +181,7 @@ class Faculty(Base):
     image = Column(String(500), nullable=True)  # Profile photo URL
     designation = Column(String(255), nullable=True)  # Professor, Assistant Professor, etc.
     department = Column(String(255), nullable=True)  # Computer Science, Management, etc.
+    description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

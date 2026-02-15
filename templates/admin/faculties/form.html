@@ -59,6 +59,12 @@
                                 placeholder="e.g., Computer Science">
                         </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Profile Description</label>
+                        <textarea name="description" id="description" class="form-control rich-editor" rows="6"
+                            placeholder="Detailed profile, research interests, etc.">{{ faculty.description if faculty else '' }}</textarea>
+                    </div>
                 </div>
 
                 <div class="col-md-4">
@@ -114,7 +120,24 @@
     </div>
 </div>
 
+<script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js"
+    referrerpolicy="origin"></script>
 <script>
+    tinymce.init({
+        selector: '.rich-editor',
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace vertical-align code fullscreen insertdatetime media table code help wordcount',
+        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        menubar: false,
+        height: 300,
+        branding: false,
+        promotion: false,
+        setup: function (editor) {
+            editor.on('change', function () {
+                editor.save();
+            });
+        }
+    });
+
     function previewImage(input) {
         const preview = document.getElementById('imagePreview');
         const placeholder = document.getElementById('placeholderPreview');

@@ -1005,6 +1005,7 @@ async def create_faculty(
     contact: str = Form(""),
     designation: str = Form(""),
     department: str = Form(""),
+    description: str = Form(""),
     image: UploadFile = File(None),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
@@ -1033,6 +1034,7 @@ async def create_faculty(
         contact=contact if contact else None,
         designation=designation if designation else None,
         department=department if department else None,
+        description=description if description else None,
         image=image_path,
         is_active=is_active
     )
@@ -1073,6 +1075,7 @@ async def update_faculty(
     contact: str = Form(""),
     designation: str = Form(""),
     department: str = Form(""),
+    description: str = Form(""),
     image: UploadFile = File(None),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
@@ -1102,6 +1105,7 @@ async def update_faculty(
     faculty.contact = contact if contact else None
     faculty.designation = designation if designation else None
     faculty.department = department if department else None
+    faculty.description = description if description else None
     faculty.is_active = is_active
     
     db.commit()
