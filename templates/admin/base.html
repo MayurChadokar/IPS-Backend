@@ -420,7 +420,7 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2><i class="bi bi-mortarboard-fill"></i> CMS Admin</h2>
+            <h2><i class="bi bi-mortarboard-fill"></i>IPS Academy CMS</h2>
             <p>Multi-College Manager</p>
         </div>
 
@@ -433,6 +433,20 @@
                 </a>
                 <a href="/admin/colleges" class="menu-item {% if '/colleges' in request.url.path %}active{% endif %}">
                     <i class="bi bi-building"></i> Colleges
+                </a>
+
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-section-title">Management</div>
+                <a href="/admin/colleges" class="menu-item">
+                    <i class="bi bi-file-earmark-text"></i> Pages
+                </a>
+                <a href="/admin/colleges" class="menu-item">
+                    <i class="bi bi-people"></i> Faculty
+                </a>
+                <a href="/admin/colleges" class="menu-item">
+                    <i class="bi bi-mortarboard"></i> Courses
                 </a>
             </div>
 
