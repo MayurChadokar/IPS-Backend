@@ -10,7 +10,7 @@ from typing import List, Dict, Any
 router = APIRouter()
 
 
-@router.get("/{college_slug}/pages/{page_slug}", response_model=PagePublicResponse)
+@router.get("/{college_slug}/pages/{page_slug:path}", response_model=PagePublicResponse)
 async def get_page_by_college(
     college_slug: str,
     page_slug: str,
