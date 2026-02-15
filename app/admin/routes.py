@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, File, UploadFile, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry
 from datetime import timedelta
 from typing import Optional
 import json
@@ -154,12 +154,15 @@ async def admin_dashboard(
     pages_count = db.query(Page).count()
     sections_count = db.query(Section).count()
     
+    inquiries_count = db.query(Inquiry).count()
+    
     return templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
         "user": current_user,
         "colleges_count": colleges_count,
         "pages_count": pages_count,
-        "sections_count": sections_count
+        "sections_count": sections_count,
+        "inquiries_count": inquiries_count
     })
 
 
@@ -376,6 +379,17 @@ async def create_page(
     slug: str = Form(...),
     title: str = Form(...),
     meta_description: str = Form(""),
+    meta_title: str = Form(""),
+    meta_keywords: str = Form(""),
+    canonical_url: str = Form(""),
+    robots: str = Form(""),
+    og_title: str = Form(""),
+    og_description: str = Form(""),
+    og_image: str = Form(""),
+    twitter_title: str = Form(""),
+    twitter_description: str = Form(""),
+    twitter_image: str = Form(""),
+    schema_markup: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -386,6 +400,17 @@ async def create_page(
         slug=slug,
         title=title,
         meta_description=meta_description if meta_description else None,
+        meta_title=meta_title if meta_title else None,
+        meta_keywords=meta_keywords if meta_keywords else None,
+        canonical_url=canonical_url if canonical_url else None,
+        robots=robots if robots else "index, follow",
+        og_title=og_title if og_title else None,
+        og_description=og_description if og_description else None,
+        og_image=og_image if og_image else None,
+        twitter_title=twitter_title if twitter_title else None,
+        twitter_description=twitter_description if twitter_description else None,
+        twitter_image=twitter_image if twitter_image else None,
+        schema_markup=schema_markup if schema_markup else None,
         is_active=is_active
     )
     
@@ -423,6 +448,17 @@ async def update_page(
     slug: str = Form(...),
     title: str = Form(...),
     meta_description: str = Form(""),
+    meta_title: str = Form(""),
+    meta_keywords: str = Form(""),
+    canonical_url: str = Form(""),
+    robots: str = Form(""),
+    og_title: str = Form(""),
+    og_description: str = Form(""),
+    og_image: str = Form(""),
+    twitter_title: str = Form(""),
+    twitter_description: str = Form(""),
+    twitter_image: str = Form(""),
+    schema_markup: str = Form(""),
     is_active: bool = Form(True),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -435,6 +471,17 @@ async def update_page(
     page.slug = slug
     page.title = title
     page.meta_description = meta_description if meta_description else None
+    page.meta_title = meta_title if meta_title else None
+    page.meta_keywords = meta_keywords if meta_keywords else None
+    page.canonical_url = canonical_url if canonical_url else None
+    page.robots = robots if robots else "index, follow"
+    page.og_title = og_title if og_title else None
+    page.og_description = og_description if og_description else None
+    page.og_image = og_image if og_image else None
+    page.twitter_title = twitter_title if twitter_title else None
+    page.twitter_description = twitter_description if twitter_description else None
+    page.twitter_image = twitter_image if twitter_image else None
+    page.schema_markup = schema_markup if schema_markup else None
     page.is_active = is_active
     
     db.commit()
@@ -1227,4 +1274,118 @@ async def delete_course(
         return RedirectResponse(url=f"/admin/colleges/{college_id}/courses", status_code=303)
     
     return RedirectResponse(url="/admin/colleges", status_code=303)
+
+
+@router.get("/inquiries", response_class=HTMLResponse)
+async def list_inquiries_page(
+    request: Request,
+    college_id: Optional[str] = Query(None),
+    is_read: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List all inquiries with filters and pagination"""
+    query = db.query(Inquiry)
+    
+    # Parse filters manually to handle empty strings from form
+    parsed_college_id = None
+    if college_id and college_id.strip():
+        try:
+            parsed_college_id = int(college_id)
+            query = query.filter(Inquiry.college_id == parsed_college_id)
+        except ValueError:
+            pass
+            
+    parsed_is_read = None
+    if is_read == "true":
+        parsed_is_read = True
+        query = query.filter(Inquiry.is_read == True)
+    elif is_read == "false":
+        parsed_is_read = False
+        query = query.filter(Inquiry.is_read == False)
+        
+    total_count = query.count()
+    inquiries = query.order_by(Inquiry.created_at.desc())\
+        .offset((page - 1) * limit)\
+        .limit(limit)\
+        .all()
+    
+    colleges = db.query(College).all()
+    
+    # Add IST time to each inquiry
+    for inquiry in inquiries:
+        if inquiry.created_at:
+            inquiry.ist_date = inquiry.created_at + timedelta(hours=5, minutes=30)
+    
+    total_pages = (total_count + limit - 1) // limit if total_count > 0 else 1
+    
+    return templates.TemplateResponse("admin/inquiries/list.html", {
+        "request": request,
+        "user": current_user,
+        "inquiries": inquiries,
+        "colleges": colleges,
+        "college_id": parsed_college_id,
+        "is_read": parsed_is_read,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "total_count": total_count
+    })
+
+
+@router.get("/inquiries/{inquiry_id}", response_class=HTMLResponse)
+async def view_inquiry(
+    request: Request,
+    inquiry_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """View inquiry details"""
+    inquiry = db.query(Inquiry).filter(Inquiry.id == inquiry_id).first()
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Inquiry not found")
+        
+    return templates.TemplateResponse("admin/inquiries/detail.html", {
+        "request": request,
+        "user": current_user,
+        "inquiry": inquiry
+    })
+
+
+@router.post("/inquiries/{inquiry_id}/update")
+async def update_inquiry(
+    inquiry_id: int,
+    is_read: bool = Form(False),
+    admin_notes: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update inquiry status and notes"""
+    inquiry = db.query(Inquiry).filter(Inquiry.id == inquiry_id).first()
+    if not inquiry:
+        raise HTTPException(status_code=404, detail="Inquiry not found")
+    
+    inquiry.is_read = is_read
+    inquiry.admin_notes = admin_notes if admin_notes else None
+    
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/inquiries/{inquiry_id}", status_code=303)
+
+
+@router.post("/inquiries/{inquiry_id}/delete")
+async def delete_inquiry(
+    inquiry_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete an inquiry"""
+    inquiry = db.query(Inquiry).filter(Inquiry.id == inquiry_id).first()
+    if inquiry:
+        db.delete(inquiry)
+        db.commit()
+    
+    return RedirectResponse(url="/admin/inquiries", status_code=303)
 

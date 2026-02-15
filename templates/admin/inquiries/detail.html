@@ -1,0 +1,92 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Inquiry Details{% endblock %}
+{% block page_title %}Inquiry #{{ inquiry.id }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Applicant Information</h5>
+                <span class="badge {% if inquiry.is_read %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                    {% if inquiry.is_read %}Read{% else %}Unread{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Name:</div>
+                    <div class="col-sm-8">{{ inquiry.name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Email:</div>
+                    <div class="col-sm-8"><a href="mailto:{{ inquiry.email }}">{{ inquiry.email or '-' }}</a></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Phone:</div>
+                    <div class="col-sm-8"><a href="tel:{{ inquiry.phone_number }}">{{ inquiry.phone_number or '-' }}</a>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Interested Course:</div>
+                    <div class="col-sm-8">{{ inquiry.course_interested or '-' }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">Submission Date:</div>
+                    <div class="col-sm-8">{{ inquiry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 fw-bold">College:</div>
+                    <div class="col-sm-8">{{ inquiry.college.name }}</div>
+                </div>
+
+                <hr>
+
+                <h6 class="fw-bold mb-2">Message:</h6>
+                <div class="p-3 bg-light rounded border">
+                    {{ inquiry.message or 'No message provided.' }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Admin Actions</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/admin/inquiries/{{ inquiry.id }}/update">
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_read" id="isReadSwitch" value="true" {%
+                            if inquiry.is_read %}checked{% endif %}>
+                        <label class="form-check-label" for="isReadSwitch">Mark as Read</label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Admin Notes</label>
+                        <textarea name="admin_notes" class="form-control" rows="5"
+                            placeholder="Internal notes...">{{ inquiry.admin_notes or '' }}</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <a href="/admin/inquiries" class="btn btn-outline-secondary">Back to List</a>
+                    </div>
+                </form>
+
+                <hr>
+
+                <form method="POST" action="/admin/inquiries/{{ inquiry.id }}/delete"
+                    onsubmit="return confirm('Are you sure you want to delete this inquiry?');">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-2"></i>Delete Inquiry
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

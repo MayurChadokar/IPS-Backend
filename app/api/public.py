@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course
-from app.schemas.schemas import PagePublicResponse
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry
+from app.schemas.schemas import PagePublicResponse, InquiryCreate
 from typing import Dict, Any
 from typing import List, Dict, Any
 
@@ -213,3 +213,39 @@ async def list_courses_by_college(
         }
         for course in courses
     ]
+
+
+@router.post("/{college_slug}/inquiry", status_code=status.HTTP_201_CREATED)
+async def submit_inquiry(
+    college_slug: str,
+    inquiry: InquiryCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Submit a new inquiry form
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+    
+    new_inquiry = Inquiry(
+        college_id=college.id,
+        name=inquiry.name,
+        email=inquiry.email,
+        phone_number=inquiry.phone_number,
+        course_interested=inquiry.course_interested,
+        message=inquiry.message
+    )
+    
+    db.add(new_inquiry)
+    db.commit()
+    db.refresh(new_inquiry)
+    
+    return {"message": "Inquiry submitted successfully", "id": new_inquiry.id}

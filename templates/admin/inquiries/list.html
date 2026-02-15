@@ -1,0 +1,174 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Inquiries{% endblock %}
+{% block page_title %}Inquiries Management (IST){% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-bold small text-muted text-uppercase">College</label>
+                <select name="college_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Colleges</option>
+                    {% for college in colleges %}
+                    <option value="{{ college.id }}" {% if college_id==college.id %}selected{% endif %}>{{ college.name
+                        }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold small text-muted text-uppercase">Status</label>
+                <select name="is_read" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="false" {% if is_read==False %}selected{% endif %}>Unread</option>
+                    <option value="true" {% if is_read==True %}selected{% endif %}>Read</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold small text-muted text-uppercase">Rows</label>
+                <select name="limit" class="form-select" onchange="this.form.submit()">
+                    <option value="10" {% if limit==10 %}selected{% endif %}>10 rows</option>
+                    <option value="25" {% if limit==25 %}selected{% endif %}>25 rows</option>
+                    <option value="50" {% if limit==50 %}selected{% endif %}>50 rows</option>
+                    <option value="100" {% if limit==100 %}selected{% endif %}>100 rows</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="/admin/inquiries" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-envelope-paper me-2 text-primary"></i>
+            Total Inquiries: <span class="badge bg-primary ms-1">{{ total_count }}</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if inquiries %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Date (IST)</th>
+                        <th>Applicant</th>
+                        <th>Contact info</th>
+                        <th>Course</th>
+                        <th>Message</th>
+                        <th>College</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inquiry in inquiries %}
+                    <tr
+                        class="{% if not inquiry.is_read %}table-warning border-start border-4 border-warning{% endif %}">
+                        <td class="ps-4">
+                            <div class="fw-bold">{{ inquiry.ist_date.strftime('%d %b, %Y') if inquiry.ist_date else '-'
+                                }}</div>
+                            <small class="text-muted">{{ inquiry.ist_date.strftime('%I:%M %p') if inquiry.ist_date else
+                                '-' }}</small>
+                        </td>
+                        <td>
+                            <div class="fw-bold">{{ inquiry.name }}</div>
+                            {% if not inquiry.is_read %}
+                            <span class="badge bg-danger rounded-pill mt-1" style="font-size: 0.65rem;">NEW</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="small"><i class="bi bi-envelope me-1 text-muted"></i>{{ inquiry.email or '-' }}
+                            </div>
+                            <div class="small"><i class="bi bi-telephone me-1 text-muted"></i>{{ inquiry.phone_number or
+                                '-' }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ inquiry.course_interested or '-' }}</span>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 200px;" title="{{ inquiry.message }}">
+                                {{ inquiry.message or '-' }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">{{ inquiry.college.name }}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="/admin/inquiries/{{ inquiry.id }}" class="btn btn-sm btn-outline-primary"
+                                    title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <form method="POST" action="/admin/inquiries/{{ inquiry.id }}/delete" class="d-inline"
+                                    onsubmit="return confirm('Permanently delete this inquiry?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="card-footer bg-white py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                        <a class="page-link"
+                            href="?page={{ page - 1 }}&college_id={{ college_id or '' }}&is_read={{ is_read if is_read is not none else '' }}&limit={{ limit }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+
+                    {% for p in range(1, total_pages + 1) %}
+                    {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %} <li
+                        class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link"
+                            href="?page={{ p }}&college_id={{ college_id or '' }}&is_read={{ is_read if is_read is not none else '' }}&limit={{ limit }}">{{
+                            p }}</a>
+                        </li>
+                        {% elif p == 2 or p == total_pages - 1 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                        {% endfor %}
+
+                        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                            <a class="page-link"
+                                href="?page={{ page + 1 }}&college_id={{ college_id or '' }}&is_read={{ is_read if is_read is not none else '' }}&limit={{ limit }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                </ul>
+            </nav>
+            <div class="text-center mt-2 small text-muted">
+                Showing page {{ page }} of {{ total_pages }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-1 mb-3 opacity-25"></i>
+            <p class="h5">No inquiries found matching your filters.</p>
+            <a href="/admin/inquiries" class="btn btn-link">Clear all filters</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

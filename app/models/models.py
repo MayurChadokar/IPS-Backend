@@ -53,6 +53,7 @@ class College(Base):
     sections = relationship("Section", back_populates="college", cascade="all, delete-orphan")
     faculties = relationship("Faculty", back_populates="college", cascade="all, delete-orphan")
     courses = relationship("Course", back_populates="college", cascade="all, delete-orphan")
+    inquiries = relationship("Inquiry", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -67,6 +68,26 @@ class Page(Base):
     slug = Column(String(100), nullable=False, index=True)  # home, about-us, contact
     title = Column(String(255), nullable=False)
     meta_description = Column(Text, nullable=True)
+    meta_title = Column(String(255), nullable=True)  # <title> tag
+    meta_keywords = Column(Text, nullable=True)
+
+    # Advanced SEO
+    canonical_url = Column(String(500), nullable=True)
+    robots = Column(String(100), default="index, follow")  # noindex, nofollow
+
+    # Open Graph (Social Sharing)
+    og_title = Column(String(255), nullable=True)
+    og_description = Column(Text, nullable=True)
+    og_image = Column(String(500), nullable=True)
+
+    # Twitter Cards
+    twitter_title = Column(String(255), nullable=True)
+    twitter_description = Column(Text, nullable=True)
+    twitter_image = Column(String(500), nullable=True)
+
+    # Structured Data (Schema JSON-LD)
+    schema_markup = Column(Text, nullable=True)
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -190,6 +211,32 @@ class Course(Base):
     
     # Relationships
     college = relationship("College", back_populates="courses")
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Inquiry(Base):
+    """
+    Inquiries/Leads from contact forms
+    """
+    __tablename__ = "inquiries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
+    phone_number = Column(String(20), nullable=True)
+    course_interested = Column(String(255), nullable=True)
+    message = Column(Text, nullable=True)
+    is_read = Column(Boolean, default=False)
+    admin_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    college = relationship("College", back_populates="inquiries")
     
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}

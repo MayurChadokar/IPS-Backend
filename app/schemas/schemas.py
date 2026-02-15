@@ -225,3 +225,12 @@ class CreateCollegeFromTemplate(BaseModel):
     logo: Optional[str] = None
     domain: Optional[str] = None
     use_default_template: bool = True
+
+
+# ============= Inquiry Schemas =============
+class InquiryCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    course_interested: Optional[str] = None
+    message: Optional[str] = None
