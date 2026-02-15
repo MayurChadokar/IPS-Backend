@@ -518,6 +518,7 @@ async def create_section(
     team_media_files: List[UploadFile] = File(None),
     cards_media_files: List[UploadFile] = File(None),
     facilities_media_files: List[UploadFile] = File(None),
+    testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -629,6 +630,21 @@ async def create_section(
             url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
+
+        elif section_type == 'testimonials' and testimonials_media_files:
+            for file in testimonials_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in items array
+            if 'items' in content_data:
+                upload_index = 0
+                for item in content_data['items']:
+                    if 'image' in item and item['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            item['image'] = uploaded_files[upload_index]
+                            upload_index += 1
     except Exception as e:
         # Create a mock section object to preserve form state
         mock_section = {
@@ -705,6 +721,7 @@ async def update_section(
     team_media_files: List[UploadFile] = File(None),
     cards_media_files: List[UploadFile] = File(None),
     facilities_media_files: List[UploadFile] = File(None),
+    testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
@@ -816,6 +833,21 @@ async def update_section(
             url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
+
+        elif section_type == 'testimonials' and testimonials_media_files:
+            for file in testimonials_media_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+            
+            # Replace __UPLOAD__ placeholders in items array
+            if 'items' in content_data:
+                upload_index = 0
+                for item in content_data['items']:
+                    if 'image' in item and item['image'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            item['image'] = uploaded_files[upload_index]
+                            upload_index += 1
     except Exception as e:
         # Update current section object with submitted data to preserve form state
         section.section_key = section_key

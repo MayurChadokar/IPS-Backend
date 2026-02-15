@@ -63,6 +63,9 @@
                         <option value="programs" {% if section and section.section_type=='programs' %}selected{% endif
                             %}>
                             🎓 Programs/Table</option>
+                        <option value="testimonials" {% if section and section.section_type=='testimonials' %}selected{%
+                            endif %}>
+                            💬 Testimonials</option>
                         <option value="contact" {% if section and section.section_type=='contact' %}selected{% endif %}>
                             📞 Contact Info</option>
                     </select>
@@ -637,6 +640,66 @@
                 </select>
             </div>
         `;
+        },
+
+        testimonials: () => {
+            const items = existingContent.items || [{ name: '', designation: '', story: '', image: '' }];
+            return `
+            <div class="form-group">
+                <label class="form-label">Section Title</label>
+                <input type="text" class="form-control" id="testimonials_title" placeholder="What Our Students Say" value="${existingContent.title || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Testimonials</label>
+                <div id="testimonials_container">
+                    ${items.map((item, index) => `
+                        <div class="testimonial-item" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;">
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Name *</label>
+                                <input type="text" class="form-control testimonial-name" placeholder="John Doe" value="${item.name || ''}" style="margin-bottom: 10px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Designation/Role</label>
+                                <input type="text" class="form-control testimonial-designation" placeholder="student, MBA 2023" value="${item.designation || ''}" style="margin-bottom: 10px;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Story/Testimonial *</label>
+                                <textarea class="form-control testimonial-story" rows="3" placeholder="My experience at...">${item.story || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
+                                ${item.image && !item.image.startsWith('__UPLOAD__') ? `
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <img src="${item.image}" alt="Current" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd;">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-2"><strong>Current Photo:</strong></p>
+                                                <small class="d-block text-muted mb-2"><a href="${item.image}" target="_blank" class="text-primary">${item.image.split('/').pop()}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.testimonial-item').querySelector('.testimonial-image').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                    <i class="bi bi-x-circle"></i> Remove Photo
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; gap: 10px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
+                                        <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*" style="padding: 8px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                                        <input type="text" class="form-control testimonial-image" placeholder="https://example.com/photo.jpg" value="${item.image && !item.image.startsWith('__UPLOAD__') ? item.image : ''}" style="padding: 10px;">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Testimonial</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addTestimonialItem()" style="margin-top: 10px;">+ Add Testimonial</button>
+            </div>
+        `;
         }
     };
 
@@ -861,6 +924,47 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
     `;
         container.appendChild(newItem);
+    }
+
+    function addTestimonialItem() {
+        const container = document.getElementById('testimonials_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'testimonial-item';
+        newItem.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
+        newItem.innerHTML = `
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Name *</label>
+            <input type="text" class="form-control testimonial-name" placeholder="John Doe" style="margin-bottom: 10px;">
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Designation/Role</label>
+            <input type="text" class="form-control testimonial-designation" placeholder="student, MBA 2023" style="margin-bottom: 10px;">
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Story/Testimonial *</label>
+            <textarea class="form-control testimonial-story" rows="3" placeholder="My experience at..."></textarea>
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
+                    <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*" style="padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
+                    <input type="text" class="form-control testimonial-image" placeholder="https://example.com/photo.jpg" style="padding: 10px;">
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Testimonial</button>
+    `;
+        container.appendChild(newItem);
+
+        // Setup preview for new item
+        const fileInput = newItem.querySelector('.testimonial-media-file');
+        const uniqueId = 'testimonial_preview_' + Date.now();
+        setupImagePreview(fileInput, uniqueId);
     }
 
     // Build JSON from form fields (for text-based fields only, files handled separately)
@@ -1101,6 +1205,32 @@
                     image_position: document.getElementById('split_image_position').value
                 };
                 break;
+
+            case 'testimonials':
+                const testimonialItems = [];
+                document.querySelectorAll('.testimonial-item').forEach(item => {
+                    const name = item.querySelector('.testimonial-name').value;
+                    const designation = item.querySelector('.testimonial-designation').value;
+                    const story = item.querySelector('.testimonial-story').value;
+                    const urlInput = item.querySelector('.testimonial-image');
+                    const fileInput = item.querySelector('.testimonial-media-file');
+
+                    let testimonialImage = '';
+                    if (fileInput && fileInput.files.length > 0) {
+                        testimonialImage = '__UPLOAD__' + fileInput.files[0].name;
+                    } else if (urlInput && urlInput.value.trim()) {
+                        testimonialImage = urlInput.value.trim();
+                    }
+
+                    if (name.trim()) {
+                        testimonialItems.push({ name, designation, story, image: testimonialImage });
+                    }
+                });
+                jsonData = {
+                    title: document.getElementById('testimonials_title').value,
+                    items: testimonialItems
+                };
+                break;
         }
 
         return JSON.stringify(jsonData);
@@ -1266,6 +1396,11 @@
             // Setup for card icons
             document.querySelectorAll('.card-media-file').forEach((input, index) => {
                 setupImagePreview(input, `card_media_preview_${index}`);
+            });
+
+            // Setup for testimonial photos
+            document.querySelectorAll('.testimonial-media-file').forEach((input, index) => {
+                setupImagePreview(input, `testimonial_media_preview_${index}`);
             });
         }, 500);
     });

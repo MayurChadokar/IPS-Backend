@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course
 from app.schemas.schemas import PagePublicResponse
 from typing import Dict, Any
 from typing import List, Dict, Any
@@ -134,4 +134,82 @@ async def list_active_colleges(db: Session = Depends(get_db)):
             "domain": college.domain
         }
         for college in colleges
+    ]
+
+
+@router.get("/{college_slug}/faculties", response_model=List[Dict[str, Any]])
+async def list_faculties_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List all active faculties for a college
+    
+    Example: GET /api/ipsa/faculties
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+    
+    faculties = db.query(Faculty).filter(
+        Faculty.college_id == college.id,
+        Faculty.is_active == True
+    ).all()
+    
+    return [
+        {
+            "id": faculty.id,
+            "name": faculty.name,
+            "email": faculty.email,
+            "contact": faculty.contact,
+            "image": faculty.image,
+            "designation": faculty.designation,
+            "department": faculty.department
+        }
+        for faculty in faculties
+    ]
+
+
+@router.get("/{college_slug}/courses", response_model=List[Dict[str, Any]])
+async def list_courses_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List all active courses for a college
+    
+    Example: GET /api/ipsa/courses
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+    
+    courses = db.query(Course).filter(
+        Course.college_id == college.id,
+        Course.is_active == True
+    ).all()
+    
+    return [
+        {
+            "id": course.id,
+            "name": course.name,
+            "description": course.description,
+            "eligibility": course.eligibility,
+            "fee_structure": course.fee_structure
+        }
+        for course in courses
     ]
