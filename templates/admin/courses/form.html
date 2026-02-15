@@ -29,13 +29,13 @@
 
                     <div class="mb-3">
                         <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="4"
+                        <textarea name="description" id="description" class="form-control rich-editor" rows="6"
                             placeholder="Detailed description of the course...">{{ course.description if course else '' }}</textarea>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Eligibility Criteria</label>
-                        <textarea name="eligibility" class="form-control" rows="3"
+                        <textarea name="eligibility" id="eligibility" class="form-control rich-editor" rows="4"
                             placeholder="e.g., 10+2 with 50% marks in Physics, Chemistry, and Mathematics">{{ course.eligibility if course else '' }}</textarea>
                     </div>
                 </div>
@@ -79,7 +79,24 @@
     </div>
 </div>
 
+<script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js"
+    referrerpolicy="origin"></script>
 <script>
+    tinymce.init({
+        selector: '.rich-editor',
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace vertical-align code fullscreen insertdatetime media table code help wordcount',
+        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        menubar: false,
+        height: 300,
+        branding: false,
+        promotion: false,
+        setup: function (editor) {
+            editor.on('change', function () {
+                editor.save();
+            });
+        }
+    });
+
     function formatJSON() {
         const textarea = document.getElementById('fee_structure');
         try {
