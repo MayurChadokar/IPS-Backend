@@ -28,8 +28,8 @@
                     <tr>
                         <th style="width: 80px;">ID</th>
                         <th>Title</th>
-                        <th>Slug</th>
-                        <th style="width: 100px;">Status</th>
+                        <th class="d-none d-md-table-cell">Slug</th>
+                        <th class="d-none d-md-table-cell" style="width: 100px;">Status</th>
                         <th style="width: 300px;" class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -38,8 +38,8 @@
                     <tr>
                         <td><span class="badge bg-light text-dark">{{ page.id }}</span></td>
                         <td><strong>{{ page.title }}</strong></td>
-                        <td><code class="text-primary">{{ page.slug }}</code></td>
-                        <td>
+                        <td class="d-none d-md-table-cell"><code class="text-primary">{{ page.slug }}</code></td>
+                        <td class="d-none d-md-table-cell">
                             {% if page.is_active %}
                             <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
                             {% else %}
@@ -53,6 +53,9 @@
                                 </a>
                                 <a href="/admin/pages/{{ page.id }}/edit" class="btn btn-outline-primary">
                                     <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary" title="Clone Page">
+                                    <i class="bi bi-files"></i> Clone
                                 </a>
                             </div>
                             <form method="POST" action="/admin/pages/{{ page.id }}/delete" style="display: inline;"

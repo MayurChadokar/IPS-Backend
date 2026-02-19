@@ -741,6 +741,95 @@ async def edit_page_form(
     })
 
 
+
+@router.get("/pages/{page_id}/clone", response_class=HTMLResponse)
+async def clone_page_form(
+    request: Request,
+    page_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Show clone form to copy a page into another college"""
+    page = db.query(Page).filter(Page.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # List colleges except current
+    colleges = db.query(College).filter(College.id != page.college_id).all()
+
+    return templates.TemplateResponse("admin/pages/clone.html", {
+        "request": request,
+        "user": current_user,
+        "page": page,
+        "colleges": colleges
+    })
+
+
+@router.post("/pages/{page_id}/clone")
+async def clone_page(
+    request: Request,
+    page_id: int,
+    target_college_id: int = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Clone a page and its sections/content into another college"""
+    page = db.query(Page).filter(Page.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    target_college = db.query(College).filter(College.id == target_college_id).first()
+    if not target_college:
+        raise HTTPException(status_code=404, detail="Target college not found")
+
+    # Clone page fields
+    new_page = Page(
+        college_id=target_college.id,
+        slug=page.slug,
+        title=page.title,
+        meta_description=page.meta_description,
+        meta_title=page.meta_title,
+        meta_keywords=page.meta_keywords,
+        canonical_url=page.canonical_url,
+        robots=page.robots,
+        og_title=page.og_title,
+        og_description=page.og_description,
+        og_image=page.og_image,
+        twitter_title=page.twitter_title,
+        twitter_description=page.twitter_description,
+        twitter_image=page.twitter_image,
+        schema_markup=page.schema_markup,
+        is_active=page.is_active
+    )
+
+    db.add(new_page)
+    db.flush()
+
+    # Clone sections and contents
+    for section in page.sections:
+        new_section = Section(
+            college_id=target_college.id,
+            page_id=new_page.id,
+            section_key=section.section_key,
+            section_type=section.section_type,
+            sort_order=section.sort_order,
+            is_active=section.is_active
+        )
+        db.add(new_section)
+        db.flush()
+
+        if section.content:
+            new_content = SectionContent(
+                section_id=new_section.id,
+                content_json=section.content.content_json
+            )
+            db.add(new_content)
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{target_college.id}/pages", status_code=303)
+
+
 @router.post("/pages/{page_id}/edit")
 async def update_page(
     request: Request,
