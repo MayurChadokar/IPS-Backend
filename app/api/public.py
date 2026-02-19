@@ -171,7 +171,8 @@ async def list_faculties_by_college(
             "contact": faculty.contact,
             "image": faculty.image,
             "designation": faculty.designation,
-            "department": faculty.department
+            "department": faculty.department,
+            "description":faculty.description
         }
         for faculty in faculties
     ]
