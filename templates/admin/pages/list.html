@@ -22,7 +22,8 @@
 
     <div class="card-body p-0">
         {% if pages %}
-        <div class="table-responsive">
+        <!-- Desktop / tablet table -->
+        <div class="table-responsive d-none d-md-block">
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
@@ -57,19 +58,52 @@
                                 <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary" title="Clone Page">
                                     <i class="bi bi-files"></i> Clone
                                 </a>
-                            </div>
-                            <form method="POST" action="/admin/pages/{{ page.id }}/delete" style="display: inline;"
+                                <form method="POST" action="/admin/pages/{{ page.id }}/delete" style="display: inline;"
                                 onsubmit="return confirm('Delete this page?');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Delete
                                 </button>
                             </form>
+                            </div>
+                            
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <!-- Mobile list view -->
+        <div class="d-block d-md-none">
+            {% for page in pages %}
+            <div class="card mb-3">
+                <div class="card-body d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="small text-muted">ID <span class="badge bg-light text-dark">{{ page.id }}</span></div>
+                        <h5 class="card-title mb-1">{{ page.title }}</h5>
+                        <div class="text-muted small">Slug: <a href="#" class="text-primary">{{ page.slug }}</a></div>
+                        <div class="mt-2">
+                            {% if page.is_active %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge badge-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end d-flex flex-column align-items-end gap-2">
+                        <div class="btn-group btn-group-sm" role="group" style="flex-wrap:wrap;">
+                            <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-outline-secondary">Sections</a>
+                            <a href="/admin/pages/{{ page.id }}/edit" class="btn btn-outline-primary">Edit</a>
+                            <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary">Clone</a>
+                            <form method="POST" action="/admin/pages/{{ page.id }}/delete" onsubmit="return confirm('Delete this page?');" class="m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
         {% else %}
         <div class="text-center py-5">
             <i class="bi bi-file-earmark-text" style="font-size: 64px; color: #cbd5e1;"></i>
