@@ -38,36 +38,38 @@
                     <select name="section_type" id="section_type" class="form-select" required>
                         <option value="">-- Select Type --</option>
                         <option value="hero" {% if section and section.section_type=='hero' %}selected{% endif %}>
-                            🎯 Hero Section</option>
+                            Hero Section</option>
                         <option value="text" {% if section and section.section_type=='text' %}selected{% endif %}>
-                            📝 Text/Content</option>
+                            Text/Content</option>
                         <option value="stats" {% if section and section.section_type=='stats' %}selected{% endif %}>
-                            📊 Statistics</option>
+                            Statistics</option>
                         <option value="accordion" {% if section and section.section_type=='accordion' %}selected{% endif
                             %}>
-                            📋 Accordion/FAQ</option>
+                            Accordion/FAQ</option>
                         <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>
-                            🖼️ Image Gallery</option>
+                            Image Gallery</option>
+                        <option value="images_with_logo" {% if section and section.section_type=='images_with_logo' %}selected{% endif %}>
+                            Logos + Names</option>
                         <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>
-                            👥 Leadership Team</option>
+                            Leadership Team</option>
                         <option value="features" {% if section and section.section_type=='features' %}selected{% endif
                             %}>
-                            ⭐ Features/List</option>
+                            Features/List</option>
                         <option value="cards" {% if section and section.section_type=='cards' %}selected{% endif %}>
-                            🎴 Advantage/Cards (Icons)</option>
+                            Advantage/Cards (Icons)</option>
                         <option value="facilities" {% if section and section.section_type=='facilities' %}selected{%
                             endif %}>
-                            🏢 Facilities (Image Grid)</option>
+                            Facilities (Image Grid)</option>
                         <option value="split" {% if section and section.section_type=='split' %}selected{% endif %}>
-                            🔀 Feature with Image (Split)</option>
+                            Feature with Image (Split)</option>
                         <option value="programs" {% if section and section.section_type=='programs' %}selected{% endif
                             %}>
-                            🎓 Programs/Table</option>
+                            Programs/Table</option>
                         <option value="testimonials" {% if section and section.section_type=='testimonials' %}selected{%
                             endif %}>
-                            💬 Testimonials</option>
+                            Testimonials</option>
                         <option value="contact" {% if section and section.section_type=='contact' %}selected{% endif %}>
-                            📞 Contact Info</option>
+                            Contact Info</option>
                     </select>
                 </div>
             </div>
@@ -310,6 +312,39 @@
                 <small style="display: block; color: #95a5a6; margin-top: 5px;">Upload images (JPG, PNG, GIF) or videos (MP4, WebM), or enter direct URLs</small>
             </div>
         `;
+        },
+
+        images_with_logo: () => {
+            const items = existingContent.items || [{ name: '', logo: '' }];
+            return `
+            <div class="form-group">
+                <label class="form-label">Items (Logo + Name)</label>
+                <div id="images_with_logo_container">
+                    ${items.map((it, idx) => `
+                    <div class="images-logo-item card p-2 mb-2" style="border-radius:6px;">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-12 col-md-9">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control images-logo-name" placeholder="Name" value="${it.name || ''}">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Logo</label>
+                                <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file" data-existing="${it.logo || ''}">
+                                <div id="image_logo_preview_${idx}" class="image-preview-container mt-2">
+                                    ${it.logo ? `<img src="${it.logo}" class="img-fluid rounded" style="max-height:96px;">` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-danger" onclick="this.closest('.images-logo-item').remove()">Remove</button>
+                        </div>
+                    </div>
+                    `).join('')}
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="addImagesLogoItem()" style="margin-top:10px;">+ Add Item</button>
+                <small class="d-block text-muted mt-2">Upload logos (JPG, PNG) — images will be optimized through Cloudinary.</small>
+            </div>
+            `;
         },
 
         team: () => {
@@ -772,6 +807,35 @@
         container.appendChild(newImage);
     }
 
+    function addImagesLogoItem() {
+        const container = document.getElementById('images_with_logo_container');
+        if (!container) return;
+        const index = container.querySelectorAll('.images-logo-item').length;
+        const newItem = document.createElement('div');
+        newItem.className = 'images-logo-item';
+        newItem.classList.add('card','p-2','mb-2');
+        newItem.style.borderRadius = '6px';
+        newItem.innerHTML = `
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md-9">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control images-logo-name" placeholder="Name">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Logo</label>
+                    <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file">
+                    <div id="image_logo_preview_${index}" class="image-preview-container mt-2"></div>
+                </div>
+            </div>
+            <div class="mt-2">
+                <button type="button" class="btn btn-danger" onclick="this.closest('.images-logo-item').remove()">Remove</button>
+            </div>
+        `;
+        container.appendChild(newItem);
+        const fileInput = newItem.querySelector('.image-logo-file');
+        setupImagePreview(fileInput, `image_logo_preview_${index}`);
+    }
+
     function addTeamMember() {
         const container = document.getElementById('team_container');
         const newMember = document.createElement('div');
@@ -1056,6 +1120,25 @@
                 };
                 break;
 
+                case 'images_with_logo':
+                    const imagesLogoItems = [];
+                    const imagesLogoNodes = document.querySelectorAll('#images_with_logo_container .images-logo-item');
+                    for (const [idx, item] of Array.from(imagesLogoNodes).entries()) {
+                        const nameInput = item.querySelector('.images-logo-name');
+                        const fileInput = item.querySelector('.image-logo-file');
+                        let logoVal = '';
+                        if (fileInput && fileInput.files.length > 0) {
+                            logoVal = '__UPLOAD__' + fileInput.files[0].name;
+                        } else if (fileInput && fileInput.dataset && fileInput.dataset.existing) {
+                            logoVal = fileInput.dataset.existing;
+                        } else if (item.querySelector('img')) {
+                            logoVal = item.querySelector('img').src;
+                        }
+                        imagesLogoItems.push({ name: nameInput ? nameInput.value.trim() : '', logo: logoVal });
+                    }
+                    jsonData = { items: imagesLogoItems };
+                    break;
+
             case 'team':
                 const teamMembers = [];
                 const teamItems = document.querySelectorAll('#team_container .team-item');
@@ -1321,6 +1404,12 @@
                     const img = new Image();
                     img.onload = function () {
                         const isWebP = file.type === 'image/webp';
+                        // If this is a logo preview, render a small responsive image only
+                        if (previewContainerId && previewContainerId.startsWith('image_logo_preview')) {
+                            previewContainer.innerHTML = `<img src="${event.target.result}" class="img-fluid rounded" style="max-height:96px;">`;
+                            return;
+                        }
+
                         previewContainer.innerHTML = `
                             <div class="image-preview-success" style="padding: 15px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; margin-top: 10px;">
                                 <div class="d-flex align-items-start gap-3">
@@ -1401,6 +1490,11 @@
             // Setup for testimonial photos
             document.querySelectorAll('.testimonial-media-file').forEach((input, index) => {
                 setupImagePreview(input, `testimonial_media_preview_${index}`);
+            });
+
+            // Setup for images-with-logo logo files
+            document.querySelectorAll('.image-logo-file').forEach((input, index) => {
+                setupImagePreview(input, `image_logo_preview_${index}`);
             });
         }, 500);
     });

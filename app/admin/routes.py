@@ -956,6 +956,7 @@ async def create_section(
     facilities_media_files: List[UploadFile] = File(None),
     testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
+    images_logo_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -1159,6 +1160,7 @@ async def update_section(
     facilities_media_files: List[UploadFile] = File(None),
     testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
+    images_logo_files: List[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -1283,6 +1285,20 @@ async def update_section(
                     if 'image' in item and item['image'].startswith('__UPLOAD__'):
                         if upload_index < len(uploaded_files):
                             item['image'] = uploaded_files[upload_index]
+                            upload_index += 1
+        elif section_type == 'images_with_logo' and images_logo_files:
+            # Upload each logo file and replace placeholders in items
+            for file in images_logo_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+
+            if 'items' in content_data:
+                upload_index = 0
+                for it in content_data['items']:
+                    if 'logo' in it and isinstance(it['logo'], str) and it['logo'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            it['logo'] = uploaded_files[upload_index]
                             upload_index += 1
     except Exception as e:
         # Update current section object with submitted data to preserve form state
