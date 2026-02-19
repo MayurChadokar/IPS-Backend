@@ -4,13 +4,16 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry
-from datetime import timedelta
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType
+from datetime import timedelta, datetime
 from typing import Optional
 import json
 from pathlib import Path
 from typing import List, Dict, Any
 from app.core.cloudinary import upload_image
+from app.core.cloudinary import delete_image, get_public_id_from_url
+from fastapi import Body
+from fastapi.responses import JSONResponse
 
 
 router = APIRouter()
@@ -349,6 +352,303 @@ async def list_pages_page(
         "college": college,
         "pages": pages
     })
+
+
+# ============= ACTIVITIES MANAGEMENT =============
+@router.get("/colleges/{college_id}/activities", response_class=HTMLResponse)
+async def list_activities_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List activities for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    activities = db.query(Activity).filter(Activity.college_id == college_id).order_by(Activity.start_date.desc()).all()
+
+    return templates.TemplateResponse("admin/activities/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activities": activities
+    })
+
+
+@router.get("/colleges/{college_id}/activities/new", response_class=HTMLResponse)
+async def create_activity_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create activity form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/activities/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activity": None,
+        "action": "Create",
+        "activity_types": ActivityType
+    })
+
+
+@router.post("/colleges/{college_id}/activities/new")
+async def create_activity(
+    request: Request,
+    college_id: int,
+    activity_type: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    main_image: UploadFile = File(None),
+    gallery_media_files: List[UploadFile] = File(None),
+    start_date: str = Form(""),
+    end_date: str = Form(""),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create new activity"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    main_image_url = None
+    gallery_urls = []
+
+    try:
+        if main_image and main_image.filename:
+            main_image_url = upload_image(main_image.file, folder=f"activities/{college_id}", convert_to_webp=True, quality=80)
+
+        if gallery_media_files:
+            for f in gallery_media_files:
+                if f and f.filename:
+                    url = upload_image(f.file, folder=f"activities/{college_id}", convert_to_webp=True, quality=80)
+                    gallery_urls.append(url)
+    except Exception as e:
+        return templates.TemplateResponse("admin/activities/form.html", {
+            "request": request,
+            "user": current_user,
+            "college": college,
+            "activity": None,
+            "action": "Create",
+            "error": f"Upload failed: {str(e)}",
+            "activity_types": ActivityType
+        })
+
+    # Parse dates
+    sd = None
+    ed = None
+    try:
+        if start_date:
+            sd = datetime.fromisoformat(start_date)
+        if end_date:
+            ed = datetime.fromisoformat(end_date)
+    except Exception:
+        sd = None
+        ed = None
+
+    activity = Activity(
+        college_id=college_id,
+        activity_type=ActivityType(activity_type),
+        title=title,
+        description=description if description else None,
+        main_image=main_image_url,
+        gallery_images=gallery_urls if gallery_urls else None,
+        start_date=sd,
+        end_date=ed,
+        is_active=is_active
+    )
+
+    db.add(activity)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/activities", status_code=303)
+
+
+@router.get("/activities/{activity_id}/edit", response_class=HTMLResponse)
+async def edit_activity_form(
+    request: Request,
+    activity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Edit activity form"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    return templates.TemplateResponse("admin/activities/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": activity.college,
+        "activity": activity,
+        "action": "Edit",
+        "activity_types": ActivityType
+    })
+
+
+@router.post("/activities/{activity_id}/edit")
+async def update_activity(
+    request: Request,
+    activity_id: int,
+    activity_type: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    main_image: UploadFile = File(None),
+    gallery_media_files: List[UploadFile] = File(None),
+    retain_gallery: List[str] = Form(None),
+    remove_main_image: str = Form(None),
+    start_date: str = Form(""),
+    end_date: str = Form(""),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update existing activity"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    try:
+        # Handle main image removal requested by the form
+        if remove_main_image:
+            activity.main_image = None
+
+        # Handle new main image upload
+        if main_image and main_image.filename:
+            activity.main_image = upload_image(main_image.file, folder=f"activities/{activity.college_id}", convert_to_webp=True, quality=80)
+
+        # Start with retained gallery images if provided, otherwise keep existing
+        if retain_gallery is not None:
+            gallery_urls = list(retain_gallery)
+        else:
+            gallery_urls = activity.gallery_images or []
+
+        # Append newly uploaded gallery images
+        if gallery_media_files:
+            for f in gallery_media_files:
+                if f and f.filename:
+                    url = upload_image(f.file, folder=f"activities/{activity.college_id}", convert_to_webp=True, quality=80)
+                    gallery_urls.append(url)
+
+        activity.gallery_images = gallery_urls
+    except Exception as e:
+        return templates.TemplateResponse("admin/activities/form.html", {
+            "request": request,
+            "user": current_user,
+            "college": activity.college,
+            "activity": activity,
+            "action": "Edit",
+            "error": f"Upload failed: {str(e)}",
+            "activity_types": ActivityType
+        })
+
+    # Parse dates
+    try:
+        activity.start_date = datetime.fromisoformat(start_date) if start_date else None
+    except Exception:
+        activity.start_date = None
+    try:
+        activity.end_date = datetime.fromisoformat(end_date) if end_date else None
+    except Exception:
+        activity.end_date = None
+
+    activity.activity_type = ActivityType(activity_type)
+    activity.title = title
+    activity.description = description if description else None
+    activity.is_active = is_active
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{activity.college_id}/activities", status_code=303)
+
+
+@router.post("/activities/{activity_id}/delete")
+async def delete_activity(
+    activity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete activity"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if activity:
+        college_id = activity.college_id
+        db.delete(activity)
+        db.commit()
+        return RedirectResponse(url=f"/admin/colleges/{college_id}/activities", status_code=303)
+
+    return RedirectResponse(url="/admin/colleges", status_code=303)
+
+
+
+@router.post("/activities/{activity_id}/image/remove-main")
+async def remove_activity_main_image(
+    activity_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Remove main image from activity and delete from Cloudinary if possible"""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        return JSONResponse({"success": False, "message": "Activity not found"}, status_code=404)
+
+    if not activity.main_image:
+        return JSONResponse({"success": False, "message": "No main image set"}, status_code=400)
+
+    public_id = get_public_id_from_url(activity.main_image)
+    if public_id:
+        try:
+            delete_image(public_id)
+        except Exception:
+            # continue even if delete fails
+            pass
+
+    activity.main_image = None
+    db.commit()
+
+    return JSONResponse({"success": True})
+
+
+@router.post("/activities/{activity_id}/image/remove-gallery")
+async def remove_activity_gallery_image(
+    activity_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Remove a gallery image (by URL) from activity and delete from Cloudinary if possible"""
+    image_url = payload.get("image_url")
+    if not image_url:
+        return JSONResponse({"success": False, "message": "image_url required"}, status_code=400)
+
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        return JSONResponse({"success": False, "message": "Activity not found"}, status_code=404)
+
+    gallery = activity.gallery_images or []
+    if image_url not in gallery:
+        return JSONResponse({"success": False, "message": "Image not found in gallery"}, status_code=404)
+
+    public_id = get_public_id_from_url(image_url)
+    if public_id:
+        try:
+            delete_image(public_id)
+        except Exception:
+            pass
+
+    # remove from list
+    new_gallery = [g for g in gallery if g != image_url]
+    activity.gallery_images = new_gallery
+    db.commit()
+
+    return JSONResponse({"success": True})
 
 
 @router.get("/colleges/{college_id}/pages/new", response_class=HTMLResponse)

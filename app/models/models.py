@@ -54,6 +54,7 @@ class College(Base):
     faculties = relationship("Faculty", back_populates="college", cascade="all, delete-orphan")
     courses = relationship("Course", back_populates="college", cascade="all, delete-orphan")
     inquiries = relationship("Inquiry", back_populates="college", cascade="all, delete-orphan")
+    activities = relationship("Activity", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -239,6 +240,41 @@ class Inquiry(Base):
     # Relationships
     college = relationship("College", back_populates="inquiries")
     
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class ActivityType(enum.Enum):
+    """Types of activities for colleges"""
+    CULTURAL = "cultural"
+    EVENT_CELEBRATION = "event_celebration"
+    WORKSHOP = "workshop"
+
+
+class Activity(Base):
+    """
+    Activities for each college: Cultural Activities, Event Celebrations, Workshops
+    Each activity may have a main image, gallery of images, title, description and date range
+    """
+    __tablename__ = "activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    activity_type = Column(SQLEnum(ActivityType), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    main_image = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, nullable=True)  # list of image URLs
+    start_date = Column(DateTime(timezone=True), nullable=True)
+    end_date = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="activities")
+
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
     )

@@ -135,3 +135,46 @@ def delete_image(public_id: str) -> bool:
     except Exception as e:
         print(f"Cloudinary delete error: {e}")
         return False
+
+
+def get_public_id_from_url(url: str) -> str:
+    """
+    Extract Cloudinary public_id from a secure URL.
+
+    Example URL formats:
+    - https://res.cloudinary.com/<cloud>/image/upload/v123456/folder/name.webp
+    - https://res.cloudinary.com/<cloud>/image/upload/folder/name.webp
+
+    This returns 'folder/name' (without extension or version prefix).
+    """
+    try:
+        # Remove protocol and domain
+        parts = url.split('/')
+        # Find 'upload' segment index
+        if 'upload' in parts:
+            idx = parts.index('upload')
+        else:
+            # fallback: last 3 segments
+            idx = len(parts) - 3
+
+        # The public id and possible folders are after the upload segment and optional version
+        tail = parts[idx+1:]
+        # If first tail segment starts with 'v' followed by digits, skip it
+        if tail and tail[0].startswith('v') and tail[0][1:].isdigit():
+            tail = tail[1:]
+
+        if not tail:
+            return ''
+
+        # Join remaining and strip extension
+        last = '/'.join(tail)
+        # remove query params
+        last = last.split('?')[0]
+        # strip extension
+        if '.' in last:
+            last = last.rsplit('.', 1)[0]
+
+        return last
+    except Exception as e:
+        print(f"get_public_id_from_url error: {e}")
+        return ''
