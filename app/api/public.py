@@ -1,8 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry
-from app.schemas.schemas import PagePublicResponse, InquiryCreate
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event
+from app.schemas.schemas import (
+    PagePublicResponse,
+    InquiryCreate,
+    NewsListItem,
+    NewsDetail,
+    EventListItem,
+    EventDetail,
+)
 from typing import Dict, Any
 from typing import List, Dict, Any
 
@@ -115,6 +122,129 @@ async def list_pages_by_college(
         }
         for page in pages
     ]
+
+
+
+@router.get("/{college_slug}/news", response_model=List[NewsListItem])
+async def list_news_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List published news for a college
+    Example: GET /api/ipsa/news
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    items = db.query(News).filter(
+        News.college_id == college.id,
+        News.is_published == True
+    ).order_by(News.published_at.desc().nullslast()).all()
+
+    return [
+        NewsListItem(
+            id=n.id,
+            title=n.title,
+            subtitle=n.subtitle,
+            thumbnail_image=n.thumbnail_image,
+            short_description=n.short_description,
+            published_at=n.published_at,
+        )
+        for n in items
+    ]
+
+
+@router.get("/{college_slug}/news/{news_id}", response_model=NewsDetail)
+async def get_news_detail(
+    college_slug: str,
+    news_id: int,
+    db: Session = Depends(get_db)
+):
+    college = db.query(College).filter(College.slug == college_slug, College.is_active == True).first()
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    n = db.query(News).filter(News.id == news_id, News.college_id == college.id).first()
+    if not n or not n.is_published:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="News not found")
+
+    return NewsDetail(
+        id=n.id,
+        title=n.title,
+        subtitle=n.subtitle,
+        content_html=n.content_html,
+        thumbnail_image=n.thumbnail_image,
+        short_description=n.short_description,
+        published_at=n.published_at,
+    )
+
+
+@router.get("/{college_slug}/events", response_model=List[EventListItem])
+async def list_events_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List active events for a college
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    items = db.query(Event).filter(
+        Event.college_id == college.id,
+        Event.is_active == True
+    ).order_by(Event.start_date.desc().nullslast()).all()
+
+    return [
+        EventListItem(
+            id=e.id,
+            title=e.title,
+            subtitle=e.subtitle,
+            thumbnail_image=e.thumbnail_image,
+            short_description=e.short_description,
+            start_date=e.start_date,
+            end_date=e.end_date,
+        )
+        for e in items
+    ]
+
+
+@router.get("/{college_slug}/events/{event_id}", response_model=EventDetail)
+async def get_event_detail(
+    college_slug: str,
+    event_id: int,
+    db: Session = Depends(get_db)
+):
+    college = db.query(College).filter(College.slug == college_slug, College.is_active == True).first()
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    e = db.query(Event).filter(Event.id == event_id, Event.college_id == college.id).first()
+    if not e or not e.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
+
+    return EventDetail(
+        id=e.id,
+        title=e.title,
+        subtitle=e.subtitle,
+        content_html=e.content_html,
+        thumbnail_image=e.thumbnail_image,
+        short_description=e.short_description,
+        location=e.location,
+        start_date=e.start_date,
+        end_date=e.end_date,
+    )
 
 
 @router.get("/colleges", response_model=List[Dict[str, Any]])

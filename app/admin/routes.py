@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType, News, Event
 from datetime import timedelta, datetime
 from typing import Optional
 import json
@@ -397,6 +397,397 @@ async def create_activity_form(
         "action": "Create",
         "activity_types": ActivityType
     })
+
+
+# ============= NEWS MANAGEMENT =============
+@router.get("/colleges/{college_id}/news", response_class=HTMLResponse)
+async def list_news_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    news_list = db.query(News).filter(News.college_id == college_id).order_by(News.published_at.desc()).all()
+
+    return templates.TemplateResponse("admin/news/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "news_list": news_list
+    })
+
+
+@router.get("/colleges/{college_id}/news/new", response_class=HTMLResponse)
+async def create_news_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/news/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "news": None,
+        "action": "Create"
+    })
+
+
+@router.post("/colleges/{college_id}/news/new")
+async def create_news(
+    request: Request,
+    college_id: int,
+    title: str = Form(...),
+    subtitle: str = Form(""),
+    content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
+    short_description: str = Form(""),
+    is_published: bool = Form(False),
+    published_at: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    thumb_path = None
+    if thumbnail_image and thumbnail_image.filename:
+        try:
+            thumb_path = upload_image(thumbnail_image.file, folder="news_thumbs")
+        except Exception as e:
+            return templates.TemplateResponse("admin/news/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "news": None,
+                "action": "Create",
+                "error": f"Thumbnail upload failed: {str(e)}"
+            })
+
+    n = News(
+        college_id=college.id,
+        title=title,
+        subtitle=subtitle or None,
+        content_html=content_html,
+        thumbnail_image=thumb_path,
+        short_description=short_description or None,
+        is_published=is_published,
+        published_at=(datetime.fromisoformat(published_at) if published_at else None)
+    )
+
+    db.add(n)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college.id}/news", status_code=303)
+
+
+@router.get("/news/{news_id}/edit", response_class=HTMLResponse)
+async def edit_news_form(
+    request: Request,
+    news_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    n = db.query(News).filter(News.id == news_id).first()
+    if not n:
+        raise HTTPException(status_code=404, detail="News not found")
+
+    college = db.query(College).filter(College.id == n.college_id).first()
+
+    return templates.TemplateResponse("admin/news/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "news": n,
+        "action": "Edit"
+    })
+
+
+@router.post("/news/{news_id}/edit")
+async def update_news(
+    request: Request,
+    news_id: int,
+    title: str = Form(...),
+    subtitle: str = Form(""),
+    content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
+    remove_thumbnail_image: bool = Form(False),
+    short_description: str = Form(""),
+    is_published: bool = Form(False),
+    published_at: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    n = db.query(News).filter(News.id == news_id).first()
+    if not n:
+        raise HTTPException(status_code=404, detail="News not found")
+
+    # Handle thumbnail replacement/removal
+    if remove_thumbnail_image and n.thumbnail_image:
+        try:
+            delete_image(get_public_id_from_url(n.thumbnail_image))
+        except Exception:
+            pass
+        n.thumbnail_image = None
+
+    if thumbnail_image and thumbnail_image.filename:
+        try:
+            n.thumbnail_image = upload_image(thumbnail_image.file, folder="news_thumbs")
+        except Exception as e:
+            return templates.TemplateResponse("admin/news/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": db.query(College).filter(College.id == n.college_id).first(),
+                "news": n,
+                "action": "Edit",
+                "error": f"Thumbnail upload failed: {str(e)}"
+            })
+
+    n.title = title
+    n.subtitle = subtitle or None
+    n.content_html = content_html
+    n.short_description = short_description or None
+    n.is_published = is_published
+    n.published_at = (datetime.fromisoformat(published_at) if published_at else None)
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{n.college_id}/news", status_code=303)
+
+
+@router.post("/news/{news_id}/delete")
+async def delete_news(news_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    n = db.query(News).filter(News.id == news_id).first()
+    if n:
+        # delete thumbnail from cloud
+        if n.thumbnail_image:
+            try:
+                delete_image(get_public_id_from_url(n.thumbnail_image))
+            except Exception:
+                pass
+        db.delete(n)
+        db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{n.college_id if n else ''}/news", status_code=303)
+
+
+# ============= EVENTS MANAGEMENT =============
+@router.get("/colleges/{college_id}/events", response_class=HTMLResponse)
+async def list_events_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    events = db.query(Event).filter(Event.college_id == college_id).order_by(Event.start_date.desc()).all()
+
+    return templates.TemplateResponse("admin/events/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "events": events
+    })
+
+
+@router.get("/colleges/{college_id}/events/new", response_class=HTMLResponse)
+async def create_event_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/events/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "event": None,
+        "action": "Create"
+    })
+
+
+# Upload endpoint for rich editor images
+@router.post("/uploads/image")
+async def upload_editor_image(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Upload image used by rich text editors (TinyMCE). Returns JSON with `location`."""
+    try:
+        print(f"Uploading editor image via Cloudinary for user={current_user.id}, filename={file.filename}")
+        url = upload_image(file.file, folder="editor_images")
+        print(f"Upload successful: {url}")
+        # Return multiple common keys so various TinyMCE upload flows accept the URL
+        return JSONResponse({
+            "location": url,
+            "src": url,
+            "url": url
+        })
+    except Exception as e:
+        print(f"Editor upload error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/colleges/{college_id}/events/new")
+async def create_event(
+    request: Request,
+    college_id: int,
+    title: str = Form(...),
+    subtitle: str = Form(""),
+    content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
+    short_description: str = Form(""),
+    location: str = Form(""),
+    start_date: str = Form(""),
+    end_date: str = Form(""),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    thumb = None
+    if thumbnail_image and thumbnail_image.filename:
+        try:
+            thumb = upload_image(thumbnail_image.file, folder="event_thumbs")
+        except Exception as e:
+            return templates.TemplateResponse("admin/events/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "event": None,
+                "action": "Create",
+                "error": f"Thumbnail upload failed: {str(e)}"
+            })
+
+    ev = Event(
+        college_id=college.id,
+        title=title,
+        subtitle=subtitle or None,
+        content_html=content_html,
+        thumbnail_image=thumb,
+        short_description=short_description or None,
+        location=location or None,
+        start_date=(datetime.fromisoformat(start_date) if start_date else None),
+        end_date=(datetime.fromisoformat(end_date) if end_date else None),
+        is_active=is_active
+    )
+
+    db.add(ev)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college.id}/events", status_code=303)
+
+
+@router.get("/events/{event_id}/edit", response_class=HTMLResponse)
+async def edit_event_form(
+    request: Request,
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    ev = db.query(Event).filter(Event.id == event_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    college = db.query(College).filter(College.id == ev.college_id).first()
+
+    return templates.TemplateResponse("admin/events/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "event": ev,
+        "action": "Edit"
+    })
+
+
+@router.post("/events/{event_id}/edit")
+async def update_event(
+    request: Request,
+    event_id: int,
+    title: str = Form(...),
+    subtitle: str = Form(""),
+    content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
+    remove_thumbnail_image: bool = Form(False),
+    short_description: str = Form(""),
+    location: str = Form(""),
+    start_date: str = Form(""),
+    end_date: str = Form(""),
+    is_active: bool = Form(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    ev = db.query(Event).filter(Event.id == event_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if remove_thumbnail_image and ev.thumbnail_image:
+        try:
+            delete_image(get_public_id_from_url(ev.thumbnail_image))
+        except Exception:
+            pass
+        ev.thumbnail_image = None
+
+    if thumbnail_image and thumbnail_image.filename:
+        try:
+            ev.thumbnail_image = upload_image(thumbnail_image.file, folder="event_thumbs")
+        except Exception as e:
+            return templates.TemplateResponse("admin/events/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": db.query(College).filter(College.id == ev.college_id).first(),
+                "event": ev,
+                "action": "Edit",
+                "error": f"Thumbnail upload failed: {str(e)}"
+            })
+
+    ev.title = title
+    ev.subtitle = subtitle or None
+    ev.content_html = content_html
+    ev.short_description = short_description or None
+    ev.location = location or None
+    ev.start_date = (datetime.fromisoformat(start_date) if start_date else None)
+    ev.end_date = (datetime.fromisoformat(end_date) if end_date else None)
+    ev.is_active = is_active
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{ev.college_id}/events", status_code=303)
+
+
+@router.post("/events/{event_id}/delete")
+async def delete_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    ev = db.query(Event).filter(Event.id == event_id).first()
+    if ev:
+        if ev.thumbnail_image:
+            try:
+                delete_image(get_public_id_from_url(ev.thumbnail_image))
+            except Exception:
+                pass
+        db.delete(ev)
+        db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{ev.college_id if ev else ''}/events", status_code=303)
 
 
 @router.post("/colleges/{college_id}/activities/new")

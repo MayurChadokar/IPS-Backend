@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Events - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Events{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-calendar2-event me-2"></i>Events for {{ college.name }}</h2>
+            <small class="text-muted">Manage events for this college</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/colleges/{{ college.id }}/events/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Event
+            </a>
+            <a href="/admin/colleges" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Colleges
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if events %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Title</th>
+                        <th style="width: 180px;">Dates</th>
+                        <th style="width: 120px;">Location</th>
+                        <th style="width: 120px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in events %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark">{{ e.id }}</span></td>
+                        <td><strong>{{ e.title }}</strong><br/><small class="text-muted">{{ e.subtitle }}</small></td>
+                        <td>
+                            {% if e.start_date %}{{ e.start_date.strftime('%Y-%m-%d') }}{% endif %}
+                            {% if e.end_date %} - {{ e.end_date.strftime('%Y-%m-%d') }}{% endif %}
+                        </td>
+                        <td>{{ e.location }}</td>
+                        <td class="text-end">
+                            <a href="/admin/events/{{ e.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="POST" action="/admin/events/{{ e.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete this event?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-calendar2-event" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No events found. Create your first event for this college.</p>
+            <a href="/admin/colleges/{{ college.id }}/events/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create First Event
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

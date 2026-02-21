@@ -1,0 +1,136 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} News{% endblock %}
+{% block page_title %}{{ action }} News - {{ college.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-newspaper me-2"></i>{{ action }} News</h2>
+            <small class="text-muted">{{ college.name }}</small>
+        </div>
+        <a href="/admin/colleges/{{ college.id }}/news" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to News
+        </a>
+    </div>
+
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ news.title if news else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Subtitle</label>
+                <input type="text" name="subtitle" class="form-control" value="{{ news.subtitle if news else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea name="content_html" id="content_html" class="form-control rich-editor" rows="10">{{ news.content_html if news else '' }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Thumbnail Image</label>
+                    {% if news and news.thumbnail_image %}
+                    <div class="mb-2 position-relative d-inline-block">
+                        <input type="hidden" name="existing_thumbnail_image" value="{{ news.thumbnail_image }}">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute remove-main-btn" style="right:6px;top:6px;z-index:5;pointer-events:auto;">&times;</button>
+                        <img src="{{ news.thumbnail_image }}" id="thumbnailPreview" style="max-width:200px; display:block;"/>
+                    </div>
+                    {% else %}
+                    <img id="thumbnailPreview" class="d-none" style="max-width:200px; display:block;"/>
+                    {% endif %}
+                    <input type="file" name="thumbnail_image" class="form-control" id="thumbnailInput">
+                    <input type="hidden" name="remove_thumbnail_image" id="removeThumbnailInput" value="">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Short Description</label>
+                    <textarea name="short_description" class="form-control" rows="4">{{ news.short_description if news else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_published" value="true" id="isPublishedSwitch" {% if not news or news.is_published %}checked{% endif %}>
+                    <label class="form-check-label" for="isPublishedSwitch">
+                        <strong>Published</strong>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Published At</label>
+                <input type="datetime-local" name="published_at" class="form-control" value="{% if news and news.published_at %}{{ news.published_at.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {{ action }} News
+                </button>
+                <a href="/admin/colleges/{{ college.id }}/news" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        tinymce.init({
+            selector: '.rich-editor',
+            plugins: 'advlist autolink lists link image code media table preview fullscreen insertdatetime link emoticons',
+            toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist | link image media | removeformat | code | fullscreen',
+            menubar: false,
+            height: 500,
+            branding: false,
+            promotion: false,
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            },
+            images_upload_handler: function (blobInfo, success, failure) {
+                var formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                return fetch('/admin/uploads/image', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                }).then(function (res) {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                }).then(function (data) {
+                    console.log('editor upload response', data);
+                    var url = (data && (data.location || data.src || data.url)) ? (data.location || data.src || data.url) : null;
+                    if (url) {
+                        success(url);
+                        return url;
+                    } else {
+                        failure('Upload failed');
+                        throw new Error('Upload failed');
+                    }
+                }).catch(function (err) {
+                    console.error('editor upload error', err);
+                    failure('Upload error');
+                    throw err;
+                });
+            }
+        });
+    </script>
+{% endblock %}

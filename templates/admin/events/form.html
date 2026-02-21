@@ -1,0 +1,137 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Event{% endblock %}
+{% block page_title %}{{ action }} Event - {{ college.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-calendar2-event me-2"></i>{{ action }} Event</h2>
+            <small class="text-muted">{{ college.name }}</small>
+        </div>
+        <a href="/admin/colleges/{{ college.id }}/events" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Events
+        </a>
+    </div>
+
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ event.title if event else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Subtitle</label>
+                <input type="text" name="subtitle" class="form-control" value="{{ event.subtitle if event else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea name="content_html" id="content_html" class="form-control rich-editor" rows="8">{{ event.content_html if event else '' }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="{% if event and event.start_date %}{{ event.start_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{% if event and event.end_date %}{{ event.end_date.strftime('%Y-%m-%d') }}{% endif %}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" name="location" class="form-control" value="{{ event.location if event else '' }}">
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Thumbnail Image</label>
+                    <input type="file" name="thumbnail_image" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Short Description</label>
+                    <textarea name="short_description" class="form-control" rows="3">{{ event.short_description if event else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {% if not event or event.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="isActiveSwitch">
+                        <strong>Active</strong>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> {{ action }} Event
+                </button>
+                <a href="/admin/colleges/{{ college.id }}/events" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        tinymce.init({
+            selector: '.rich-editor',
+            plugins: 'advlist autolink lists link image code media table preview fullscreen insertdatetime link emoticons',
+            toolbar: 'undo redo | formatselect | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist | link image media | removeformat | code | fullscreen',
+            menubar: false,
+            height: 350,
+            branding: false,
+            promotion: false,
+            automatic_uploads: true,
+            file_picker_types: 'image',
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            },
+            images_upload_handler: function (blobInfo, success, failure) {
+                var formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+                return fetch('/admin/uploads/image', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                }).then(function (res) {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                }).then(function (data) {
+                    console.log('editor upload response', data);
+                    var url = (data && (data.location || data.src || data.url)) ? (data.location || data.src || data.url) : null;
+                    if (url) {
+                        success(url);
+                        return url;
+                    } else {
+                        failure('Upload failed');
+                        throw new Error('Upload failed');
+                    }
+                }).catch(function (err) {
+                    console.error('editor upload error', err);
+                    failure('Upload error');
+                    throw err;
+                });
+            }
+        });
+    </script>
+{% endblock %}

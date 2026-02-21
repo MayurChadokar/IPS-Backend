@@ -192,6 +192,56 @@ class PagePublicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============= News & Events Public Schemas =============
+class NewsListItem(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    thumbnail_image: Optional[str] = None
+    short_description: Optional[str] = None
+    published_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NewsDetail(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    content_html: str
+    thumbnail_image: Optional[str] = None
+    short_description: Optional[str] = None
+    published_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EventListItem(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    thumbnail_image: Optional[str] = None
+    short_description: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EventDetail(BaseModel):
+    id: int
+    title: str
+    subtitle: Optional[str] = None
+    content_html: str
+    thumbnail_image: Optional[str] = None
+    short_description: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============= Template Schemas =============
 class PageTemplateBase(BaseModel):
     template_key: str

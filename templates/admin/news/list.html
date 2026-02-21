@@ -1,0 +1,73 @@
+{% extends "admin/base.html" %}
+
+{% block title %}News - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - News{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-newspaper me-2"></i>News for {{ college.name }}</h2>
+            <small class="text-muted">Manage news items for this college</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/colleges/{{ college.id }}/news/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add News
+            </a>
+            <a href="/admin/colleges" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Colleges
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if news_list %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Title</th>
+                        <th>Published</th>
+                        <th style="width: 200px;">Published At</th>
+                        <th style="width: 200px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in news_list %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark">{{ n.id }}</span></td>
+                        <td><strong>{{ n.title }}</strong><br/><small class="text-muted">{{ n.subtitle }}</small></td>
+                        <td>
+                            {% if n.is_published %}
+                            <span class="badge badge-success">Published</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if n.published_at %}{{ n.published_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="/admin/news/{{ n.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <form method="POST" action="/admin/news/{{ n.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete this news item?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-newspaper" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No news found. Create your first news item for this college.</p>
+            <a href="/admin/colleges/{{ college.id }}/news/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create First News
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

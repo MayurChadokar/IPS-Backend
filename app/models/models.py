@@ -55,6 +55,8 @@ class College(Base):
     courses = relationship("Course", back_populates="college", cascade="all, delete-orphan")
     inquiries = relationship("Inquiry", back_populates="college", cascade="all, delete-orphan")
     activities = relationship("Activity", back_populates="college", cascade="all, delete-orphan")
+    news = relationship("News", back_populates="college", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -274,6 +276,64 @@ class Activity(Base):
 
     # Relationships
     college = relationship("College", back_populates="activities")
+
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class News(Base):
+    """
+    News items for each college. Rich HTML content allowed (images, video embeds, etc.).
+    Includes title, subtitle, thumbnail and a short description.
+    """
+    __tablename__ = "news"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    subtitle = Column(String(255), nullable=True)
+    content_html = Column(Text, nullable=False)  # HTML-formatted content
+    thumbnail_image = Column(String(500), nullable=True)
+    short_description = Column(Text, nullable=True)
+    is_published = Column(Boolean, default=True)
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="news")
+
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Event(Base):
+    """
+    Events for each college. Supports rich HTML content, images/videos,
+    plus date range and optional location.
+    """
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    subtitle = Column(String(255), nullable=True)
+    content_html = Column(Text, nullable=False)
+    thumbnail_image = Column(String(500), nullable=True)
+    short_description = Column(Text, nullable=True)
+    location = Column(String(255), nullable=True)
+    start_date = Column(DateTime(timezone=True), nullable=True)
+    end_date = Column(DateTime(timezone=True), nullable=True)
+    main_image = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="events")
 
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
