@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
-from app.core.security import get_current_active_admin
+from app.core.security import get_current_active_admin, SECRET_KEY, ALGORITHM
+from jose import JWTError, jwt
+from app.models.models import UserRole
 from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course
 from app.schemas.schemas import (
     CollegeCreate, CollegeUpdate, CollegeResponse,
@@ -565,14 +567,38 @@ async def clone_page(
 
 @router.post("/upload", response_model=Dict[str, Any])
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     folder: str = "general",
-    current_user: User = Depends(get_current_active_admin)
+    db: Session = Depends(get_db)
 ):
     """
     Upload a file to Cloudinary
     Returns the secure URL
     """
+    # Authenticate: accept Bearer token OR session cookie (admin_session)
+    token = None
+    auth_header = request.headers.get('authorization')
+    if auth_header and auth_header.lower().startswith('bearer '):
+        token = auth_header.split(None, 1)[1]
+    else:
+        token = request.cookies.get('admin_session')
+
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get('sub')
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if not user or user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
     try:
         url = upload_image(file.file, folder=folder)
         return {"url": url, "filename": file.filename}

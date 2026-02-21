@@ -41,6 +41,8 @@
                             Hero Section</option>
                         <option value="text" {% if section and section.section_type=='text' %}selected{% endif %}>
                             Text/Content</option>
+                        <option value="scratch" {% if section and section.section_type=='scratch' %}selected{% endif %}>
+                            Scratch (HTML)</option>
                         <option value="stats" {% if section and section.section_type=='stats' %}selected{% endif %}>
                             Statistics</option>
                         <option value="accordion" {% if section and section.section_type=='accordion' %}selected{% endif
@@ -221,6 +223,37 @@
         </div>
     `,
 
+        scratch: () => {
+            const html = existingContent.html || '';
+            return `
+            <div class="form-group">
+                <label class="form-label">Scratch (HTML editor)</label>
+                <div style="margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('bold')"><i class="bi bi-type-bold"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('italic')"><i class="bi bi-type-italic"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('formatBlock','H1')">H1</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('formatBlock','H2')">H2</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('insertUnorderedList')"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('insertOrderedList')"><i class="bi bi-list-ol"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertLineBreak()">BR</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('left')"><i class="bi bi-text-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('center')"><i class="bi bi-text-center"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('right')"><i class="bi bi-text-right"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('justify')"><i class="bi bi-justify"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertLink()"><i class="bi bi-link-45deg"></i></button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('scratch_image_file').click()"><i class="bi bi-image"></i> Image</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('left')"><i class="bi bi-layout-text-sidebar-reverse"></i> Image Left</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('right')"><i class="bi bi-layout-text-sidebar"></i> Image Right</button>
+                </div>
+
+                <div id="scratch_editor" contenteditable="true" style="min-height:220px; border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff;">${html}</div>
+
+                <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*" style="display:none;" data-skip-preview="true" />
+                <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
+                <small class="d-block text-muted mt-2">Rich HTML editor — images uploaded immediately to Cloudinary and inserted inline.</small>
+            </div>
+            `;
+        },
         stats: () => {
             const stats = existingContent.stats || [{ label: '', value: '' }];
             return `
@@ -1074,6 +1107,14 @@
                 };
                 break;
 
+            case 'scratch':
+                const scratchEditor = document.getElementById('scratch_editor');
+                const scratchHtml = scratchEditor ? scratchEditor.innerHTML : '';
+                jsonData = {
+                    html: scratchHtml
+                };
+                break;
+
             case 'stats':
                 const stats = [];
                 document.querySelectorAll('.stat-item').forEach(item => {
@@ -1336,6 +1377,8 @@
         const currentType = document.getElementById('section_type').value;
         if (currentType && contentTemplates[currentType]) {
             document.getElementById('contentBuilder').innerHTML = contentTemplates[currentType]();
+            // initialize scratch editor if rendered
+            if (document.getElementById('scratch_editor')) initScratchEditor();
         }
     });
 
@@ -1504,14 +1547,259 @@
         setTimeout(() => {
             // Re-attach event listeners to new file inputs
             document.querySelectorAll('input[type="file"]').forEach((input, index) => {
+                // Skip inputs that opt out of automatic preview setup (scratch editor uses its own flow)
+                if (input.dataset && input.dataset.skipPreview === 'true') return;
                 if (!input.dataset.previewSetup) {
                     const previewId = input.id ? `${input.id}_preview` : `file_preview_${index}`;
                     setupImagePreview(input, previewId);
                     input.dataset.previewSetup = 'true';
                 }
             });
+            // Initialize scratch editor if present
+            if (document.getElementById('scratch_editor')) {
+                initScratchEditor();
+            }
         }, 300);
     });
+
+    // Execute simple rich-text commands
+    function execCmd(command, value = null) {
+        document.execCommand(command, false, value);
+        // focus editor after command
+        const ed = document.getElementById('scratch_editor');
+        if (ed) ed.focus();
+    }
+
+    function insertLink() {
+        const url = prompt('Enter URL (https://...)');
+        if (url) execCmd('createLink', url);
+    }
+
+    // Upload a file to the backend upload endpoint and return the secure URL
+    async function uploadFileToCloudinary(file, folder) {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        // determine folder: prefer section_key if present
+        const sectionKeyEl = document.getElementById('section_key');
+        const folderName = sectionKeyEl && sectionKeyEl.value ? `sections/${sectionKeyEl.value}` : 'sections/scratch';
+        fd.append('folder', folderName);
+
+        const resp = await fetch('/api/admin/upload', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+        });
+        if (!resp.ok) throw new Error('Upload failed');
+        const data = await resp.json();
+        return data.url;
+    }
+
+    // Insert image HTML at current cursor in contenteditable
+    function insertImageAtCursor(url) {
+        const imgHtml = `<img src="${url}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />`;
+        execCmd('insertHTML', imgHtml);
+    }
+
+    // Initialize scratch editor behaviors
+    function initScratchEditor() {
+        const fileInput = document.getElementById('scratch_image_file');
+        const editor = document.getElementById('scratch_editor');
+        if (!editor || !fileInput) return;
+
+        // Handle image file selection
+        fileInput.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                // show temporary preview while uploading
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    // insert low-res preview while uploading
+                    const tmpId = 'tmp-img-' + Date.now();
+                    const tmpHtml = `<img id="${tmpId}" src="${ev.target.result}" style="max-width:100%; height:auto; opacity:0.6; filter:blur(1px);" />`;
+                    execCmd('insertHTML', tmpHtml);
+                };
+                reader.readAsDataURL(file);
+
+                const url = await uploadFileToCloudinary(file);
+                // Remove temporary low-res images (simple approach: remove any img with data URL src)
+                document.querySelectorAll('#scratch_editor img').forEach(img => {
+                    if (img.src.startsWith('data:')) img.remove();
+                });
+                insertImageAtCursor(url);
+            } catch (err) {
+                alert('Image upload failed: ' + err.message);
+            } finally {
+                // clear input so same file can be selected again
+                fileInput.value = '';
+            }
+        });
+
+        // Optional: basic paste handler to upload pasted images
+        editor.addEventListener('paste', function (e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const blob = item.getAsFile();
+                    (async () => {
+                        try {
+                            const url = await uploadFileToCloudinary(blob);
+                            insertImageAtCursor(url);
+                        } catch (err) {
+                            console.error('Paste upload failed', err);
+                        }
+                    })();
+                }
+            }
+        });
+
+        // Click handler for image placeholders inside blocks
+        const blockFileInput = document.getElementById('scratch_block_image_file');
+        editor.addEventListener('click', function (e) {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('scratch-image-placeholder')) {
+                // mark which placeholder to fill
+                blockFileInput.dataset.targetId = target.id;
+                blockFileInput.click();
+            }
+        });
+
+        // Helper: read file as data URL
+        async function readFileAsDataURL(file) {
+            return await new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = ev => resolve(ev.target.result);
+                r.onerror = err => reject(err);
+                r.readAsDataURL(file);
+            });
+        }
+
+        // Handle block image file selection (supports multiple files)
+        if (blockFileInput) {
+            blockFileInput.addEventListener('change', async function (e) {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+                const targetId = blockFileInput.dataset.targetId;
+                try {
+                    const firstImg = document.getElementById(targetId);
+                    const imgContainer = firstImg ? firstImg.parentElement : null;
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+
+                        // show temporary preview
+                        try {
+                            const dataUrl = await readFileAsDataURL(file);
+                            if (i === 0) {
+                                if (firstImg) firstImg.src = dataUrl;
+                            } else {
+                                const tmp = document.createElement('img');
+                                tmp.src = dataUrl;
+                                tmp.style.width = '100%';
+                                tmp.style.height = 'auto';
+                                tmp.style.objectFit = 'cover';
+                                tmp.style.borderRadius = '8px';
+                                tmp.style.marginTop = '8px';
+                                if (imgContainer) imgContainer.appendChild(tmp);
+                                else if (firstImg && firstImg.parentElement) firstImg.parentElement.appendChild(tmp);
+                            }
+                        } catch (rerr) {
+                            console.warn('Preview read failed', rerr);
+                        }
+
+                        // upload
+                        const url = await uploadFileToCloudinary(file);
+
+                        if (i === 0) {
+                            const img = document.getElementById(targetId);
+                            if (img) img.src = url;
+                        } else {
+                            const newImg = document.createElement('img');
+                            newImg.src = url;
+                            newImg.style.width = '100%';
+                            newImg.style.height = 'auto';
+                            newImg.style.objectFit = 'cover';
+                            newImg.style.borderRadius = '8px';
+                            newImg.style.marginTop = '8px';
+                            if (imgContainer) imgContainer.appendChild(newImg);
+                            else if (firstImg && firstImg.parentElement) firstImg.parentElement.appendChild(newImg);
+                        }
+                    }
+                } catch (err) {
+                    alert('Block image upload failed: ' + err.message);
+                } finally {
+                    blockFileInput.value = '';
+                    delete blockFileInput.dataset.targetId;
+                }
+            });
+        }
+    }
+
+    // Insert an image+text block with image on left or right
+    function insertLineBreak() {
+        execCmd('insertHTML', '<br/>');
+    }
+
+    // Set text alignment. Tries document.execCommand, falls back to styling nearest .text-col
+    function setTextAlign(align) {
+        try {
+            const cmdMap = { left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' };
+            const cmd = cmdMap[align] || 'justifyLeft';
+            // Prefer execCmd which wraps document.execCommand
+            if (typeof execCmd === 'function') {
+                execCmd(cmd);
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+
+            // Also apply to nearest .text-col if selection is inside one (ensures block columns align)
+            const sel = window.getSelection();
+            if (sel && sel.anchorNode) {
+                let node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+                while (node && node !== document.body && !node.classList.contains('text-col')) {
+                    node = node.parentElement;
+                }
+                if (node && node.classList && node.classList.contains('text-col')) {
+                    node.style.textAlign = align === 'justify' ? 'justify' : align;
+                }
+            }
+        } catch (err) {
+            console.error('setTextAlign error', err);
+        }
+    }
+
+    function insertImageTextBlock(position = 'left') {
+        const id = 'scratch_block_img_' + Date.now();
+        const contentId = 'scratch_block_content_' + Date.now();
+        const imgColId = 'scratch_block_imgcol_' + Date.now();
+        const imgHtml = `<img id="${id}" class="scratch-image-placeholder" src="" alt="Image" style="width:100%; height:auto; object-fit:cover; border-radius:8px; background:#f3f4f6; min-height:160px;">`;
+        const textHtml = `<div id="${contentId}" contenteditable="true" style="min-height:160px; padding:8px;">\n<h3>Heading</h3>\n<p>Write your heading, paragraph or bullets here...</p>\n</div>`;
+
+        // Use Bootstrap row/cols so the block behaves like a proper section
+        let blockHtml = '';
+        if (position === 'left') {
+            blockHtml = `
+            <div class="scratch-section container-fluid" style="padding:12px 8px; margin:14px 0; border-radius:8px; background:#fff; border:1px solid #eef2f6;">
+                <div class="row align-items-center">
+                    <div id="${imgColId}" class="col-md-6 img-col">${imgHtml}</div>
+                    <div class="col-md-6 text-col">${textHtml}</div>
+                </div>
+            </div>
+            `;
+        } else {
+            blockHtml = `
+            <div class="scratch-section container-fluid" style="padding:12px 8px; margin:14px 0; border-radius:8px; background:#fff; border:1px solid #eef2f6;">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-col">${textHtml}</div>
+                    <div id="${imgColId}" class="col-md-6 img-col">${imgHtml}</div>
+                </div>
+            </div>
+            `;
+        }
+
+        execCmd('insertHTML', blockHtml);
+    }
 
 </script>
 
@@ -1539,6 +1827,24 @@
         to {
             transform: rotate(360deg);
         }
+    }
+
+    /* Styles for scratch-editor inserted sections */
+    .scratch-section {
+        box-sizing: border-box;
+    }
+
+    .scratch-section .img-col img {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+        border-radius: 8px;
+        display: block;
+    }
+
+    .scratch-section .text-col {
+        padding-left: 12px;
+        padding-right: 12px;
     }
 </style>
 {% endblock %}
