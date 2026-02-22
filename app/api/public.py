@@ -145,7 +145,7 @@ async def list_news_by_college(
     items = db.query(News).filter(
         News.college_id == college.id,
         News.is_published == True
-    ).order_by(News.published_at.desc().nullslast()).all()
+    ).order_by((News.published_at == None).asc(), News.published_at.desc()).all()
 
     return [
         NewsListItem(
@@ -204,7 +204,7 @@ async def list_events_by_college(
     items = db.query(Event).filter(
         Event.college_id == college.id,
         Event.is_active == True
-    ).order_by(Event.start_date.desc().nullslast()).all()
+    ).order_by((Event.start_date == None).asc(), Event.start_date.desc()).all()
 
     return [
         EventListItem(
