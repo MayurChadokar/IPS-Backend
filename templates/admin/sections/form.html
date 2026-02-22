@@ -122,6 +122,29 @@
     // Store existing content if editing
     const existingContent = {{ section.content.content_json| tojson if section and section.content else '{}' }};
 
+    // Helper to detect video URLs (files or common providers)
+    function isYouTube(url) {
+        if (!url) return false;
+        return /youtu\.be\//.test(url) || /youtube\.com/.test(url);
+    }
+
+    function getYouTubeId(url) {
+        if (!url) return null;
+        const m = url.match(/(?:youtube\.com.*(?:v=|embed\/)|youtu\.be\/)([^&?/]+)/);
+        return m ? m[1] : null;
+    }
+
+    function getYouTubeThumb(url) {
+        const id = getYouTubeId(url);
+        return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+    }
+
+    function isVideoUrl(url) {
+        if (!url) return false;
+        const u = url.toLowerCase();
+        return u.includes('.mp4') || u.includes('.webm') || isYouTube(url) || /vimeo\.com/.test(u);
+    }
+
     const contentTemplates = {
         hero: () => `
         <div class="form-group">
@@ -136,14 +159,20 @@
                         ${media && !media.startsWith('__UPLOAD__') ? `
                             <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
                                 <div class="d-flex align-items-start gap-3">
-                                    ${media.includes('.mp4') || media.includes('.webm') ?
+                                    ${isVideoUrl(media) ? (isYouTube(media) ?
+                    `<div style="width: 150px; height: 150px; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid #ddd;">
+                                            <a href="${media}" target="_blank" style="display:block; width:100%; height:100%; position:relative;">
+                                                <img src="${getYouTubeThumb(media)}" alt="YouTube" style="width:100%; height:100%; object-fit:cover;">
+                                                <i class="bi bi-play-circle" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:48px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.6);"></i>
+                                            </a>
+                                        </div>` :
                     `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
                                             <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
-                                        </div>` :
+                                        </div>`) :
                     `<img src="${media}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
                 }
                                     <div class="flex-grow-1">
-                                        <p class="mb-2"><strong>Current ${media.includes('.mp4') || media.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                                        <p class="mb-2"><strong>Current ${isVideoUrl(media) ? 'Video' : 'Image'}:</strong></p>
                                         <small class="d-block text-muted mb-2"><a href="${media}" target="_blank" class="text-primary">${media.split('/').pop()}</a></small>
                                         <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.media-item').querySelector('.hero-media-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
                                             <i class="bi bi-x-circle"></i> Remove Current
@@ -193,14 +222,20 @@
             ${existingContent.image && !existingContent.image.startsWith('__UPLOAD__') ? `
                 <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
                     <div class="d-flex align-items-start gap-3">
-                        ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ?
+                        ${isVideoUrl(existingContent.image) ? (isYouTube(existingContent.image) ?
+                    `<div style="width: 150px; height: 150px; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid #ddd;">
+                                <a href="${existingContent.image}" target="_blank" style="display:block; width:100%; height:100%; position:relative;">
+                                    <img src="${getYouTubeThumb(existingContent.image)}" alt="YouTube" style="width:100%; height:100%; object-fit:cover;">
+                                    <i class="bi bi-play-circle" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:48px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.6);"></i>
+                                </a>
+                            </div>` :
                     `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
                                 <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
-                            </div>` :
+                            </div>`) :
                     `<img src="${existingContent.image}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
                 }
                         <div class="flex-grow-1">
-                            <p class="mb-2"><strong>Current ${existingContent.image.includes('.mp4') || existingContent.image.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                            <p class="mb-2"><strong>Current ${isVideoUrl(existingContent.image) ? 'Video' : 'Image'}:</strong></p>
                             <small class="d-block text-muted mb-2"><a href="${existingContent.image}" target="_blank" class="text-primary">${existingContent.image.split('/').pop()}</a></small>
                             <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('text_image').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
                                 <i class="bi bi-x-circle"></i> Remove Current
@@ -311,14 +346,20 @@
                             ${media && !media.startsWith('__UPLOAD__') ? `
                                 <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
                                     <div class="d-flex align-items-start gap-3">
-                                        ${media.includes('.mp4') || media.includes('.webm') ?
+                                        ${isVideoUrl(media) ? (isYouTube(media) ?
+                        `<div style="width: 150px; height: 150px; position: relative; border-radius: 8px; overflow: hidden; border: 2px solid #ddd;">
+                                                <a href="${media}" target="_blank" style="display:block; width:100%; height:100%; position:relative;">
+                                                    <img src="${getYouTubeThumb(media)}" alt="YouTube" style="width:100%; height:100%; object-fit:cover;">
+                                                    <i class="bi bi-play-circle" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size:48px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,0.6);"></i>
+                                                </a>
+                                            </div>` :
                         `<div style="width: 150px; height: 150px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd;">
                                                 <i class="bi bi-play-circle" style="font-size: 48px; color: #6b7280;"></i>
-                                            </div>` :
+                                            </div>`) :
                         `<img src="${media}" alt="Current" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd;">`
                     }
                                         <div class="flex-grow-1">
-                                            <p class="mb-2"><strong>Current ${media.includes('.mp4') || media.includes('.webm') ? 'Video' : 'Image'}:</strong></p>
+                                            <p class="mb-2"><strong>Current ${isVideoUrl(media) ? 'Video' : 'Image'}:</strong></p>
                                             <small class="d-block text-muted mb-2"><a href="${media}" target="_blank" class="text-primary">${media.split('/').pop()}</a></small>
                                             <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.gallery-item').querySelector('.gallery-media-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
                                                 <i class="bi bi-x-circle"></i> Remove Current
