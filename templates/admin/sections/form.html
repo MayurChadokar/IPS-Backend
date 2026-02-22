@@ -49,7 +49,7 @@
                             %}>
                             Accordion/FAQ</option>
                         <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>
-                            Image Gallery</option>
+                            Image or Video Gallery</option>
                         <option value="images_with_logo" {% if section and section.section_type=='images_with_logo' %}selected{% endif %}>
                             Logos + Names</option>
                         <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>
@@ -819,7 +819,7 @@
         container.appendChild(newMedia);
     }
 
-    function addGalleryImage() {
+    function addGalleryMedia() {
         const container = document.getElementById('gallery_container');
         const newImage = document.createElement('div');
         newImage.className = 'gallery-item';
@@ -832,7 +832,7 @@
             </div>
             <div style="flex: 1;">
                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                <input type="text" class="form-control gallery-image" placeholder="https://example.com/image.jpg" style="padding: 10px;">
+                <input type="text" class="form-control gallery-media-url" placeholder="https://example.com/image.jpg" style="padding: 10px;">
             </div>
         </div>
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
@@ -1146,7 +1146,7 @@
                 const galleryMedia = [];
                 const galleryItems = document.querySelectorAll('#gallery_container .gallery-item');
                 for (const item of galleryItems) {
-                    const urlInput = item.querySelector('.gallery-image');
+                    const urlInput = item.querySelector('.gallery-media-url');
                     const fileInput = item.querySelector('.gallery-media-file');
 
                     if (fileInput && fileInput.files.length > 0) {
