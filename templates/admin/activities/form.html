@@ -29,9 +29,8 @@
             <div class="mb-3">
                 <label class="form-label">Activity Type *</label>
                 <select name="activity_type" class="form-select" required>
-                    {% for t in activity_types %}
-                    <option value="{{ t.value }}" {% if activity and activity.activity_type==t %}selected{% endif %}>{{ t.name.replace('_', ' ').title() }}</option>
-                    {% endfor %}
+                    <option value="cultural" {% if activity and activity.activity_type=='cultural' %}selected{% endif %}>Cultural</option>
+                    <option value="workshop" {% if activity and activity.activity_type=='workshop' %}selected{% endif %}>Workshop</option>
                 </select>
             </div>
 
@@ -41,8 +40,18 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Description</label>
-                <textarea name="description" id="description" class="form-control rich-editor" rows="6">{{ activity.description if activity else '' }}</textarea>
+                <label class="form-label">Short Description</label>
+                <textarea name="short_description" class="form-control" rows="2">{{ activity.short_description if activity else '' }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Slug</label>
+                <input type="text" name="slug" class="form-control" value="{{ activity.slug if activity else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content</label>
+                <textarea name="content_html" id="description" class="form-control rich-editor" rows="6">{{ activity.content_html if activity else '' }}</textarea>
             </div>
 
             <div class="row">
@@ -59,6 +68,18 @@
                     {% endif %}
                     <input type="file" name="main_image" class="form-control" id="mainImageInput">
                     <input type="hidden" name="remove_main_image" id="removeMainImageInput" value="">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Thumbnail Image</label>
+                    {% if activity and activity.thumbnail_image %}
+                    <div class="mb-2 position-relative d-inline-block">
+                        <input type="hidden" name="existing_thumbnail_image" value="{{ activity.thumbnail_image }}">
+                        <img src="{{ activity.thumbnail_image }}" id="thumbnailPreview" style="max-width:200px; display:block;"/>
+                    </div>
+                    {% else %}
+                    <img id="thumbnailPreview" class="d-none" style="max-width:200px; display:block;"/>
+                    {% endif %}
+                    <input type="file" name="thumbnail_image" class="form-control" id="thumbnailImageInput">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Gallery Images</label>
@@ -114,18 +135,82 @@
 
     <script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script>
-        tinymce.init({
-            selector: '.rich-editor',
-            plugins: 'advlist autolink lists link image charmap preview anchor searchreplace vertical-align code fullscreen insertdatetime media table code help wordcount',
-            toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
-            menubar: false,
-            height: 300,
-            branding: false,
-            promotion: false,
-            setup: function (editor) {
-                editor.on('change', function () {
-                    editor.save();
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                if (!window.tinymce) {
+                    console.error('TinyMCE library not available. Check network/CSP or API key.');
+                    return;
+                }
+
+                // Prevent double init
+                if (tinymce.get('description')) {
+                    return;
+                }
+
+                tinymce.init({
+                    selector: '#description',
+                    plugins: 'advlist autolink lists link image media table charmap preview anchor searchreplace code fullscreen insertdatetime help wordcount',
+                    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image media table | insertFeature insertCard | removeformat | code | help',
+                    menubar: false,
+                    height: 400,
+                    branding: false,
+                    promotion: false,
+                    automatic_uploads: true,
+                    images_upload_url: '/api/admin/upload',
+                    images_upload_credentials: true,
+                    file_picker_types: 'image media',
+                    relative_urls: false,
+                    remove_script_host: false,
+                    setup: function (editor) {
+                        editor.on('change', function () { editor.save(); });
+
+                        editor.ui.registry.addButton('insertFeature', {
+                            text: 'Features',
+                            tooltip: 'Insert features/checklist block',
+                            onAction: function () {
+                                const html = `
+                                <div class="features-list my-3">
+                                    <h4>Features</h4>
+                                    <ul style="list-style:none; padding-left:0;">
+                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature one</span></li>
+                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature two</span></li>
+                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature three</span></li>
+                                    </ul>
+                                </div>
+                                `;
+                                editor.insertContent(html);
+                            }
+                        });
+
+                        editor.ui.registry.addButton('insertCard', {
+                            text: 'Card',
+                            tooltip: 'Insert card layout',
+                            onAction: function () {
+                                const html = `
+                                <div class="card my-3" style="max-width:720px;">
+                                    <div class="row g-0 align-items-center">
+                                        <div class="col-4">
+                                            <img src="https://via.placeholder.com/300x200?text=Image" alt="Card" style="width:100%; height:100%; object-fit:cover;">
+                                        </div>
+                                        <div class="col-8">
+                                            <div class="card-body">
+                                                <h5 class="card-title">Card Title</h5>
+                                                <p class="card-text">Short description or caption goes here.</p>
+                                                <a href="#" class="btn btn-primary btn-sm">Learn more</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                `;
+                                editor.insertContent(html);
+                            }
+                        });
+                    }
                 });
+
+                console.info('TinyMCE initialized on #description');
+            } catch (err) {
+                console.error('TinyMCE init error', err);
             }
         });
     </script>
@@ -164,6 +249,11 @@
                 if(submitting){
                     e.preventDefault();
                     return false;
+                }
+
+                // Ensure TinyMCE content is saved back to the textarea
+                if (window.tinymce) {
+                    try { tinymce.triggerSave(); } catch(err){ console.warn('tinymce.triggerSave failed', err); }
                 }
 
                 submitting = true;

@@ -265,7 +265,10 @@ class Activity(Base):
     college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
     activity_type = Column(SQLEnum(ActivityType), nullable=False)
     title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
+    slug = Column(String(100), nullable=True, index=True)
+    short_description = Column(Text, nullable=True)
+    content_html = Column(Text, nullable=True)  # HTML-formatted rich content
+    thumbnail_image = Column(String(500), nullable=True)
     main_image = Column(String(500), nullable=True)
     gallery_images = Column(JSON, nullable=True)  # list of image URLs
     start_date = Column(DateTime(timezone=True), nullable=True)
