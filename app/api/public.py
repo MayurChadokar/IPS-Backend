@@ -346,6 +346,35 @@ async def list_courses_by_college(
     ]
 
 
+@router.get("/{college_slug}/courses/names", response_model=List[str])
+async def list_course_names_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Return only the course names for a given college slug.
+
+    Example: GET /api/ipsa/courses/names
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+
+    courses = db.query(Course).filter(
+        Course.college_id == college.id,
+        Course.is_active == True
+    ).all()
+
+    return [c.name for c in courses]
+
+
 @router.post("/{college_slug}/inquiry", status_code=status.HTTP_201_CREATED)
 async def submit_inquiry(
     college_slug: str,
