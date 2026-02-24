@@ -500,24 +500,40 @@
         `;
         },
 
-        contact: () => `
+        contact: () => {
+            const emails = existingContent.emails || (existingContent.email ? [existingContent.email] : ['']);
+            const phones = existingContent.phones || (existingContent.phone ? [existingContent.phone] : ['']);
+            return `
         <div class="form-group">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" id="contact_email" placeholder="info@college.edu" value="${existingContent.email || ''}">
+            <label class="form-label">Email Addresses</label>
+            <div id="contact_emails_container">
+                ${emails.map((email, index) => `
+                    <div class="contact-email-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="email" class="form-control contact-email" placeholder="info@college.edu" value="${email || ''}" style="flex: 1;">
+                        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+                    </div>
+                `).join('')}
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addContactEmail()" style="margin-top: 5px;">+ Add Email</button>
         </div>
         <div class="form-group">
-            <label class="form-label">Phone</label>
-            <input type="text" class="form-control" id="contact_phone" placeholder="+1 234 567 8900" value="${existingContent.phone || ''}">
+            <label class="form-label">Phone Numbers</label>
+            <div id="contact_phones_container">
+                ${phones.map((phone, index) => `
+                    <div class="contact-phone-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" class="form-control contact-phone" placeholder="+1 234 567 8900" value="${phone || ''}" style="flex: 1;">
+                        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+                    </div>
+                `).join('')}
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addContactPhone()" style="margin-top: 5px;">+ Add Phone</button>
         </div>
         <div class="form-group">
             <label class="form-label">Address</label>
             <textarea class="form-control" id="contact_address" rows="3" placeholder="Street, City, State, ZIP">${existingContent.address || ''}</textarea>
         </div>
-        <div class="form-group">
-            <label class="form-label">Map Embed URL (optional)</label>
-            <input type="text" class="form-control" id="contact_map" placeholder="https://maps.google.com/..." value="${existingContent.map || ''}">
-        </div>
-    `,
+    `;
+        },
 
         features: () => {
             const items = existingContent.items || [''];
@@ -1127,6 +1143,30 @@
         setupImagePreview(fileInput, uniqueId);
     }
 
+    function addContactEmail() {
+        const container = document.getElementById('contact_emails_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'contact-email-item';
+        newItem.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+        newItem.innerHTML = `
+        <input type="email" class="form-control contact-email" placeholder="info@college.edu" style="flex: 1;">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+    `;
+        container.appendChild(newItem);
+    }
+
+    function addContactPhone() {
+        const container = document.getElementById('contact_phones_container');
+        const newItem = document.createElement('div');
+        newItem.className = 'contact-phone-item';
+        newItem.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px;';
+        newItem.innerHTML = `
+        <input type="text" class="form-control contact-phone" placeholder="+1 234 567 8900" style="flex: 1;">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
+    `;
+        container.appendChild(newItem);
+    }
+
     // Build JSON from form fields (for text-based fields only, files handled separately)
     function buildJSON() {
         const sectionType = document.getElementById('section_type').value;
@@ -1279,11 +1319,22 @@
                 break;
 
             case 'contact':
+                const contactEmails = [];
+                document.querySelectorAll('#contact_emails_container .contact-email').forEach(input => {
+                    if (input.value.trim()) {
+                        contactEmails.push(input.value.trim());
+                    }
+                });
+                const contactPhones = [];
+                document.querySelectorAll('#contact_phones_container .contact-phone').forEach(input => {
+                    if (input.value.trim()) {
+                        contactPhones.push(input.value.trim());
+                    }
+                });
                 jsonData = {
-                    email: document.getElementById('contact_email').value,
-                    phone: document.getElementById('contact_phone').value,
-                    address: document.getElementById('contact_address').value,
-                    map: document.getElementById('contact_map').value
+                    emails: contactEmails,
+                    phones: contactPhones,
+                    address: document.getElementById('contact_address').value
                 };
                 break;
 

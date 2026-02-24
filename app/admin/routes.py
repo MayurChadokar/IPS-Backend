@@ -1173,11 +1173,20 @@ async def clone_page_form(
     # List colleges except current
     colleges = db.query(College).filter(College.id != page.college_id).all()
 
+    # Build a map of college_id -> list of existing pages for duplicate detection
+    college_pages_map = {}
+    for c in colleges:
+        college_pages_map[c.id] = [
+            {"title": p.title, "slug": p.slug, "is_active": p.is_active}
+            for p in c.pages
+        ]
+
     return templates.TemplateResponse("admin/pages/clone.html", {
         "request": request,
         "user": current_user,
         "page": page,
-        "colleges": colleges
+        "colleges": colleges,
+        "college_pages_map": json.dumps(college_pages_map)
     })
 
 

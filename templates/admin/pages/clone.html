@@ -19,18 +19,47 @@
         <form method="POST">
             <div class="mb-3">
                 <label class="form-label">Target College *</label>
-                <select name="target_college_id" class="form-select" required>
+                <select name="target_college_id" class="form-select" id="targetCollegeSelect" required>
+                    <option value="" disabled selected>— Select a college —</option>
                     {% for c in colleges %}
                     <option value="{{ c.id }}">{{ c.name }} ({{ c.slug }})</option>
                     {% endfor %}
                 </select>
             </div>
 
+            <!-- Existing pages panel -->
+            <div id="existingPagesPanel" class="mb-4" style="display: none;">
+                <div class="card border">
+                    <div class="card-header bg-light py-2">
+                        <strong><i class="bi bi-journal-text me-1"></i>Existing Pages in Selected College</strong>
+                        <span id="pageCount" class="badge bg-secondary ms-2">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="existingPagesList" style="max-height: 260px; overflow-y: auto;"></div>
+                        <div id="noPagesMsg" class="text-center text-muted py-3" style="display: none;">
+                            <i class="bi bi-inbox" style="font-size: 1.5rem;"></i>
+                            <p class="mb-0 mt-1">No pages exist in this college yet.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="duplicateWarning" class="alert alert-warning mt-2 d-flex align-items-center"
+                    style="display: none !important;">
+                    <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <strong>Duplicate detected!</strong> A page with slug <code id="duplicateSlugText"></code>
+                        already exists in this college.
+                        Cloning will create another page with the same slug.
+                    </div>
+                </div>
+            </div>
+
             <div class="mb-4">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" checked>
+                    <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch"
+                        checked>
                     <label class="form-check-label" for="isActiveSwitch">
-                        <strong>Active</strong> <small class="text-muted">- Cloned page will be active in the target college</small>
+                        <strong>Active</strong> <small class="text-muted">- Cloned page will be active in the target
+                            college</small>
                     </label>
                 </div>
             </div>
@@ -46,4 +75,79 @@
         </form>
     </div>
 </div>
+
+<script>
+    const collegePagesMap = {{ college_pages_map | safe }};
+    const sourceSlug = "{{ page.slug }}";
+
+    document.getElementById('targetCollegeSelect').addEventListener('change', function () {
+        const collegeId = parseInt(this.value);
+        const panel = document.getElementById('existingPagesPanel');
+        const listEl = document.getElementById('existingPagesList');
+        const noPagesMsg = document.getElementById('noPagesMsg');
+        const pageCountBadge = document.getElementById('pageCount');
+        const duplicateWarning = document.getElementById('duplicateWarning');
+        const duplicateSlugText = document.getElementById('duplicateSlugText');
+
+        const pages = collegePagesMap[collegeId] || [];
+
+        panel.style.display = 'block';
+        listEl.innerHTML = '';
+
+        if (pages.length === 0) {
+            noPagesMsg.style.display = 'block';
+            pageCountBadge.textContent = '0';
+        } else {
+            noPagesMsg.style.display = 'none';
+            pageCountBadge.textContent = pages.length;
+
+            const table = document.createElement('table');
+            table.className = 'table table-sm table-hover mb-0';
+            table.innerHTML = `
+                <thead class="table-light">
+                    <tr>
+                        <th style="padding-left: 16px;">Title</th>
+                        <th>Slug</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+            `;
+            const tbody = document.createElement('tbody');
+
+            pages.forEach(p => {
+                const isDuplicate = p.slug === sourceSlug;
+                const tr = document.createElement('tr');
+                if (isDuplicate) {
+                    tr.style.background = '#fff3cd';
+                }
+                tr.innerHTML = `
+                    <td style="padding-left: 16px;">
+                        ${p.title}
+                        ${isDuplicate ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle"></i> Duplicate</span>' : ''}
+                    </td>
+                    <td><code>${p.slug}</code></td>
+                    <td class="text-center">
+                        ${p.is_active
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            listEl.appendChild(table);
+        }
+
+        // Show duplicate warning if slug exists
+        const hasDuplicate = pages.some(p => p.slug === sourceSlug);
+        if (hasDuplicate) {
+            duplicateWarning.style.display = 'flex';
+            duplicateWarning.style.cssText = 'display: flex !important;';
+            duplicateSlugText.textContent = sourceSlug;
+        } else {
+            duplicateWarning.style.cssText = 'display: none !important;';
+        }
+    });
+</script>
 {% endblock %}
