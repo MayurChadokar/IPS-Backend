@@ -796,7 +796,8 @@ async def create_activity(
     college_id: int,
     activity_type: str = Form(...),
     title: str = Form(...),
-    description: str = Form(""),
+    short_description: str = Form(""),
+    content_html: str = Form(""),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     start_date: str = Form(""),
@@ -849,7 +850,8 @@ async def create_activity(
         college_id=college_id,
         activity_type=ActivityType(activity_type),
         title=title,
-        description=description if description else None,
+        short_description=short_description if short_description else None,
+        content_html=content_html if content_html else None,
         main_image=main_image_url,
         gallery_images=gallery_urls if gallery_urls else None,
         start_date=sd,
@@ -891,7 +893,8 @@ async def update_activity(
     activity_id: int,
     activity_type: str = Form(...),
     title: str = Form(...),
-    description: str = Form(""),
+    short_description: str = Form(""),
+    content_html: str = Form(""),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     retain_gallery: List[str] = Form(None),
@@ -953,7 +956,8 @@ async def update_activity(
 
     activity.activity_type = ActivityType(activity_type)
     activity.title = title
-    activity.description = description if description else None
+    activity.short_description = short_description if short_description else None
+    activity.content_html = content_html if content_html else None
     activity.is_active = is_active
 
     db.commit()
@@ -1472,6 +1476,21 @@ async def create_section(
                     if 'image' in item and item['image'].startswith('__UPLOAD__'):
                         if upload_index < len(uploaded_files):
                             item['image'] = uploaded_files[upload_index]
+                            upload_index += 1
+
+        elif section_type == 'images_with_logo' and images_logo_files:
+            # Upload each logo file and replace __UPLOAD__ placeholders in items
+            for file in images_logo_files:
+                if file and file.filename:
+                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    uploaded_files.append(url)
+
+            if 'items' in content_data:
+                upload_index = 0
+                for it in content_data['items']:
+                    if 'logo' in it and isinstance(it['logo'], str) and it['logo'].startswith('__UPLOAD__'):
+                        if upload_index < len(uploaded_files):
+                            it['logo'] = uploaded_files[upload_index]
                             upload_index += 1
     except Exception as e:
         # Create a mock section object to preserve form state

@@ -50,7 +50,8 @@
                             Accordion/FAQ</option>
                         <option value="gallery" {% if section and section.section_type=='gallery' %}selected{% endif %}>
                             Image or Video Gallery</option>
-                        <option value="images_with_logo" {% if section and section.section_type=='images_with_logo' %}selected{% endif %}>
+                        <option value="images_with_logo" {% if section and section.section_type=='images_with_logo'
+                            %}selected{% endif %}>
                             Logos + Names</option>
                         <option value="team" {% if section and section.section_type=='team' %}selected{% endif %}>
                             Leadership Team</option>
@@ -400,13 +401,22 @@
                     ${items.map((it, idx) => `
                     <div class="images-logo-item card p-2 mb-2" style="border-radius:6px;">
                         <div class="row g-2 align-items-center">
-                            <div class="col-12 col-md-9">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label">Name</label>
                                 <input type="text" class="form-control images-logo-name" placeholder="Name" value="${it.name || ''}">
                             </div>
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label">Logo</label>
-                                <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file" data-existing="${it.logo || ''}">
+                                <div style="display:flex; gap:8px; flex-direction:column;">
+                                    <div>
+                                        <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">📁 Upload File (Cloudinary)</label>
+                                        <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file" data-existing="${it.logo || ''}">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">🔗 Or Enter URL</label>
+                                        <input type="text" class="form-control images-logo-url" placeholder="https://example.com/logo.png" value="${it.logo && !it.logo.startsWith('__UPLOAD__') ? it.logo : ''}">
+                                    </div>
+                                </div>
                                 <div id="image_logo_preview_${idx}" class="image-preview-container mt-2">
                                     ${it.logo ? `<img src="${it.logo}" class="img-fluid rounded" style="max-height:96px;">` : ''}
                                 </div>
@@ -419,7 +429,7 @@
                     `).join('')}
                 </div>
                 <button type="button" class="btn btn-secondary" onclick="addImagesLogoItem()" style="margin-top:10px;">+ Add Item</button>
-                <small class="d-block text-muted mt-2">Upload logos (JPG, PNG) — images will be optimized through Cloudinary.</small>
+                <small class="d-block text-muted mt-2">Upload logos (JPG, PNG) or enter URLs — images will be optimized through Cloudinary.</small>
             </div>
             `;
         },
@@ -890,17 +900,26 @@
         const index = container.querySelectorAll('.images-logo-item').length;
         const newItem = document.createElement('div');
         newItem.className = 'images-logo-item';
-        newItem.classList.add('card','p-2','mb-2');
+        newItem.classList.add('card', 'p-2', 'mb-2');
         newItem.style.borderRadius = '6px';
         newItem.innerHTML = `
             <div class="row g-2 align-items-center">
-                <div class="col-12 col-md-9">
+                <div class="col-12 col-md-6">
                     <label class="form-label">Name</label>
                     <input type="text" class="form-control images-logo-name" placeholder="Name">
                 </div>
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-6">
                     <label class="form-label">Logo</label>
-                    <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file">
+                    <div style="display:flex; gap:8px; flex-direction:column;">
+                        <div>
+                            <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">📁 Upload File (Cloudinary)</label>
+                            <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">🔗 Or Enter URL</label>
+                            <input type="text" class="form-control images-logo-url" placeholder="https://example.com/logo.png">
+                        </div>
+                    </div>
                     <div id="image_logo_preview_${index}" class="image-preview-container mt-2"></div>
                 </div>
             </div>
@@ -1205,24 +1224,27 @@
                 };
                 break;
 
-                case 'images_with_logo':
-                    const imagesLogoItems = [];
-                    const imagesLogoNodes = document.querySelectorAll('#images_with_logo_container .images-logo-item');
-                    for (const [idx, item] of Array.from(imagesLogoNodes).entries()) {
-                        const nameInput = item.querySelector('.images-logo-name');
-                        const fileInput = item.querySelector('.image-logo-file');
-                        let logoVal = '';
-                        if (fileInput && fileInput.files.length > 0) {
-                            logoVal = '__UPLOAD__' + fileInput.files[0].name;
-                        } else if (fileInput && fileInput.dataset && fileInput.dataset.existing) {
-                            logoVal = fileInput.dataset.existing;
-                        } else if (item.querySelector('img')) {
-                            logoVal = item.querySelector('img').src;
-                        }
-                        imagesLogoItems.push({ name: nameInput ? nameInput.value.trim() : '', logo: logoVal });
+            case 'images_with_logo':
+                const imagesLogoItems = [];
+                const imagesLogoNodes = document.querySelectorAll('#images_with_logo_container .images-logo-item');
+                for (const [idx, item] of Array.from(imagesLogoNodes).entries()) {
+                    const nameInput = item.querySelector('.images-logo-name');
+                    const fileInput = item.querySelector('.image-logo-file');
+                    const urlInput = item.querySelector('.images-logo-url');
+                    let logoVal = '';
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                        logoVal = '__UPLOAD__' + fileInput.files[0].name;
+                    } else if (fileInput && fileInput.dataset && fileInput.dataset.existing) {
+                        logoVal = fileInput.dataset.existing;
+                    } else if (urlInput && urlInput.value.trim()) {
+                        logoVal = urlInput.value.trim();
+                    } else if (item.querySelector('img')) {
+                        logoVal = item.querySelector('img').src;
                     }
-                    jsonData = { items: imagesLogoItems };
-                    break;
+                    imagesLogoItems.push({ name: nameInput ? nameInput.value.trim() : '', logo: logoVal });
+                }
+                jsonData = { items: imagesLogoItems };
+                break;
 
             case 'team':
                 const teamMembers = [];
@@ -1232,7 +1254,7 @@
                     const titleInput = item.querySelector('.team-title');
                     const descInput = item.querySelector('.team-description');
                     const urlInput = item.querySelector('.team-image');
-                    const fileInput = item.querySelector('.team-image-file');
+                    const fileInput = item.querySelector('.team-media-file, .team-image-file');
 
                     let memberImage = '';
                     if (fileInput && fileInput.files.length > 0) {
@@ -1285,7 +1307,7 @@
                     const title = item.querySelector('.card-title').value;
                     const description = item.querySelector('.card-description').value;
                     const urlInput = item.querySelector('.card-icon-url');
-                    const fileInput = item.querySelector('.card-icon-file');
+                    const fileInput = item.querySelector('.card-media-file, .card-icon-file');
 
                     let icon = '';
                     if (fileInput && fileInput.files.length > 0) {
@@ -1426,16 +1448,21 @@
         }
     });
 
-    // Build JSON before form submission
-    document.getElementById('sectionForm').addEventListener('submit', function (e) {
-        const submitBtn = this.querySelector('button[type="submit"]');
+    // Build JSON before form submission. Upload files to Cloudinary first,
+    // inject URLs into sibling URL inputs, then build clean JSON and submit.
+    document.getElementById('sectionForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = this;
+        const submitBtn = form.querySelector('button[type="submit"]');
         const MAX_SIZE = 10 * 1024 * 1024; // 10MB Cloudinary limit
         let filesTooLarge = [];
 
-        // Check all file inputs
-        const fileInputs = this.querySelectorAll('input[type="file"]');
+        // Collect file inputs (skip scratch editor hidden inputs — they handle their own uploads)
+        const fileInputs = Array.from(form.querySelectorAll('input[type="file"]')).filter(inp => {
+            return !(inp.dataset && inp.dataset.skipPreview === 'true');
+        });
         fileInputs.forEach(input => {
-            if (input.files.length > 0) {
+            if (input.files && input.files.length > 0) {
                 for (let i = 0; i < input.files.length; i++) {
                     if (input.files[i].size > MAX_SIZE) {
                         filesTooLarge.push(`${input.files[i].name} (${(input.files[i].size / (1024 * 1024)).toFixed(2)} MB)`);
@@ -1445,18 +1472,148 @@
         });
 
         if (filesTooLarge.length > 0) {
-            e.preventDefault();
             alert(`⚠️ Files too large!\n\n${filesTooLarge.join('\n')}\n\nMaximum size allowed by Cloudinary is 10MB. Please compress your files or use an external URL.`);
             return;
         }
 
-        // Build JSON with placeholders for uploads
-        const json = buildJSON();
-        document.getElementById('content_json').value = json;
-
         // Show loading state
         submitBtn.disabled = true;
+        const originalLabel = submitBtn.innerHTML;
         submitBtn.innerHTML = '<span class="spinner" style="display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 8px;"></span> Image is optimizing, please wait...';
+
+        try {
+            // Upload all files to Cloudinary. Each upload result is stored
+            // alongside a reference to its file input so we can inject the URL
+            // into the correct sibling URL input afterwards.
+            const uploadResults = []; // Array of { input, file, url }
+            const uploadPromises = [];
+
+            fileInputs.forEach((input) => {
+                if (input.files && input.files.length > 0) {
+                    for (let i = 0; i < input.files.length; i++) {
+                        const file = input.files[i];
+                        const p = uploadFileToCloudinary(file).then(url => {
+                            uploadResults.push({ input, file, url });
+                        });
+                        uploadPromises.push(p);
+                    }
+                }
+            });
+
+            await Promise.all(uploadPromises);
+
+            // ── Inject uploaded URLs into the sibling URL text inputs ──
+            // This way buildJSON() will pick URLs directly from the text inputs
+            // instead of generating __UPLOAD__ placeholders.
+            //
+            // Map: file input CSS class → sibling URL input CSS class/id
+            const fileToUrlMap = {
+                'hero-media-file': { selector: '.hero-media-url', by: 'class' },
+                'gallery-media-file': { selector: '.gallery-media-url', by: 'class' },
+                'team-media-file': { selector: '.team-image', by: 'class' },
+                'team-image-file': { selector: '.team-image', by: 'class' },
+                'card-media-file': { selector: '.card-icon-url', by: 'class' },
+                'card-icon-file': { selector: '.card-icon-url', by: 'class' },
+                'facility-image-file': { selector: '.facility-image-url', by: 'class' },
+                'testimonial-media-file': { selector: '.testimonial-image', by: 'class' },
+                'image-logo-file': { selector: '.images-logo-url', by: 'class-and-data' }, // inject into URL field AND data-existing
+            };
+            // Single-file inputs with IDs
+            const singleFileMap = {
+                'text_image_file': 'text_image',
+                'split_image_file': 'split_image_url',
+            };
+
+            for (const result of uploadResults) {
+                const { input, url } = result;
+                let injected = false;
+
+                // 1. Try by ID (single-file inputs like text, split)
+                if (input.id && singleFileMap[input.id]) {
+                    const urlEl = document.getElementById(singleFileMap[input.id]);
+                    if (urlEl) {
+                        urlEl.value = url;
+                        injected = true;
+                    }
+                }
+
+                // 2. Try by class (multi-item sections)
+                if (!injected) {
+                    for (const [fileClass, target] of Object.entries(fileToUrlMap)) {
+                        if (input.classList.contains(fileClass)) {
+                            const parent = input.closest(
+                                '.card-item, .gallery-item, .media-item, .images-logo-item, .facility-item, .testimonial-item, .team-item'
+                            ) || input.closest('div[style]') || input.parentElement;
+                            if (!parent) break;
+
+                            if (target.by === 'class-and-data') {
+                                // images_with_logo: inject into URL field AND set data-existing
+                                input.dataset.existing = url;
+                                const urlInput = parent.querySelector(target.selector);
+                                if (urlInput) urlInput.value = url;
+                                // Update preview
+                                const previewDiv = parent.querySelector('.image-preview-container');
+                                if (previewDiv) {
+                                    previewDiv.innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:96px;">`;
+                                }
+                                injected = true;
+                            } else {
+                                const urlInput = parent.querySelector(target.selector);
+                                if (urlInput) {
+                                    urlInput.value = url;
+                                    injected = true;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // 3. Fallback: search for any sibling URL text input in the parent container
+                if (!injected) {
+                    const parent = input.closest(
+                        '.card-item, .gallery-item, .media-item, .images-logo-item, .facility-item, .testimonial-item, .team-item, .form-group'
+                    ) || input.parentElement?.parentElement;
+                    if (parent) {
+                        const urlInputs = parent.querySelectorAll('input[type="text"].form-control');
+                        for (const u of urlInputs) {
+                            // Pick the first URL-like text input that isn't a name/title field
+                            if (u.placeholder && (u.placeholder.includes('http') || u.placeholder.includes('url') || u.placeholder.includes('example.com'))) {
+                                u.value = url;
+                                injected = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Clear file inputs BEFORE buildJSON so it reads URL inputs instead ──
+            fileInputs.forEach(input => { try { input.value = ''; } catch (err) { } });
+
+            // Build JSON — since file inputs are cleared, buildJSON will read URL text inputs
+            let json = buildJSON();
+
+            // Safety net: replace any remaining __UPLOAD__ placeholders (shouldn't happen normally)
+            const uploadMap = {};
+            for (const result of uploadResults) {
+                uploadMap[result.file.name] = result.url;
+            }
+            for (const [fname, url] of Object.entries(uploadMap)) {
+                const ph = '__UPLOAD__' + fname;
+                // Use split/join for safe string replacement (no regex issues)
+                json = json.split(ph).join(url);
+            }
+
+            document.getElementById('content_json').value = json;
+
+            // Finally submit the form (file inputs already cleared)
+            form.submit();
+        } catch (err) {
+            alert('Upload failed: ' + (err.message || err));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalLabel;
+        }
     });
 
     // Image preview and loading indicator functionality
@@ -1535,53 +1692,17 @@
         return container;
     }
 
-    // Setup preview for text section image
+    // Setup preview for file inputs (skip those that opt out)
     document.addEventListener('DOMContentLoaded', function () {
         // Wait a bit for dynamic content to load
         setTimeout(() => {
-            const textImageFile = document.getElementById('text_image_file');
-            if (textImageFile) {
-                setupImagePreview(textImageFile, 'text_image_preview');
-            }
-
-            const splitImageFile = document.querySelector('input[name="split_media_file"]');
-            if (splitImageFile) {
-                setupImagePreview(splitImageFile, 'split_image_preview');
-            }
-
-            // Setup for hero media files
-            document.querySelectorAll('.hero-media-file').forEach((input, index) => {
-                setupImagePreview(input, `hero_media_preview_${index}`);
-            });
-
-            // Setup for gallery files
-            document.querySelectorAll('.gallery-media-file').forEach((input, index) => {
-                setupImagePreview(input, `gallery_media_preview_${index}`);
-            });
-
-            // Setup for team member photos
-            document.querySelectorAll('.team-media-file').forEach((input, index) => {
-                setupImagePreview(input, `team_media_preview_${index}`);
-            });
-
-            // Setup for facility images
-            document.querySelectorAll('.facility-media-file').forEach((input, index) => {
-                setupImagePreview(input, `facility_media_preview_${index}`);
-            });
-
-            // Setup for card icons
-            document.querySelectorAll('.card-media-file').forEach((input, index) => {
-                setupImagePreview(input, `card_media_preview_${index}`);
-            });
-
-            // Setup for testimonial photos
-            document.querySelectorAll('.testimonial-media-file').forEach((input, index) => {
-                setupImagePreview(input, `testimonial_media_preview_${index}`);
-            });
-
-            // Setup for images-with-logo logo files
-            document.querySelectorAll('.image-logo-file').forEach((input, index) => {
-                setupImagePreview(input, `image_logo_preview_${index}`);
+            document.querySelectorAll('input[type="file"]').forEach((input, index) => {
+                // scratch editor and other inputs can opt-out with data-skip-preview="true"
+                if (input.dataset && input.dataset.skipPreview === 'true') return;
+                if (input.dataset && input.dataset.previewSetup) return;
+                const previewId = input.id ? `${input.id}_preview` : `file_preview_${index}`;
+                setupImagePreview(input, previewId);
+                input.dataset.previewSetup = 'true';
             });
         }, 500);
     });
@@ -1679,19 +1800,34 @@
     async function uploadFileToCloudinary(file, folder) {
         const fd = new FormData();
         fd.append('file', file, file.name);
-        // determine folder: prefer section_key if present
+        // determine folder for server-side logging (backend may ignore or use it)
         const sectionKeyEl = document.getElementById('section_key');
         const folderName = sectionKeyEl && sectionKeyEl.value ? `sections/${sectionKeyEl.value}` : 'sections/scratch';
         fd.append('folder', folderName);
 
-        const resp = await fetch('/api/admin/upload', {
+        // Use the Admin UI upload endpoint which forwards to Cloudinary
+        const resp = await fetch('/admin/uploads/image', {
             method: 'POST',
             body: fd,
             credentials: 'same-origin'
         });
-        if (!resp.ok) throw new Error('Upload failed');
-        const data = await resp.json();
-        return data.url;
+
+        const text = await resp.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = text; }
+
+        if (!resp.ok) {
+            console.error('Cloudinary upload failed', resp.status, data);
+            // Try to extract useful message
+            const msg = (data && typeof data === 'object' && (data.error || data.detail)) ? (data.error || data.detail) : (typeof data === 'string' ? data : JSON.stringify(data));
+            throw new Error(`Upload failed (${resp.status}): ${msg}`);
+        }
+
+        console.log('Cloudinary upload response', resp.status, data);
+        // backend returns one of { location, src, url }
+        const url = (data && typeof data === 'object') ? (data.location || data.src || data.url || data[Object.keys(data)[0]]) : null;
+        if (!url) throw new Error('No URL returned from upload: ' + (typeof data === 'string' ? data : JSON.stringify(data)));
+        return url;
     }
 
     // Insert image HTML at current cursor in contenteditable

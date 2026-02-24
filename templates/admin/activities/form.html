@@ -1,18 +1,17 @@
 {% extends "admin/base.html" %}
 
-{% block title %}{{ action }} Activity{% endblock %}
-{% block page_title %}{{ action }} Activity - {{ college.name }}{% endblock %}
+{% block title %}{{ action }} Activity - {{ college.name }}{% endblock %}
+{% block page_title %}{{ action }} Activity{% endblock %}
 
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title"><i class="bi bi-calendar-event me-2"></i>{{ action }} Activity</h2>
         <div>
-            <h2 class="card-title mb-1"><i class="bi bi-calendar-event me-2"></i>{{ action }} Activity</h2>
-            <small class="text-muted">{{ college.name }}</small>
+            <a href="/admin/colleges/{{ college.id }}/activities" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Activities
+            </a>
         </div>
-        <a href="/admin/colleges/{{ college.id }}/activities" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Activities
-        </a>
     </div>
 
     <div class="card-body">
@@ -23,99 +22,86 @@
         {% endif %}
 
         <form method="POST" enctype="multipart/form-data">
-            <div id="uploadStatus" class="alert alert-info d-none">
-                <i class="bi bi-hourglass-split me-2"></i><span id="uploadStatusText">Preparing...</span>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Activity Type *</label>
-                <select name="activity_type" class="form-select" required>
-                    <option value="cultural" {% if activity and activity.activity_type=='cultural' %}selected{% endif %}>Cultural</option>
-                    <option value="workshop" {% if activity and activity.activity_type=='workshop' %}selected{% endif %}>Workshop</option>
-                </select>
-            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Activity Type *</label>
+                    <select name="activity_type" class="form-select" required>
+                        <option value="">Select type</option>
+                        <option value="workshop" {% if activity and activity.activity_type.value == 'workshop' %}selected{% endif %}>Workshop</option>
+                        <option value="cultural" {% if activity and activity.activity_type.value == 'cultural' %}selected{% endif %}>Cultural</option>
+                    </select>
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Title *</label>
-                <input type="text" name="title" class="form-control" value="{{ activity.title if activity else '' }}" required>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Short Description</label>
-                <textarea name="short_description" class="form-control" rows="2">{{ activity.short_description if activity else '' }}</textarea>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Slug</label>
-                <input type="text" name="slug" class="form-control" value="{{ activity.slug if activity else '' }}">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Content</label>
-                <textarea name="content_html" id="description" class="form-control rich-editor" rows="6">{{ activity.content_html if activity else '' }}</textarea>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Title *</label>
+                    <input type="text" name="title" class="form-control" value="{{ activity.title if activity else '' }}" required>
+                </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Slug <small class="text-muted">(optional)</small></label>
+                    <input type="text" name="slug" class="form-control" value="{{ activity.slug if activity else '' }}" pattern="[a-z0-9-]+">
+                    <div class="form-text">Lowercase letters, numbers and hyphens only</div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Short Description</label>
+                    <input type="text" name="short_description" class="form-control" value="{{ activity.short_description if activity else '' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Content (HTML)</label>
+                <textarea name="content_html" class="d-none">{{ activity.content_html if activity else '' }}</textarea>
+                <div id="quill-editor" style="min-height:220px;">{% if activity %}{{ activity.content_html|safe }}{% endif %}</div>
+                <div class="form-text">You can paste images or use the rich text editor below. Images will be uploaded to Cloudinary automatically.</div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Main Image</label>
                     {% if activity and activity.main_image %}
-                    <div class="mb-2 position-relative d-inline-block">
-                        <input type="hidden" name="existing_main_image" value="{{ activity.main_image }}">
-                        <button type="button" class="btn btn-sm btn-danger position-absolute remove-main-btn" style="right:6px;top:6px;z-index:5;pointer-events:auto;">&times;</button>
-                        <img src="{{ activity.main_image }}" id="mainImagePreview" style="max-width:200px; display:block;"/>
+                    <div class="mb-2 p-2 bg-light rounded">
+                        <img src="{{ activity.main_image }}" alt="Main Image" style="max-width:140px; max-height:80px;">
                     </div>
-                    {% else %}
-                    <img id="mainImagePreview" class="d-none" style="max-width:200px; display:block;"/>
                     {% endif %}
-                    <input type="file" name="main_image" class="form-control" id="mainImageInput">
-                    <input type="hidden" name="remove_main_image" id="removeMainImageInput" value="">
+                    <input type="file" name="main_image" class="form-control" accept="image/*">
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Thumbnail Image</label>
-                    {% if activity and activity.thumbnail_image %}
-                    <div class="mb-2 position-relative d-inline-block">
-                        <input type="hidden" name="existing_thumbnail_image" value="{{ activity.thumbnail_image }}">
-                        <img src="{{ activity.thumbnail_image }}" id="thumbnailPreview" style="max-width:200px; display:block;"/>
-                    </div>
-                    {% else %}
-                    <img id="thumbnailPreview" class="d-none" style="max-width:200px; display:block;"/>
-                    {% endif %}
-                    <input type="file" name="thumbnail_image" class="form-control" id="thumbnailImageInput">
-                </div>
-                <div class="col-md-6 mb-3">
+
+                <div class="col-md-8 mb-3">
                     <label class="form-label">Gallery Images</label>
                     {% if activity and activity.gallery_images %}
-                    <div class="mb-2 d-flex flex-wrap" id="galleryContainer">
+                    <div class="mb-2 d-flex flex-wrap gap-2">
                         {% for g in activity.gallery_images %}
-                        <div class="position-relative me-2 mb-2 gallery-item" data-url="{{ g }}" style="width:100px;">
-                            <input type="hidden" name="retain_gallery" value="{{ g }}">
-                            <button type="button" class="btn btn-sm btn-danger position-absolute remove-gallery-btn" style="right:4px;top:4px;z-index:5;pointer-events:auto;">&times;</button>
-                            <img src="{{ g }}" style="max-width:100px; display:block;"/>
+                        <div class="p-1 bg-light rounded" style="max-width:120px;">
+                            <img src="{{ g }}" alt="Gallery" style="max-width:100%; height:auto; display:block;">
                         </div>
                         {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="mb-2 d-flex flex-wrap" id="galleryContainer"></div>
                     {% endif %}
-                    <input type="file" name="gallery_media_files" class="form-control" id="galleryInput" multiple>
+                    <input type="file" name="gallery_media_files" class="form-control" accept="image/*" multiple>
                 </div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Start Date</label>
-                    <input type="date" name="start_date" class="form-control" value="{% if activity and activity.start_date %}{{ activity.start_date.strftime('%Y-%m-%d') }}{% endif %}">
+                    <input type="datetime-local" name="start_date" class="form-control" value="{% if activity and activity.start_date %}{{ activity.start_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">End Date</label>
-                    <input type="date" name="end_date" class="form-control" value="{% if activity and activity.end_date %}{{ activity.end_date.strftime('%Y-%m-%d') }}{% endif %}">
+                    <input type="datetime-local" name="end_date" class="form-control" value="{% if activity and activity.end_date %}{{ activity.end_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
                 </div>
             </div>
+
+            <hr class="my-4">
 
             <div class="mb-4">
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" name="is_active" value="true" id="isActiveSwitch" {% if not activity or activity.is_active %}checked{% endif %}>
                     <label class="form-check-label" for="isActiveSwitch">
-                        <strong>Active</strong> <small class="text-muted">- Activity will be visible on the website</small>
+                        <strong>Active</strong> <small class="text-muted">- Activity will be visible on the site</small>
                     </label>
                 </div>
             </div>
@@ -133,260 +119,124 @@
 </div>
 {% endblock %}
 
-    <script src="https://cdn.tiny.cloud/1/at0724acsqit4mt4qilj8h8nr1e11avuec1wvwt7wggno0oe/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            try {
-                if (!window.tinymce) {
-                    console.error('TinyMCE library not available. Check network/CSP or API key.');
-                    return;
-                }
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+{% endblock %}
 
-                // Prevent double init
-                if (tinymce.get('description')) {
-                    return;
-                }
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<!-- Image resize module for Quill -->
+<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toolbarOptions = [
+        [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'script': 'sub' }, { 'script': 'super' }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ 'indent': '-1' }, { 'indent': '+1' }],
+        [{ 'direction': 'rtl' }],
+        [{ 'align': [] }],
+        ['blockquote', 'code-block'],
+        ['link', 'image', 'video'],
+        ['clean']
+    ];
 
-                tinymce.init({
-                    selector: '#description',
-                    plugins: 'advlist autolink lists link image media table charmap preview anchor searchreplace code fullscreen insertdatetime help wordcount',
-                    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | image media table | insertFeature insertCard | removeformat | code | help',
-                    menubar: false,
-                    height: 400,
-                    branding: false,
-                    promotion: false,
-                    automatic_uploads: true,
-                    images_upload_url: '/api/admin/upload',
-                    images_upload_credentials: true,
-                    file_picker_types: 'image media',
-                    relative_urls: false,
-                    remove_script_host: false,
-                    setup: function (editor) {
-                        editor.on('change', function () { editor.save(); });
+    // register image resize module if provided by the script
+    if (window.ImageResize) {
+        try { Quill.register('modules/imageResize', window.ImageResize); } catch (e) {}
+    }
 
-                        editor.ui.registry.addButton('insertFeature', {
-                            text: 'Features',
-                            tooltip: 'Insert features/checklist block',
-                            onAction: function () {
-                                const html = `
-                                <div class="features-list my-3">
-                                    <h4>Features</h4>
-                                    <ul style="list-style:none; padding-left:0;">
-                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature one</span></li>
-                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature two</span></li>
-                                        <li style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0d6efd; margin-right:8px;">✔</strong><span contenteditable="true">Feature three</span></li>
-                                    </ul>
-                                </div>
-                                `;
-                                editor.insertContent(html);
-                            }
-                        });
+    var quill = new Quill('#quill-editor', {
+        theme: 'snow',
+        placeholder: 'Write activity content here...',
+        modules: {
+            toolbar: toolbarOptions,
+            imageResize: { displaySize: true, modules: [ 'Resize', 'DisplaySize', 'Toolbar' ] }
+        }
+    });
 
-                        editor.ui.registry.addButton('insertCard', {
-                            text: 'Card',
-                            tooltip: 'Insert card layout',
-                            onAction: function () {
-                                const html = `
-                                <div class="card my-3" style="max-width:720px;">
-                                    <div class="row g-0 align-items-center">
-                                        <div class="col-4">
-                                            <img src="https://via.placeholder.com/300x200?text=Image" alt="Card" style="width:100%; height:100%; object-fit:cover;">
-                                        </div>
-                                        <div class="col-8">
-                                            <div class="card-body">
-                                                <h5 class="card-title">Card Title</h5>
-                                                <p class="card-text">Short description or caption goes here.</p>
-                                                <a href="#" class="btn btn-primary btn-sm">Learn more</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                `;
-                                editor.insertContent(html);
-                            }
-                        });
-                    }
-                });
-
-                console.info('TinyMCE initialized on #description');
-            } catch (err) {
-                console.error('TinyMCE init error', err);
-            }
-        });
-    </script>
-    <script>
-        // Prevent multiple submits and show upload/optimization status
-        (function(){
-            const form = document.querySelector('form[enctype="multipart/form-data"]');
-            if(!form) return;
-
-            let submitting = false;
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const uploadStatus = document.getElementById('uploadStatus');
-            const uploadStatusText = document.getElementById('uploadStatusText');
-
-            function showStatus(text){
-                if(uploadStatus){
-                    uploadStatusText.textContent = text;
-                    uploadStatus.classList.remove('d-none');
-                }
-            }
-
-            // Show message when user selects images
-            const fileInputs = form.querySelectorAll('input[type="file"]');
-            fileInputs.forEach(inp => {
-                inp.addEventListener('change', () => {
-                    const anyFiles = Array.from(fileInputs).some(i => i.files && i.files.length > 0);
-                    if(anyFiles){
-                        showStatus('Images selected — they will be optimized during upload. Please submit and wait.');
-                    } else {
-                        if(uploadStatus) uploadStatus.classList.add('d-none');
-                    }
-                });
+    // Helper to upload a File to the server (Cloudinary via backend) and return the URL
+    function uploadImageFile(file) {
+        var fd = new FormData();
+        fd.append('file', file);
+        return fetch('/admin/uploads/image', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function(res){ return res.json(); })
+            .then(function(data){
+                return data.location || data.src || data.url || data[Object.keys(data)[0]];
             });
+    }
 
-            form.addEventListener('submit', function(e){
-                if(submitting){
+    // Custom image handler for toolbar button
+    function imageHandler() {
+        var input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+        input.onchange = function() {
+            var file = input.files[0];
+            if (!file) return;
+            var range = quill.getSelection(true);
+            // insert temporary placeholder
+            quill.insertEmbed(range.index, 'image', '/static/img/placeholder-loading.png');
+            uploadImageFile(file).then(function(url){
+                // remove placeholder and insert real image
+                quill.deleteText(range.index, 1);
+                quill.insertEmbed(range.index, 'image', url);
+                quill.setSelection(range.index + 1);
+            }).catch(function(err){
+                console.error('Upload failed', err);
+            });
+        };
+    }
+
+    // Attach custom handler to toolbar image button
+    var toolbar = quill.getModule('toolbar');
+    if (toolbar) toolbar.addHandler('image', imageHandler);
+
+    // Handle paste images (from clipboard)
+    quill.root.addEventListener('paste', function(e){
+        var clipboard = e.clipboardData || window.clipboardData;
+        if (!clipboard) return;
+        var items = clipboard.items;
+        if (!items) return;
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            if (item.kind === 'file') {
+                var file = item.getAsFile();
+                if (file) {
                     e.preventDefault();
-                    return false;
+                    var range = quill.getSelection(true) || { index: quill.getLength() };
+                    uploadImageFile(file).then(function(url){
+                        quill.insertEmbed(range.index, 'image', url);
+                        quill.setSelection(range.index + 1);
+                    }).catch(function(err){ console.error('Paste upload failed', err); });
                 }
-
-                // Ensure TinyMCE content is saved back to the textarea
-                if (window.tinymce) {
-                    try { tinymce.triggerSave(); } catch(err){ console.warn('tinymce.triggerSave failed', err); }
-                }
-
-                submitting = true;
-                if(submitBtn){
-                    submitBtn.disabled = true;
-                    const orig = submitBtn.innerHTML;
-                    submitBtn.dataset.orig = orig;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Uploading & optimizing images...';
-                }
-                showStatus('Uploading and optimizing images — please wait until the process completes.');
-            });
-        })();
-    </script>
-    <script>
-        // Remove buttons for main and gallery images
-        (function(){
-            const removeMainBtn = document.querySelector('.remove-main-btn');
-            const mainPreview = document.getElementById('mainImagePreview');
-            const removeMainInput = document.getElementById('removeMainImageInput');
-            const mainInput = document.getElementById('mainImageInput');
-
-            // Use delegated click handling for robustness
-            document.addEventListener('click', function(e){
-                const rmMain = e.target.closest('.remove-main-btn');
-                if(rmMain){
-                        try{
-                            e.preventDefault();
-                            console.log('remove-main-btn clicked');
-                            // Call API to remove main image server-side if activity exists
-                            const activityId = {{ activity.id if activity else 'null' }};
-                            if(activityId){
-                                fetch(`/admin/activities/${activityId}/image/remove-main`, {
-                                    method: 'POST',
-                                    headers: {'Content-Type':'application/json'}
-                                }).then(r=>r.json()).then(data=>{
-                                    if(data && data.success){
-                                        if(mainPreview){ mainPreview.style.display = 'none'; mainPreview.src = ''; }
-                                        if(removeMainInput) removeMainInput.value = '1';
-                                        const existingInput = document.querySelector('input[name="existing_main_image"]');
-                                        if(existingInput) existingInput.remove();
-                                        rmMain.style.display = 'none';
-                                    } else {
-                                        console.error('server remove failed', data);
-                                        alert('Failed to remove image on server');
-                                    }
-                                }).catch(err=>{ console.error('remove-main fetch error', err); alert('Error removing image'); });
-                            } else {
-                                // No activity yet, just remove client-side
-                                if(mainPreview){ mainPreview.style.display = 'none'; mainPreview.src = ''; }
-                                if(removeMainInput) removeMainInput.value = '1';
-                                const existingInput = document.querySelector('input[name="existing_main_image"]');
-                                if(existingInput) existingInput.remove();
-                                rmMain.style.display = 'none';
-                            }
-                        }catch(err){
-                            console.error('remove main error', err);
-                        }
-                    return;
-                }
-
-                const rmGallery = e.target.closest('.remove-gallery-btn');
-                if(rmGallery){
-                    try{
-                        console.log('remove-gallery-btn clicked');
-                        const item = rmGallery.closest('.gallery-item');
-                        if(!item) return;
-                        const imageUrl = item.dataset.url;
-                        const activityId = {{ activity.id if activity else 'null' }};
-                        if(activityId && imageUrl){
-                            fetch(`/admin/activities/${activityId}/image/remove-gallery`, {
-                                method: 'POST',
-                                headers: {'Content-Type':'application/json'},
-                                body: JSON.stringify({image_url: imageUrl})
-                            }).then(r=>r.json()).then(data=>{
-                                if(data && data.success){
-                                    const input = item.querySelector('input[name="retain_gallery"]');
-                                    if(input) input.remove();
-                                    item.style.transition = 'opacity 150ms ease-out, transform 150ms ease-out';
-                                    item.style.opacity = '0';
-                                    item.style.transform = 'scale(0.9)';
-                                    setTimeout(()=> item.remove(), 160);
-                                } else {
-                                    console.error('server remove gallery failed', data);
-                                    alert('Failed to remove gallery image on server');
-                                }
-                            }).catch(err=>{ console.error('remove-gallery fetch error', err); alert('Error removing gallery image'); });
-                        } else {
-                            const input = item.querySelector('input[name="retain_gallery"]');
-                            if(input) input.remove();
-                            item.style.transition = 'opacity 150ms ease-out, transform 150ms ease-out';
-                            item.style.opacity = '0';
-                            item.style.transform = 'scale(0.9)';
-                            setTimeout(()=> item.remove(), 160);
-                        }
-                    }catch(err){
-                        console.error('remove gallery error', err);
-                    }
-                    return;
-                }
-            });
-
-            // Gallery removal
-            const galleryContainer = document.getElementById('galleryContainer');
-            if(galleryContainer){
-                galleryContainer.addEventListener('click', function(e){
-                    const btn = e.target.closest('.remove-gallery-btn');
-                    if(!btn) return;
-                    const item = btn.closest('.gallery-item');
-                    if(!item) return;
-                    // remove the hidden input inside this item
-                    const input = item.querySelector('input[name="retain_gallery"]');
-                    if(input) input.remove();
-                    // remove item from DOM
-                    item.remove();
-                });
             }
+        }
+    });
 
-            // If admin selects a new main image, clear remove flag and show preview
-            if(mainInput){
-                mainInput.addEventListener('change', function(){
-                    if(this.files && this.files[0]){
-                        // clear remove flag
-                        if(removeMainInput) removeMainInput.value = '';
-                        const reader = new FileReader();
-                        reader.onload = function(e){
-                            if(mainPreview){
-                                mainPreview.src = e.target.result;
-                                mainPreview.style.display = 'block';
-                            }
-                        }
-                        reader.readAsDataURL(this.files[0]);
-                    }
-                });
-            }
-        })();
-    </script>
+    // Handle drop images
+    quill.root.addEventListener('drop', function(e){
+        var dt = e.dataTransfer;
+        if (!dt || !dt.files || dt.files.length === 0) return;
+        e.preventDefault();
+        var file = dt.files[0];
+        var range = quill.getSelection(true) || { index: quill.getLength() };
+        uploadImageFile(file).then(function(url){
+            quill.insertEmbed(range.index, 'image', url);
+            quill.setSelection(range.index + 1);
+        }).catch(function(err){ console.error('Drop upload failed', err); });
+    });
+
+    var form = document.querySelector('form');
+    var contentInput = document.querySelector('textarea[name="content_html"]');
+    // On submit, copy HTML from Quill into hidden textarea
+    form.addEventListener('submit', function (e) {
+        contentInput.value = quill.root.innerHTML;
+    });
+});
+</script>
+{% endblock %}
