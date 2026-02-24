@@ -40,8 +40,10 @@
                     <tr>
                         <td><span class="badge bg-light text-dark">{{ course.id }}</span></td>
                         <td><strong>{{ course.name }}</strong></td>
-                        <td>{{ course.description[:50] }}...</td>
-                        <td>{{ course.eligibility[:30] }}...</td>
+                        <td>{{ (course.description or '')[:50] }}{{ '...' if course.description and
+                            course.description|length > 50 else '' }}</td>
+                        <td>{{ (course.eligibility or '')[:30] }}{{ '...' if course.eligibility and
+                            course.eligibility|length > 30 else '' }}</td>
                         <td>
                             <button class="btn btn-sm btn-outline-info"
                                 onclick="alert('{{ course.fee_structure | tojson }}')">
