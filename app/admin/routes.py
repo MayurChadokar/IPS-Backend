@@ -799,7 +799,6 @@ async def create_activity(
     slug: str = Form(""),
     short_description: str = Form(""),
     content_html: str = Form(""),
-    thumbnail_image: UploadFile = File(None),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     start_date: str = Form(""),
@@ -818,6 +817,9 @@ async def create_activity(
     activity_slug = slug.strip() if slug else None
     if not activity_slug:
         activity_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+
+    main_image_url = None
+    gallery_urls = []
 
     try:
         if main_image and main_image.filename:
@@ -902,7 +904,6 @@ async def update_activity(
     slug: str = Form(""),
     short_description: str = Form(""),
     content_html: str = Form(""),
-    thumbnail_image: UploadFile = File(None),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     retain_gallery: List[str] = Form(None),
