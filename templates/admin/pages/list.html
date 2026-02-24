@@ -27,6 +27,7 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
+                        <th style="width: 60px;">S.No.</th>
                         <th style="width: 80px;">ID</th>
                         <th>Title</th>
                         <th class="d-none d-md-table-cell">Slug</th>
@@ -37,6 +38,7 @@
                 <tbody>
                     {% for page in pages %}
                     <tr>
+                        <td><span class="badge bg-secondary">{{ loop.index }}</span></td>
                         <td><span class="badge bg-light text-dark">{{ page.id }}</span></td>
                         <td><strong>{{ page.title }}</strong></td>
                         <td class="d-none d-md-table-cell"><code class="text-primary">{{ page.slug }}</code></td>
@@ -55,17 +57,18 @@
                                 <a href="/admin/pages/{{ page.id }}/edit" class="btn btn-outline-primary">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>
-                                <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary" title="Clone Page">
+                                <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary"
+                                    title="Clone Page">
                                     <i class="bi bi-files"></i> Clone
                                 </a>
                                 <form method="POST" action="/admin/pages/{{ page.id }}/delete" style="display: inline;"
-                                onsubmit="return confirm('Delete this page?');">
-                                <button type="submit" class="btn btn-outline-danger">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </form>
+                                    onsubmit="return confirm('Delete this page?');">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
                             </div>
-                            
+
                         </td>
                     </tr>
                     {% endfor %}
@@ -78,7 +81,8 @@
             <div class="card mb-3">
                 <div class="card-body d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="small text-muted">ID <span class="badge bg-light text-dark">{{ page.id }}</span></div>
+                        <div class="small text-muted">#{{ loop.index }} · ID <span class="badge bg-light text-dark">{{
+                                page.id }}</span></div>
                         <h5 class="card-title mb-1">{{ page.title }}</h5>
                         <div class="text-muted small">Slug: <a href="#" class="text-primary">{{ page.slug }}</a></div>
                         <div class="mt-2">
@@ -94,7 +98,8 @@
                             <a href="/admin/pages/{{ page.id }}/sections" class="btn btn-outline-secondary">Sections</a>
                             <a href="/admin/pages/{{ page.id }}/edit" class="btn btn-outline-primary">Edit</a>
                             <a href="/admin/pages/{{ page.id }}/clone" class="btn btn-outline-secondary">Clone</a>
-                            <form method="POST" action="/admin/pages/{{ page.id }}/delete" onsubmit="return confirm('Delete this page?');" class="m-0">
+                            <form method="POST" action="/admin/pages/{{ page.id }}/delete"
+                                onsubmit="return confirm('Delete this page?');" class="m-0">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                             </form>
                         </div>

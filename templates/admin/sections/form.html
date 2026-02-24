@@ -121,7 +121,7 @@
 
 <script>
     // Store existing content if editing
-    const existingContent = {{ section.content.content_json| tojson if section and section.content else '{}' }};
+    const existingContent = {{ (section.content.content_json | tojson) if section and section.content else '{}' }};
 
     // Helper to detect video URLs (files or common providers)
     function isYouTube(url) {
