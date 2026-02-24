@@ -1,1 +1,7 @@
 python main.py 
+
+
+alembic revision --autogenerate -m "initial_schema"
+
+
+alembic stamp head

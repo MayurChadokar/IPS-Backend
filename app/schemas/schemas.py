@@ -242,6 +242,36 @@ class EventDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============= Activity Public Schemas =============
+class ActivityListItem(BaseModel):
+    id: int
+    activity_type: str
+    title: str
+    slug: Optional[str] = None
+    short_description: Optional[str] = None
+    main_image: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ActivityDetail(BaseModel):
+    id: int
+    activity_type: str
+    title: str
+    slug: Optional[str] = None
+    short_description: Optional[str] = None
+    content_html: Optional[str] = None
+    main_image: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============= Template Schemas =============
 class PageTemplateBase(BaseModel):
     template_key: str

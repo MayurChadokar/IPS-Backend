@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event, Activity
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
@@ -9,9 +9,10 @@ from app.schemas.schemas import (
     NewsDetail,
     EventListItem,
     EventDetail,
+    ActivityListItem,
+    ActivityDetail,
 )
-from typing import Dict, Any
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 router = APIRouter()
@@ -409,3 +410,132 @@ async def submit_inquiry(
     db.refresh(new_inquiry)
     
     return {"message": "Inquiry submitted successfully", "id": new_inquiry.id}
+
+
+# ============= ACTIVITIES PUBLIC API =============
+@router.get("/{college_slug}/activities", response_model=List[ActivityListItem])
+async def list_activities_by_college(
+    college_slug: str,
+    activity_type: Optional[str] = Query(None, description="Filter by activity type: workshop, cultural, event_celebration"),
+    db: Session = Depends(get_db)
+):
+    """
+    List active activities for a college
+
+    Example: GET /api/ipsa/activities
+    Filter:  GET /api/ipsa/activities?activity_type=workshop
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    query = db.query(Activity).filter(
+        Activity.college_id == college.id,
+        Activity.is_active == True
+    )
+
+    if activity_type:
+        query = query.filter(Activity.activity_type == activity_type)
+
+    items = query.order_by(
+        (Activity.start_date == None).asc(),
+        Activity.start_date.desc()
+    ).all()
+
+    return [
+        ActivityListItem(
+            id=a.id,
+            activity_type=a.activity_type.value,
+            title=a.title,
+            slug=a.slug,
+            short_description=a.short_description,
+            main_image=a.main_image,
+            start_date=a.start_date,
+            end_date=a.end_date,
+        )
+        for a in items
+    ]
+
+
+@router.get("/{college_slug}/activities/{activity_id}", response_model=ActivityDetail)
+async def get_activity_detail(
+    college_slug: str,
+    activity_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get activity detail by ID
+
+    Example: GET /api/ipsa/activities/1
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    a = db.query(Activity).filter(
+        Activity.id == activity_id,
+        Activity.college_id == college.id
+    ).first()
+    if not a or not a.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+
+    return ActivityDetail(
+        id=a.id,
+        activity_type=a.activity_type.value,
+        title=a.title,
+        slug=a.slug,
+        short_description=a.short_description,
+        content_html=a.content_html,
+        main_image=a.main_image,
+        gallery_images=a.gallery_images,
+        start_date=a.start_date,
+        end_date=a.end_date,
+        created_at=a.created_at,
+    )
+
+
+@router.get("/{college_slug}/activities/slug/{activity_slug}", response_model=ActivityDetail)
+async def get_activity_by_slug(
+    college_slug: str,
+    activity_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get activity detail by slug
+
+    Example: GET /api/ipsa/activities/slug/annual-cultural-fest
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    a = db.query(Activity).filter(
+        Activity.slug == activity_slug,
+        Activity.college_id == college.id
+    ).first()
+    if not a or not a.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+
+    return ActivityDetail(
+        id=a.id,
+        activity_type=a.activity_type.value,
+        title=a.title,
+        slug=a.slug,
+        short_description=a.short_description,
+        content_html=a.content_html,
+        main_image=a.main_image,
+        gallery_images=a.gallery_images,
+        start_date=a.start_date,
+        end_date=a.end_date,
+        created_at=a.created_at,
+    )

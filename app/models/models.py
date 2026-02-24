@@ -268,7 +268,6 @@ class Activity(Base):
     slug = Column(String(100), nullable=True, index=True)
     short_description = Column(Text, nullable=True)
     content_html = Column(Text, nullable=True)  # HTML-formatted rich content
-    thumbnail_image = Column(String(500), nullable=True)
     main_image = Column(String(500), nullable=True)
     gallery_images = Column(JSON, nullable=True)  # list of image URLs
     start_date = Column(DateTime(timezone=True), nullable=True)

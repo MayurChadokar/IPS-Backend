@@ -796,8 +796,10 @@ async def create_activity(
     college_id: int,
     activity_type: str = Form(...),
     title: str = Form(...),
+    slug: str = Form(""),
     short_description: str = Form(""),
     content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     start_date: str = Form(""),
@@ -811,8 +813,11 @@ async def create_activity(
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
 
-    main_image_url = None
-    gallery_urls = []
+    # Auto-generate slug from title if not provided
+    import re
+    activity_slug = slug.strip() if slug else None
+    if not activity_slug:
+        activity_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
 
     try:
         if main_image and main_image.filename:
@@ -850,6 +855,7 @@ async def create_activity(
         college_id=college_id,
         activity_type=ActivityType(activity_type),
         title=title,
+        slug=activity_slug,
         short_description=short_description if short_description else None,
         content_html=content_html if content_html else None,
         main_image=main_image_url,
@@ -893,8 +899,10 @@ async def update_activity(
     activity_id: int,
     activity_type: str = Form(...),
     title: str = Form(...),
+    slug: str = Form(""),
     short_description: str = Form(""),
     content_html: str = Form(""),
+    thumbnail_image: UploadFile = File(None),
     main_image: UploadFile = File(None),
     gallery_media_files: List[UploadFile] = File(None),
     retain_gallery: List[str] = Form(None),
@@ -911,8 +919,13 @@ async def update_activity(
         raise HTTPException(status_code=404, detail="Activity not found")
 
     try:
-        # Handle main image removal requested by the form
+        # Handle main image removal
         if remove_main_image:
+            if activity.main_image:
+                try:
+                    delete_image(get_public_id_from_url(activity.main_image))
+                except Exception:
+                    pass
             activity.main_image = None
 
         # Handle new main image upload
@@ -953,6 +966,13 @@ async def update_activity(
         activity.end_date = datetime.fromisoformat(end_date) if end_date else None
     except Exception:
         activity.end_date = None
+
+    # Update slug
+    import re
+    activity_slug = slug.strip() if slug else None
+    if not activity_slug:
+        activity_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+    activity.slug = activity_slug
 
     activity.activity_type = ActivityType(activity_type)
     activity.title = title
