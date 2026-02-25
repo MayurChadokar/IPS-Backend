@@ -11,6 +11,7 @@ from app.schemas.schemas import (
     EventDetail,
     ActivityListItem,
     ActivityDetail,
+    CollegePublicInfo,
 )
 from typing import List, Dict, Any, Optional
 
@@ -266,6 +267,49 @@ async def list_active_colleges(db: Session = Depends(get_db)):
         }
         for college in colleges
     ]
+
+
+@router.get("/{college_slug}/info", response_model=CollegePublicInfo)
+async def get_college_info(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get college information including its name, logo, and all active pages.
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+    
+    # Get all active pages
+    pages = db.query(Page).filter(
+        Page.college_id == college.id,
+        Page.is_active == True
+    ).all()
+    
+    pages_list = [
+        {
+            "slug": page.slug,
+            "title": page.title,
+            "meta_description": page.meta_description
+        }
+        for page in pages
+    ]
+    
+    return CollegePublicInfo(
+        name=college.name,
+        slug=college.slug,
+        logo=college.logo,
+        domain=college.domain,
+        pages=pages_list
+    )
 
 
 @router.get("/{college_slug}/faculties", response_model=List[Dict[str, Any]])

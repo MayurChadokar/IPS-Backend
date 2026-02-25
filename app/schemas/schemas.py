@@ -192,6 +192,19 @@ class PagePublicResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CollegePublicInfo(BaseModel):
+    """
+    Response for college information and its pages
+    """
+    name: str
+    slug: str
+    logo: Optional[str] = None
+    domain: Optional[str] = None
+    pages: List[Dict[str, Any]]
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============= News & Events Public Schemas =============
 class NewsListItem(BaseModel):
     id: int
