@@ -283,13 +283,15 @@
                     <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('scratch_image_file').click()"><i class="bi bi-image"></i> Image</button>
                     <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('left')"><i class="bi bi-layout-text-sidebar-reverse"></i> Image Left</button>
                     <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('right')"><i class="bi bi-layout-text-sidebar"></i> Image Right</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('scratch_pdf_file').click()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
                 </div>
 
                 <div id="scratch_editor" contenteditable="true" style="min-height:220px; border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff;">${html}</div>
 
                 <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*" style="display:none;" data-skip-preview="true" />
                 <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
-                <small class="d-block text-muted mt-2">Rich HTML editor — images uploaded immediately to Cloudinary and inserted inline.</small>
+                <input type="file" id="scratch_pdf_file" name="scratch_pdf_files" accept="application/pdf" style="display:none;" data-skip-preview="true" />
+                <small class="d-block text-muted mt-2">Rich HTML editor — images & PDFs uploaded immediately to Cloudinary and inserted inline.</small>
             </div>
             `;
         },
@@ -2021,6 +2023,36 @@
                 }
             });
         }
+
+        // Handle PDF file selection
+        const pdfInput = document.getElementById('scratch_pdf_file');
+        if (pdfInput) {
+            pdfInput.addEventListener('change', async function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                try {
+                    // Show uploading indicator
+                    const tmpId = 'tmp-pdf-' + Date.now();
+                    const tmpHtml = `<div id="${tmpId}" style="display:inline-flex; align-items:center; gap:8px; padding:10px 16px; background:#fff3cd; border:1px dashed #ffc107; border-radius:8px; margin:8px 0; font-size:14px;"><span class="spinner-border spinner-border-sm"></span> Uploading PDF: ${file.name}...</div>`;
+                    execCmd('insertHTML', tmpHtml);
+
+                    const url = await uploadPdfToCloudinary(file);
+
+                    // Remove temporary indicator
+                    const tmpEl = document.getElementById(tmpId);
+                    if (tmpEl) tmpEl.remove();
+
+                    // Insert a styled PDF preview card
+                    insertPdfAtCursor(url, file.name);
+                } catch (err) {
+                    alert('PDF upload failed: ' + err.message);
+                    // Remove any temporary indicator
+                    document.querySelectorAll('#scratch_editor [id^="tmp-pdf-"]').forEach(el => el.remove());
+                } finally {
+                    pdfInput.value = '';
+                }
+            });
+        }
     }
 
     // Insert an image+text block with image on left or right
@@ -2086,6 +2118,54 @@
         }
 
         execCmd('insertHTML', blockHtml);
+    }
+
+    // Upload a PDF file to Cloudinary via the raw upload endpoint
+    async function uploadPdfToCloudinary(file) {
+        const fd = new FormData();
+        fd.append('file', file, file.name);
+        const sectionKeyEl = document.getElementById('section_key');
+        const folderName = sectionKeyEl && sectionKeyEl.value ? `sections/${sectionKeyEl.value}` : 'sections/scratch';
+        fd.append('folder', folderName);
+
+        const resp = await fetch('/admin/uploads/pdf', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+        });
+
+        const text = await resp.text();
+        let data;
+        try { data = JSON.parse(text); } catch (e) { data = text; }
+
+        if (!resp.ok) {
+            const msg = (data && typeof data === 'object' && (data.error || data.detail)) ? (data.error || data.detail) : (typeof data === 'string' ? data : JSON.stringify(data));
+            throw new Error(`Upload failed (${resp.status}): ${msg}`);
+        }
+
+        const url = (data && typeof data === 'object') ? (data.location || data.src || data.url || data[Object.keys(data)[0]]) : null;
+        if (!url) throw new Error('No URL returned from upload: ' + (typeof data === 'string' ? data : JSON.stringify(data)));
+        return url;
+    }
+
+    // Insert a styled PDF card/link at the current cursor in contenteditable
+    function insertPdfAtCursor(url, filename) {
+        const displayName = filename || url.split('/').pop();
+        const pdfHtml = `
+        <div class="pdf-embed-card" style="display:flex; align-items:center; gap:12px; padding:14px 18px; margin:12px 0; background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border:1px solid #dee2e6; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:500px;" contenteditable="false">
+            <div style="flex-shrink:0; width:48px; height:48px; background:#dc3545; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                <i class="bi bi-file-earmark-pdf-fill" style="font-size:24px; color:#fff;"></i>
+            </div>
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:600; font-size:14px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+                <div style="font-size:12px; color:#6c757d; margin-top:2px;">PDF Document</div>
+            </div>
+            <a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; padding:6px 14px; background:#0d6efd; color:#fff; border-radius:6px; text-decoration:none; font-size:13px; font-weight:500; white-space:nowrap;">
+                <i class="bi bi-download"></i> View PDF
+            </a>
+        </div><br/>
+        `;
+        execCmd('insertHTML', pdfHtml);
     }
 
 </script>

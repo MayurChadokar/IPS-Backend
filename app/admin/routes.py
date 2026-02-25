@@ -645,6 +645,43 @@ async def upload_editor_image(
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+# Upload endpoint for rich editor PDFs (saved locally, served via /uploads static mount)
+@router.post("/uploads/pdf")
+async def upload_editor_pdf(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin)
+):
+    """Upload a PDF file – saves to local uploads/pdfs/ directory and returns a public URL."""
+    import uuid, shutil
+
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        return JSONResponse({"error": "Only PDF files are allowed"}, status_code=400)
+
+    try:
+        # Create pdfs sub-directory inside uploads/
+        pdf_dir = UPLOAD_DIR / "pdfs"
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+
+        # Use UUID prefix to avoid collisions
+        safe_name = f"{uuid.uuid4().hex}_{file.filename}"
+        dest = pdf_dir / safe_name
+
+        with dest.open("wb") as out_file:
+            shutil.copyfileobj(file.file, out_file)
+
+        # Build the public URL using the request base URL
+        base_url = str(request.base_url).rstrip("/")
+        url = f"{base_url}/uploads/pdfs/{safe_name}"
+
+        print(f"PDF saved locally: {dest} → {url}")
+        return JSONResponse({"location": url, "src": url, "url": url})
+
+    except Exception as e:
+        print(f"PDF upload error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @router.post("/colleges/{college_id}/events/new")
 async def create_event(
     request: Request,
