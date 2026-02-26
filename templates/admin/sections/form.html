@@ -263,35 +263,102 @@
             const html = existingContent.html || '';
             return `
             <div class="form-group">
-                <label class="form-label">Scratch (HTML editor)</label>
-                <div style="margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('bold')"><i class="bi bi-type-bold"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('italic')"><i class="bi bi-type-italic"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('formatBlock','H1')">H1</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('formatBlock','H2')">H2</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('insertUnorderedList')"><i class="bi bi-list-ul"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="execCmd('insertOrderedList')"><i class="bi bi-list-ol"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertLineBreak()">BR</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('left')"><i class="bi bi-text-left"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('center')"><i class="bi bi-text-center"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('right')"><i class="bi bi-text-right"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="setTextAlign('justify')"><i class="bi bi-justify"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertLink()"><i class="bi bi-link-45deg"></i></button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertTablePrompt()"><i class="bi bi-grid-3x3-gap"></i> Table</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertCard()"><i class="bi bi-card-text"></i> Card</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertFeatureBlock()"><i class="bi bi-list-check"></i> Features</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('scratch_image_file').click()"><i class="bi bi-image"></i> Image</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('left')"><i class="bi bi-layout-text-sidebar-reverse"></i> Image Left</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="insertImageTextBlock('right')"><i class="bi bi-layout-text-sidebar"></i> Image Right</button>
-                    <button type="button" class="btn btn-sm btn-light" onclick="document.getElementById('scratch_pdf_file').click()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+                <label class="form-label fw-semibold">Scratch (Rich HTML Editor)</label>
+
+                <!-- Toolbar -->
+                <div class="scratch-toolbar" style="margin-bottom:6px; display:flex; gap:4px; flex-wrap:wrap; background:#f8f9fa; border:1px solid #dee2e6; border-bottom:none; padding:6px 8px; border-radius:6px 6px 0 0; align-items:center;">
+                    <!-- Undo/Redo -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Undo" onclick="execCmd('undo')"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Redo" onclick="execCmd('redo')"><i class="bi bi-arrow-clockwise"></i></button>
+                    <span class="scratch-sep"></span>
+                    <!-- Headings -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 1" onclick="execCmd('formatBlock','H1')"><strong>H1</strong></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 2" onclick="execCmd('formatBlock','H2')"><strong>H2</strong></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 3" onclick="execCmd('formatBlock','H3')"><strong>H3</strong></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Paragraph" onclick="execCmd('formatBlock','P')">¶&nbsp;P</button>
+                    <span class="scratch-sep"></span>
+                    <!-- Text formatting -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Bold" onclick="execCmd('bold')"><i class="bi bi-type-bold"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Italic" onclick="execCmd('italic')"><i class="bi bi-type-italic"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Underline" onclick="execCmd('underline')"><i class="bi bi-type-underline"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Strikethrough" onclick="execCmd('strikeThrough')"><i class="bi bi-type-strikethrough"></i></button>
+                    <span class="scratch-sep"></span>
+                    <!-- Font size -->
+                    <select class="form-select form-select-sm scratch-tb-btn" title="Font Size" style="width:80px;" onchange="execCmd('fontSize', this.value); this.value='';">
+                        <option value="">Size</option>
+                        <option value="1">XS</option>
+                        <option value="2">S</option>
+                        <option value="3">M</option>
+                        <option value="4">L</option>
+                        <option value="5">XL</option>
+                        <option value="6">2XL</option>
+                        <option value="7">3XL</option>
+                    </select>
+                    <!-- Font color -->
+                    <label title="Text Color" style="display:flex;align-items:center;gap:3px;cursor:pointer;margin:0;" class="btn btn-sm btn-outline-secondary scratch-tb-btn">
+                        <i class="bi bi-palette"></i>
+                        <input type="color" style="width:0;height:0;opacity:0;position:absolute;" onchange="execCmd('foreColor', this.value)">
+                    </label>
+                    <!-- Highlight -->
+                    <label title="Highlight Color" style="display:flex;align-items:center;gap:3px;cursor:pointer;margin:0;" class="btn btn-sm btn-outline-secondary scratch-tb-btn">
+                        <i class="bi bi-highlighter"></i>
+                        <input type="color" value="#ffff00" style="width:0;height:0;opacity:0;position:absolute;" onchange="execCmd('backColor', this.value)">
+                    </label>
+                    <span class="scratch-sep"></span>
+                    <!-- Lists -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Bullet List" onclick="execCmd('insertUnorderedList')"><i class="bi bi-list-ul"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Numbered List" onclick="execCmd('insertOrderedList')"><i class="bi bi-list-ol"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Indent" onclick="execCmd('indent')"><i class="bi bi-text-indent-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Outdent" onclick="execCmd('outdent')"><i class="bi bi-text-indent-right"></i></button>
+                    <span class="scratch-sep"></span>
+                    <!-- Alignment -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Align Left" onclick="setTextAlign('left')"><i class="bi bi-text-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Align Center" onclick="setTextAlign('center')"><i class="bi bi-text-center"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Align Right" onclick="setTextAlign('right')"><i class="bi bi-text-right"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Justify" onclick="setTextAlign('justify')"><i class="bi bi-justify"></i></button>
+                    <span class="scratch-sep"></span>
+                    <!-- Link / Line break -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Link" onclick="insertLink()"><i class="bi bi-link-45deg"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Remove Link" onclick="execCmd('unlink')"><i class="bi bi-link"></i><s style="font-size:8px;">x</s></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Line Break" onclick="insertLineBreak()">BR</button>
+                    <span class="scratch-sep"></span>
+                    <!-- Blocks -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Table" onclick="insertTablePrompt()"><i class="bi bi-grid-3x3-gap"></i> Table</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Card" onclick="insertCard()"><i class="bi bi-card-text"></i> Card</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Feature List" onclick="insertFeatureBlock()"><i class="bi bi-list-check"></i> Features</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Raw HTML" onclick="openHtmlEmbedModal()"><i class="bi bi-code-slash"></i> HTML</button>
+                    <span class="scratch-sep"></span>
+                    <!-- Media -->
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Upload Image" onclick="document.getElementById('scratch_image_file').click()"><i class="bi bi-image"></i> Image</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Image + Text (Left)" onclick="insertImageTextBlock('left')"><i class="bi bi-layout-text-sidebar-reverse"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Image + Text (Right)" onclick="insertImageTextBlock('right')"><i class="bi bi-layout-text-sidebar"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Upload PDF" onclick="document.getElementById('scratch_pdf_file').click()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+                    <span class="scratch-sep"></span>
+                    <!-- Clear / Preview -->
+                    <button type="button" class="btn btn-sm btn-outline-danger scratch-tb-btn" title="Clear All" onclick="if(confirm('Clear all content?')) document.getElementById('scratch_editor').innerHTML=''"><i class="bi bi-trash"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-primary scratch-tb-btn" title="Toggle Preview" onclick="toggleScratchPreview()"><i class="bi bi-eye"></i> Preview</button>
                 </div>
 
-                <div id="scratch_editor" contenteditable="true" style="min-height:220px; border:1px solid #ddd; padding:12px; border-radius:6px; background:#fff;">${html}</div>
+                <!-- Editor -->
+                <div id="scratch_editor" contenteditable="true"
+                    style="min-height:280px; border:1px solid #dee2e6; border-radius:0 0 6px 6px; padding:16px; background:#fff; font-size:15px; line-height:1.7; outline:none;"
+                    oninput="syncScratchPreview()"
+                    onfocus="this.style.borderColor='#86b7fe'; this.style.boxShadow='0 0 0 0.25rem rgba(13,110,253,.25)';"
+                    onblur="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">${html}</div>
+
+                <!-- Live Preview Panel -->
+                <div id="scratch_preview_panel" style="display:none; margin-top:12px; border:1px solid #dee2e6; border-radius:6px; overflow:hidden;">
+                    <div style="background:#f8f9fa; border-bottom:1px solid #dee2e6; padding:8px 14px; font-size:13px; font-weight:600; color:#555;">
+                        <i class="bi bi-eye"></i> Live Preview
+                        <button type="button" class="btn-close btn-sm float-end" onclick="toggleScratchPreview()" style="font-size:11px;"></button>
+                    </div>
+                    <div id="scratch_preview_content" style="padding:20px; background:#fff; min-height:120px;"></div>
+                </div>
 
                 <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*" style="display:none;" data-skip-preview="true" />
                 <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
                 <input type="file" id="scratch_pdf_file" name="scratch_pdf_files" accept="application/pdf" style="display:none;" data-skip-preview="true" />
-                <small class="d-block text-muted mt-2">Rich HTML editor — images & PDFs uploaded immediately to Cloudinary and inserted inline.</small>
+                <small class="d-block text-muted mt-2"><i class="bi bi-info-circle"></i> Rich HTML editor — images &amp; PDFs uploaded immediately to Cloudinary and inserted inline.</small>
             </div>
             `;
         },
@@ -1780,12 +1847,207 @@
         }, 300);
     });
 
-    // Execute simple rich-text commands
+    // Execute simple rich-text commands with better insertHTML support
     function execCmd(command, value = null) {
-        document.execCommand(command, false, value);
+        try {
+            // Normalize formatBlock values (some browsers expect tags)
+            if (command === 'formatBlock' && value && !/^<.*>$/.test(value)) {
+                value = `<${value}>`;
+            }
+
+            if (command === 'insertHTML') {
+                insertHtmlAtCursor(value);
+            } else {
+                // Fallback to execCommand for formatting commands
+                document.execCommand(command, false, value);
+            }
+        } catch (err) {
+            console.warn('execCmd fallback', err);
+            try { document.execCommand(command, false, value); } catch (e) { /* ignore */ }
+        }
+
         // focus editor after command
         const ed = document.getElementById('scratch_editor');
         if (ed) ed.focus();
+    }
+
+    // Insert HTML at current selection using Range API (safer than execCommand insertHTML)
+    function insertHtmlAtCursor(html) {
+        const editor = document.getElementById('scratch_editor');
+        if (!editor) return;
+
+        let sel = window.getSelection();
+        let range;
+        if (!sel || sel.rangeCount === 0) {
+            range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+        } else {
+            range = sel.getRangeAt(0).cloneRange();
+            // If selection is outside editor, place at end
+            if (!editor.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+            }
+        }
+
+        // Build nodes from HTML string
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const nodes = Array.from(tmp.childNodes);
+        const frag = document.createDocumentFragment();
+        nodes.forEach(n => frag.appendChild(n));
+
+        // Insert fragment at range
+        range.deleteContents();
+        range.insertNode(frag);
+
+        // Place caret after last inserted node
+        const newSel = window.getSelection();
+        newSel.removeAllRanges();
+        const newRange = document.createRange();
+        const lastInserted = nodes.length ? nodes[nodes.length - 1] : null;
+        if (lastInserted && editor.contains(lastInserted)) {
+            try {
+                newRange.setStartAfter(lastInserted);
+            } catch (e) {
+                newRange.selectNodeContents(editor);
+                newRange.collapse(false);
+            }
+        } else {
+            newRange.selectNodeContents(editor);
+            newRange.collapse(false);
+        }
+        newSel.addRange(newRange);
+        editor.focus();
+    }
+
+    // Open a simple floating HTML embed editor (allows multi-line HTML)
+    function openHtmlEmbedModal(initialHtml = '') {
+        // prevent multiple modals
+        if (document.getElementById('scratch_html_modal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'scratch_html_modal';
+        modal.style.position = 'fixed';
+        modal.style.left = '0';
+        modal.style.top = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '9999';
+
+        modal.innerHTML = `
+            <div style="width:90%; max-width:900px; background:#fff; border-radius:8px; padding:16px; box-shadow:0 6px 30px rgba(0,0,0,0.2);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <strong>Insert / Edit HTML</strong>
+                    <button type="button" class="btn-close" aria-label="Close" id="scratch_html_modal_close"></button>
+                </div>
+                <textarea id="scratch_html_modal_text" style="width:100%; height:320px; font-family:monospace; font-size:13px; padding:8px; border:1px solid #ddd; border-radius:6px;">${initialHtml}</textarea>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+                    <button type="button" class="btn btn-secondary" id="scratch_html_modal_cancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="scratch_html_modal_insert">Insert HTML</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('scratch_html_modal_close').addEventListener('click', () => modal.remove());
+        document.getElementById('scratch_html_modal_cancel').addEventListener('click', () => modal.remove());
+        document.getElementById('scratch_html_modal_insert').addEventListener('click', () => {
+            const val = document.getElementById('scratch_html_modal_text').value || '';
+            // If an override callback is set (edit mode), call it and clear
+            if (window._scratch_html_insert_override && typeof window._scratch_html_insert_override === 'function') {
+                try { window._scratch_html_insert_override(val); } catch (e) { console.error(e); }
+                window._scratch_html_insert_override = null;
+            } else {
+                // Insert wrapped raw block so it can be recognized and edited later
+                insertRawHtmlAtCursor(val);
+            }
+            modal.remove();
+        });
+    }
+
+    // Insert a recognizable raw HTML block that can be edited later
+    function insertRawHtmlAtCursor(html) {
+        // Build wrapper using DOM manipulation to avoid template-literal escaping issues
+        const wrapper = document.createElement('div');
+        wrapper.className = 'scratch-raw-html';
+        wrapper.contentEditable = 'false';
+        wrapper.dataset.raw = '1';
+        wrapper.style.cssText = 'position:relative; border:1px dashed #ced4da; padding:12px; border-radius:6px; margin:10px 0; background:#fbfbfb;';
+
+        const inner = document.createElement('div');
+        inner.className = 'raw-html-inner';
+        inner.innerHTML = html;
+        wrapper.appendChild(inner);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'margin-top:8px; text-align:right;';
+        actions.innerHTML = '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="editRawHtmlBlock(this)">Edit HTML</button>';
+        wrapper.appendChild(actions);
+
+        const p = document.createElement('p');
+
+        const frag = document.createDocumentFragment();
+        frag.appendChild(wrapper);
+        frag.appendChild(p);
+
+        insertFragmentAtCursor(frag);
+    }
+
+    // Insert a DocumentFragment at the current cursor position
+    function insertFragmentAtCursor(frag) {
+        const editor = document.getElementById('scratch_editor');
+        if (!editor) return;
+
+        let sel = window.getSelection();
+        let range;
+        if (!sel || sel.rangeCount === 0) {
+            range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+        } else {
+            range = sel.getRangeAt(0).cloneRange();
+            if (!editor.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+            }
+        }
+        range.deleteContents();
+        const lastChild = frag.lastChild;
+        range.insertNode(frag);
+
+        // Move cursor after the inserted content
+        const newRange = document.createRange();
+        if (lastChild && editor.contains(lastChild)) {
+            try { newRange.setStartAfter(lastChild); } catch (e) { newRange.selectNodeContents(editor); newRange.collapse(false); }
+        } else {
+            newRange.selectNodeContents(editor);
+            newRange.collapse(false);
+        }
+        const newSel = window.getSelection();
+        newSel.removeAllRanges();
+        newSel.addRange(newRange);
+        editor.focus();
+    }
+
+    // Edit an existing raw HTML block (button inside block passes itself)
+    function editRawHtmlBlock(btn) {
+        const block = btn.closest('.scratch-raw-html');
+        if (!block) return;
+        const inner = block.querySelector('.raw-html-inner');
+        const current = inner ? inner.innerHTML : '';
+        // Provide override so modal insertion replaces this block's content
+        window._scratch_html_insert_override = function (val) {
+            if (inner) inner.innerHTML = val;
+        };
+        // open modal with existing html
+        openHtmlEmbedModal(current);
     }
 
     function insertLink() {
@@ -2167,6 +2429,23 @@
         `;
         execCmd('insertHTML', pdfHtml);
     }
+    // Toggle live preview panel
+    function toggleScratchPreview() {
+        const panel = document.getElementById('scratch_preview_panel');
+        if (!panel) return;
+        const isHidden = panel.style.display === 'none';
+        panel.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) syncScratchPreview();
+    }
+
+    // Sync editor content into the preview panel
+    function syncScratchPreview() {
+        const editor = document.getElementById('scratch_editor');
+        const preview = document.getElementById('scratch_preview_content');
+        if (editor && preview) {
+            preview.innerHTML = editor.innerHTML;
+        }
+    }
 
 </script>
 
@@ -2212,6 +2491,44 @@
     .scratch-section .text-col {
         padding-left: 12px;
         padding-right: 12px;
+    }
+
+    /* Raw HTML blocks inserted via the HTML embedder */
+    .scratch-raw-html {
+        box-sizing: border-box;
+    }
+
+    /* Do NOT use pre-wrap — the inner HTML should render as normal HTML */
+    .scratch-raw-html .raw-html-inner {
+        word-break: break-word;
+    }
+
+    /* Toolbar separator */
+    .scratch-sep {
+        display: inline-block;
+        width: 1px;
+        height: 24px;
+        background: #dee2e6;
+        margin: 0 2px;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+
+    /* Toolbar buttons */
+    .scratch-tb-btn {
+        padding: 3px 7px !important;
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+    }
+
+    /* Smooth editor transitions */
+    #scratch_editor {
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    /* Toolbar sticks to the editor visually */
+    .scratch-toolbar {
+        user-select: none;
     }
 </style>
 {% endblock %}
