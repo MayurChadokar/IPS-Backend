@@ -2075,26 +2075,116 @@
         execCmd('insertHTML', table);
     }
 
-    // Insert a Bootstrap-style card block
+    // Insert a Bootstrap-style card block via DOM (avoids execCommand HTML mangling)
     function insertCard() {
-        const html = `
-        <div class="card my-3" style="max-width:720px;">
-            <div class="row g-0 align-items-center">
-                <div class="col-4">
-                    <img src="https://via.placeholder.com/300x200?text=Image" alt="Card" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div class="col-8">
-                    <div class="card-body">
-                        <h5 class="card-title">Card Title</h5>
-                        <p class="card-text">Short description or caption goes here.</p>
-                        <a href="#" class="btn btn-primary btn-sm">Learn more</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `;
-        execCmd('insertHTML', html);
+        const cardWrap = document.createElement('div');
+        cardWrap.className = 'scratch-card-block';
+        cardWrap.contentEditable = 'false';
+        cardWrap.style.cssText = 'display:flex; gap:0; border:1px solid #dee2e6; border-radius:8px; overflow:hidden; max-width:720px; margin:14px 0; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.07);';
+
+        // Image column
+        const imgCol = document.createElement('div');
+        imgCol.style.cssText = 'flex:0 0 220px; min-height:160px; background:#e9ecef; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; overflow:hidden;';
+        imgCol.title = 'Click to upload image';
+
+        const imgPlaceholder = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="#adb5bd" viewBox="0 0 16 16"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg>`;
+        imgCol.innerHTML = `<div style="text-align:center; color:#adb5bd;"><div style="margin-bottom:8px;">${imgPlaceholder}</div><small style="font-size:12px;">Click to add image</small></div>`;
+
+        // Hidden file input for this card
+        const cardFileInput = document.createElement('input');
+        cardFileInput.type = 'file';
+        cardFileInput.accept = 'image/*';
+        cardFileInput.name = 'scratch_media_files';
+        cardFileInput.style.display = 'none';
+        cardFileInput.dataset.skipPreview = 'true';
+
+        imgCol.addEventListener('click', () => cardFileInput.click());
+        cardFileInput.addEventListener('change', async function () {
+            const file = this.files[0];
+            if (!file) return;
+            // Show preview immediately
+            const reader = new FileReader();
+            reader.onload = ev => {
+                imgCol.innerHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover; display:block; opacity:0.7;">`;
+            };
+            reader.readAsDataURL(file);
+            try {
+                const url = await uploadFileToCloudinary(file);
+                imgCol.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; display:block;">`;
+            } catch (err) {
+                alert('Card image upload failed: ' + err.message);
+                imgCol.innerHTML = `<div style="text-align:center; color:#adb5bd;">${imgPlaceholder}<br><small>Click to add image</small></div>`;
+            } finally {
+                cardFileInput.value = '';
+            }
+        });
+
+        // Text column
+        const textCol = document.createElement('div');
+        textCol.style.cssText = 'flex:1; padding:20px; display:flex; flex-direction:column; gap:8px;';
+
+        const title = document.createElement('h5');
+        title.contentEditable = 'true';
+        title.style.cssText = 'margin:0; font-weight:700; outline:none; border-bottom:1px dashed transparent;';
+        title.textContent = 'Card Title';
+        title.addEventListener('focus', () => title.style.borderBottomColor = '#86b7fe');
+        title.addEventListener('blur', () => title.style.borderBottomColor = 'transparent');
+
+        const body = document.createElement('p');
+        body.contentEditable = 'true';
+        body.style.cssText = 'margin:0; color:#6c757d; outline:none; border-bottom:1px dashed transparent; flex:1;';
+        body.textContent = 'Short description or caption goes here.';
+        body.addEventListener('focus', () => body.style.borderBottomColor = '#86b7fe');
+        body.addEventListener('blur', () => body.style.borderBottomColor = 'transparent');
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
+
+        const btn = document.createElement('a');
+        btn.href = '#';
+        btn.className = 'btn btn-primary btn-sm';
+        btn.contentEditable = 'true';
+        btn.style.cssText = 'display:inline-block; outline:none;';
+        btn.textContent = 'Learn more';
+        btn.addEventListener('click', e => e.preventDefault());
+
+        const linkInput = document.createElement('input');
+        linkInput.type = 'text';
+        linkInput.placeholder = 'Button URL';
+        linkInput.style.cssText = 'flex:1; min-width:120px; font-size:12px; padding:4px 8px; border:1px solid #dee2e6; border-radius:4px;';
+        linkInput.addEventListener('input', () => btn.href = linkInput.value || '#');
+
+        btnRow.appendChild(btn);
+        btnRow.appendChild(linkInput);
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-sm btn-outline-danger';
+        removeBtn.style.cssText = 'position:absolute; top:6px; right:6px; padding:2px 8px; font-size:11px;';
+        removeBtn.textContent = '✕ Remove';
+        removeBtn.addEventListener('click', () => {
+            cardWrap.remove();
+            cardFileInput.remove();
+        });
+
+        textCol.appendChild(title);
+        textCol.appendChild(body);
+        textCol.appendChild(btnRow);
+
+        cardWrap.style.position = 'relative';
+        cardWrap.appendChild(removeBtn);
+        cardWrap.appendChild(imgCol);
+        cardWrap.appendChild(textCol);
+        cardWrap.appendChild(cardFileInput);
+
+        const p = document.createElement('p');
+        const frag = document.createDocumentFragment();
+        frag.appendChild(cardWrap);
+        frag.appendChild(p);
+        insertFragmentAtCursor(frag);
     }
+
 
     // Insert a features/checklist block
     function insertFeatureBlock() {
@@ -2147,8 +2237,16 @@
 
     // Insert image HTML at current cursor in contenteditable
     function insertImageAtCursor(url) {
-        const imgHtml = `<img src="${url}" style="max-width:100%; height:auto; display:block; margin:8px 0;" />`;
-        execCmd('insertHTML', imgHtml);
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'max-width:100%; height:auto; display:block; margin:8px 0; cursor:pointer;';
+        img.dataset.scratchImg = '1';
+
+        const p = document.createElement('p');
+        const frag = document.createDocumentFragment();
+        frag.appendChild(img);
+        frag.appendChild(p);
+        insertFragmentAtCursor(frag);
     }
 
     // Initialize scratch editor behaviors
@@ -2205,16 +2303,149 @@
             }
         });
 
-        // Click handler for image placeholders inside blocks
+        // ── Image resize overlay ─────────────────────────────────────────────
+        let _activeResizeImg = null;
+        let _activeOverlay = null;
+
+        function attachResizeOverlay(img) {
+            removeResizeOverlay();
+            _activeResizeImg = img;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'scratch-img-overlay';
+            overlay.style.cssText = 'position:absolute; border:2px solid #0d6efd; pointer-events:none; z-index:10; box-sizing:border-box;';
+
+            // SE drag handle
+            const handle = document.createElement('div');
+            handle.style.cssText = 'position:absolute; right:-6px; bottom:-6px; width:14px; height:14px; background:#0d6efd; border-radius:3px; cursor:se-resize; pointer-events:all; z-index:11;';
+
+            // Top-bar controls
+            const bar = document.createElement('div');
+            bar.style.cssText = 'position:absolute; top:-34px; left:0; display:flex; gap:4px; align-items:center; pointer-events:all; z-index:12; background:rgba(255,255,255,0.95); padding:3px 6px; border:1px solid #0d6efd; border-radius:4px; white-space:nowrap;';
+
+            const widthInput = document.createElement('input');
+            widthInput.type = 'number';
+            widthInput.min = '20';
+            widthInput.max = '2000';
+            widthInput.value = Math.round(img.offsetWidth);
+            widthInput.style.cssText = 'width:65px; font-size:12px; padding:2px 4px; border:1px solid #0d6efd; border-radius:3px; color:#0d6efd;';
+            widthInput.title = 'Width (px)';
+
+            const px = document.createElement('span');
+            px.textContent = 'px';
+            px.style.cssText = 'font-size:11px; color:#0d6efd; font-weight:600;';
+
+            const resetBtn = document.createElement('button');
+            resetBtn.type = 'button';
+            resetBtn.textContent = '100%';
+            resetBtn.style.cssText = 'font-size:11px; padding:1px 5px; border:1px solid #0d6efd; border-radius:3px; background:#fff; color:#0d6efd; cursor:pointer;';
+            resetBtn.onclick = () => {
+                img.style.width = '100%';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                syncOverlay();
+                widthInput.value = Math.round(img.offsetWidth);
+            };
+
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.textContent = '🗑';
+            delBtn.title = 'Delete image';
+            delBtn.style.cssText = 'font-size:12px; padding:1px 5px; border:1px solid #dc3545; border-radius:3px; background:#fff; color:#dc3545; cursor:pointer;';
+            delBtn.onclick = () => { img.remove(); removeResizeOverlay(); };
+
+            bar.appendChild(widthInput);
+            bar.appendChild(px);
+            bar.appendChild(resetBtn);
+            bar.appendChild(delBtn);
+            overlay.appendChild(bar);
+            overlay.appendChild(handle);
+
+            // Apply width from input
+            widthInput.addEventListener('change', () => {
+                const w = parseInt(widthInput.value, 10);
+                if (w > 0) {
+                    img.style.width = w + 'px';
+                    img.style.maxWidth = 'none';
+                    img.style.height = 'auto';
+                    syncOverlay();
+                }
+            });
+            widthInput.addEventListener('keydown', e => { if (e.key === 'Enter') widthInput.blur(); });
+
+            // Drag-to-resize from SE handle
+            let startX, startW;
+            handle.addEventListener('mousedown', e => {
+                e.preventDefault();
+                startX = e.clientX;
+                startW = img.offsetWidth;
+                const onMove = mv => {
+                    const w = Math.max(30, startW + mv.clientX - startX);
+                    img.style.width = w + 'px';
+                    img.style.maxWidth = 'none';
+                    img.style.height = 'auto';
+                    syncOverlay();
+                    widthInput.value = Math.round(w);
+                };
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+
+            function syncOverlay() {
+                const r = img.getBoundingClientRect();
+                const er = editor.getBoundingClientRect();
+                overlay.style.left = (r.left - er.left + editor.scrollLeft - 2) + 'px';
+                overlay.style.top = (r.top - er.top + editor.scrollTop - 2) + 'px';
+                overlay.style.width = (r.width + 4) + 'px';
+                overlay.style.height = (r.height + 4) + 'px';
+            }
+
+            if (getComputedStyle(editor).position === 'static') editor.style.position = 'relative';
+            editor.appendChild(overlay);
+            _activeOverlay = overlay;
+
+            if (img.complete) syncOverlay();
+            else img.addEventListener('load', syncOverlay, { once: true });
+
+            const ro = new ResizeObserver(syncOverlay);
+            ro.observe(img);
+            overlay._ro = ro;
+        }
+
+        function removeResizeOverlay() {
+            if (_activeOverlay) {
+                if (_activeOverlay._ro) _activeOverlay._ro.disconnect();
+                _activeOverlay.remove();
+                _activeOverlay = null;
+            }
+            _activeResizeImg = null;
+        }
+
+        // Click dispatcher — resize for images, placeholder for image blocks, dismiss otherwise
         const blockFileInput = document.getElementById('scratch_block_image_file');
         editor.addEventListener('click', function (e) {
-            const target = e.target;
-            if (target && target.classList && target.classList.contains('scratch-image-placeholder')) {
-                // mark which placeholder to fill
-                blockFileInput.dataset.targetId = target.id;
-                blockFileInput.click();
+            const t = e.target;
+            if (_activeOverlay && _activeOverlay.contains(t)) return; // inside overlay controls
+
+            if (t && t.tagName === 'IMG' && editor.contains(t) && !t.closest('.scratch-card-block')) {
+                e.preventDefault();
+                attachResizeOverlay(t);
+            } else if (t && t.classList && t.classList.contains('scratch-image-placeholder')) {
+                removeResizeOverlay();
+                if (blockFileInput) {
+                    blockFileInput.dataset.targetId = t.id;
+                    blockFileInput.click();
+                }
+            } else if (t !== _activeResizeImg) {
+                removeResizeOverlay();
             }
         });
+
+        editor.addEventListener('keydown', e => { if (e.key === 'Escape') removeResizeOverlay(); });
 
         // Helper: read file as data URL
         async function readFileAsDataURL(file) {
