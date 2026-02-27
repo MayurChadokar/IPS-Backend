@@ -1317,6 +1317,16 @@
                     // 5. Remove the image drag-resize overlay if somehow serialised
                     clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
 
+                    // 6. Remove PDF admin controls (preview, download, remove buttons)
+                    clone.querySelectorAll('.scratch-admin-controls').forEach(el => el.remove());
+
+                    // Simplify PDF card styling for frontend
+                    clone.querySelectorAll('.pdf-embed-card').forEach(el => {
+                        el.style.background = '#f8f9fa';
+                        el.style.border = '1px solid #dee2e6';
+                        el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    });
+
                     // Strip contenteditable attributes so rendered HTML is clean
                     clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
 
@@ -2777,24 +2787,26 @@
         const cardId = 'pdf-card-' + Date.now();
         const previewId = 'pdf-preview-' + Date.now();
         const pdfHtml = `
-        <div id="${cardId}" class="pdf-embed-card" style="display:flex; align-items:stretch; gap:12px; padding:14px 18px; margin:12px 0; background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border:1px solid #dee2e6; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:100%; overflow:hidden; position:relative;" contenteditable="false">
+        <div id="${cardId}" class="pdf-embed-card scratch-admin-only" style="display:flex; align-items:stretch; gap:12px; padding:14px 18px; margin:12px 0; background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border:1px solid #dee2e6; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:100%; overflow:hidden; position:relative;" contenteditable="false">
             <div id="${previewId}" style="flex-shrink:0; width:80px; height:80px; background:#fff; border:1px solid #dee2e6; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
                 <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f3f4f6;">
                     <span style="font-size:28px; color:#6c757d;">📄</span>
                 </div>
             </div>
             <div style="flex:1; display:flex; flex-direction:column; justify-content:center; min-width:0;">
-                <div style="font-weight:600; font-size:14px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
+                <div style="font-weight:600; font-size:14px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit; font-weight:600;">${displayName}</a>
+                </div>
                 <div style="font-size:12px; color:#6c757d; margin-top:2px;">PDF Document</div>
             </div>
-            <div style="flex-shrink:0; display:flex; gap:6px; align-items:center;">
-                <button type="button" class="pdf-preview-btn" data-url="${url}" data-name="${displayName}" style="display:inline-flex; align-items:center; gap:4px; padding:6px 12px; background:#0d6efd; color:#fff; border:none; border-radius:6px; text-decoration:none; font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer;">
+            <div style="flex-shrink:0; display:flex; gap:6px; align-items:center;" class="scratch-admin-controls">
+                <button type="button" class="pdf-preview-btn" data-url="${url}" data-name="${displayName}" style="display:inline-flex; align-items:center; gap:4px; padding:6px 12px; background:#0d6efd; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer;">
                     <i class="bi bi-eye"></i> Preview
                 </button>
                 <a href="${url}" target="_blank" rel="noopener noreferrer" title="Download PDF" style="display:inline-flex; align-items:center; padding:6px 8px; background:#6c757d; color:#fff; border-radius:6px; text-decoration:none; font-size:13px; cursor:pointer;">
                     <i class="bi bi-download"></i>
                 </a>
-                <button type="button" class="pdf-remove-btn" title="Remove PDF" style="display:inline-flex; align-items:center; padding:6px 8px; background:#dc3545; color:#fff; border:none; border-radius:6px; text-decoration:none; font-size:13px; cursor:pointer;">
+                <button type="button" class="pdf-remove-btn" data-card-id="${cardId}" title="Remove PDF" style="display:inline-flex; align-items:center; padding:6px 8px; background:#dc3545; color:#fff; border:none; border-radius:6px; font-size:13px; cursor:pointer;">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -2809,23 +2821,27 @@
                 const previewDiv = document.getElementById(previewId);
                 generatePdfThumbnail(url, previewDiv);
                 
-                // Attach preview event listeners
-                card.querySelectorAll('.pdf-preview-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                // Attach preview button click handler
+                const previewBtn = card.querySelector('.pdf-preview-btn');
+                if (previewBtn) {
+                    previewBtn.onclick = (e) => {
                         e.preventDefault();
-                        const pdfUrl = btn.dataset.url;
-                        const pdfName = btn.dataset.name;
+                        e.stopPropagation();
+                        const pdfUrl = previewBtn.dataset.url;
+                        const pdfName = previewBtn.dataset.name;
                         openPdfModal(pdfUrl, pdfName);
-                    });
-                });
+                    };
+                }
                 
-                // Attach remove event listener
-                card.querySelectorAll('.pdf-remove-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                // Attach remove button click handler
+                const removeBtn = card.querySelector('.pdf-remove-btn');
+                if (removeBtn) {
+                    removeBtn.onclick = (e) => {
                         e.preventDefault();
-                        card.remove();
-                    });
-                });
+                        e.stopPropagation();
+                        card.parentElement.removeChild(card);
+                    };
+                }
             }
         }, 100);
     }
@@ -2976,6 +2992,12 @@
         clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-admin-controls').forEach(el => el.remove());
+        clone.querySelectorAll('.pdf-embed-card').forEach(el => {
+            el.style.background = 'transparent';
+            el.style.border = 'none';
+            el.style.boxShadow = 'none';
+        });
         clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
 
         preview.innerHTML = clone.innerHTML;
@@ -3115,5 +3137,21 @@
         border-color: #0d6efd;
         box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15) !important;
     }
+
+    /* Admin editor: show controls and gradient background */
+    #scratch_editor .scratch-admin-controls {
+        display: flex !important;
+    }
+
+    #scratch_editor .pdf-embed-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    }
+
+    /* Frontend: hide controls and use simple styling */
+    #scratch_preview_content .scratch-admin-controls,
+    .content-section .scratch-admin-controls {
+        display: none !important;
+    }
+
 </style>
 {% endblock %}
