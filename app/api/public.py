@@ -518,7 +518,7 @@ async def get_activity_detail(
 
     Example: GET /api/ipsa/activities/1
     """
-    if activity_type == "event":
+    if activity_type == "events":
         activity_type = "event_celebration"
     college = db.query(College).filter(
         College.slug == college_slug,
