@@ -1281,7 +1281,32 @@
 
             case 'scratch':
                 const scratchEditor = document.getElementById('scratch_editor');
-                const scratchHtml = scratchEditor ? scratchEditor.innerHTML : '';
+                let scratchHtml = '';
+                if (scratchEditor) {
+                    // Clone the editor DOM so we can strip admin-only controls
+                    // without affecting the live editor.
+                    const clone = scratchEditor.cloneNode(true);
+
+                    // 1. Remove "Edit HTML" action bars inside .scratch-raw-html blocks
+                    clone.querySelectorAll('.scratch-raw-html [style*="text-align:right"]').forEach(el => el.remove());
+
+                    // 2. Remove "✕ Remove" buttons inside .scratch-card-block
+                    clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
+
+                    // 3. Remove "Button URL" text inputs inside card button rows
+                    clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
+
+                    // 4. Remove hidden file inputs that were added for card image uploads
+                    clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
+
+                    // 5. Remove the image drag-resize overlay if somehow serialised
+                    clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
+
+                    // Strip contenteditable attributes so rendered HTML is clean
+                    clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+
+                    scratchHtml = clone.innerHTML;
+                }
                 jsonData = {
                     html: scratchHtml
                 };
@@ -2669,13 +2694,23 @@
         if (isHidden) syncScratchPreview();
     }
 
-    // Sync editor content into the preview panel
+    // Sync editor content into the preview panel (strips admin-only controls)
     function syncScratchPreview() {
         const editor = document.getElementById('scratch_editor');
         const preview = document.getElementById('scratch_preview_content');
-        if (editor && preview) {
-            preview.innerHTML = editor.innerHTML;
-        }
+        if (!editor || !preview) return;
+
+        const clone = editor.cloneNode(true);
+
+        // Strip admin-only elements (same logic as buildJSON scratch case)
+        clone.querySelectorAll('.scratch-raw-html [style*="text-align:right"]').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
+        clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+
+        preview.innerHTML = clone.innerHTML;
     }
 
 </script>

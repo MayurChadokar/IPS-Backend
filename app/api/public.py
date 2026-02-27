@@ -469,6 +469,8 @@ async def list_activities_by_college(
     Example: GET /api/ipsa/activities
     Filter:  GET /api/ipsa/activities?activity_type=workshop
     """
+    if activity_type == "event":
+        activity_type = "event_celebration"
     college = db.query(College).filter(
         College.slug == college_slug,
         College.is_active == True
@@ -516,6 +518,8 @@ async def get_activity_detail(
 
     Example: GET /api/ipsa/activities/1
     """
+    if activity_type == "event":
+        activity_type = "event_celebration"
     college = db.query(College).filter(
         College.slug == college_slug,
         College.is_active == True
