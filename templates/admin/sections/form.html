@@ -4,6 +4,9 @@
 {% block page_title %}{{ action }} Section - {{ page.title }}{% endblock %}
 
 {% block content %}
+<!-- PDF.js Library for PDF preview -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
@@ -922,6 +925,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
     `;
         container.appendChild(newStat);
+        initDragAndDrop();
     }
 
     function addAccordionItem() {
@@ -935,6 +939,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addHeroMedia() {
@@ -956,6 +961,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
         container.appendChild(newMedia);
+        initDragAndDrop();
     }
 
     function addGalleryMedia() {
@@ -977,6 +983,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove</button>
     `;
         container.appendChild(newImage);
+        initDragAndDrop();
     }
 
     function addImagesLogoItem() {
@@ -1015,6 +1022,7 @@
         container.appendChild(newItem);
         const fileInput = newItem.querySelector('.image-logo-file');
         setupImagePreview(fileInput, `image_logo_preview_${index}`);
+        initDragAndDrop();
     }
 
     function addTeamMember() {
@@ -1056,6 +1064,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Member</button>
     `;
         container.appendChild(newMember);
+        initDragAndDrop();
     }
 
     function addFeatureItem() {
@@ -1068,6 +1077,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addCardItem() {
@@ -1102,6 +1112,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="margin-top: 10px;">Remove Card</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addProgramItem() {
@@ -1125,6 +1136,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Program</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addFacilityItem() {
@@ -1157,6 +1169,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Facility</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addSplitItem() {
@@ -1169,6 +1182,7 @@
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()" style="padding: 8px 15px;">×</button>
     `;
         container.appendChild(newItem);
+        initDragAndDrop();
     }
 
     function addTestimonialItem() {
@@ -1210,6 +1224,7 @@
         const fileInput = newItem.querySelector('.testimonial-media-file');
         const uniqueId = 'testimonial_preview_' + Date.now();
         setupImagePreview(fileInput, uniqueId);
+        initDragAndDrop();
     }
 
     function addContactEmail() {
@@ -1288,7 +1303,7 @@
                     const clone = scratchEditor.cloneNode(true);
 
                     // 1. Remove "Edit HTML" action bars inside .scratch-raw-html blocks
-                    clone.querySelectorAll('.scratch-raw-html [style*="text-align:right"]').forEach(el => el.remove());
+                    clone.querySelectorAll('.scratch-raw-html .scratch-actions').forEach(el => el.remove());
 
                     // 2. Remove "✕ Remove" buttons inside .scratch-card-block
                     clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
@@ -1849,6 +1864,8 @@
                 setupImagePreview(input, previewId);
                 input.dataset.previewSetup = 'true';
             });
+            // Initialize drag-and-drop
+            initDragAndDrop();
         }, 500);
     });
 
@@ -1869,8 +1886,95 @@
             if (document.getElementById('scratch_editor')) {
                 initScratchEditor();
             }
+            // Initialize drag-and-drop for items
+            initDragAndDrop();
         }, 300);
     });
+
+    // Initialize drag-and-drop for reordering items in containers
+    function initDragAndDrop() {
+        const containers = [
+            '#hero_media_container',
+            '#gallery_container',
+            '#stat_item',
+            '#accordion_container',
+            '#team_container',
+            '#facilities_container',
+            '#testimonials_container',
+            '#cards_container',
+            '#programs_container',
+            '#images_with_logo_container'
+        ];
+        
+        containers.forEach(selector => {
+            const container = document.querySelector(selector);
+            if (!container) return;
+            
+            // Get all draggable items
+            const items = container.querySelectorAll('.media-item, .gallery-item, .stat-item, .accordion-item, .team-item, .facility-item, .testimonial-item, .card-item, .program-item, .images-logo-item');
+            
+            items.forEach(item => {
+                if (item.dataset.dragEnabled) return;
+                
+                // Add drag handle
+                const handle = document.createElement('div');
+                handle.className = 'drag-handle';
+                handle.style.cssText = 'position:absolute; top:8px; right:8px; cursor:grab; padding:6px; background:#0d6efd; color:#fff; border-radius:4px; font-size:14px; z-index:10; opacity:0.8; transition:opacity 0.2s;';
+                handle.innerHTML = '⋮⋮';
+                handle.title = 'Drag to reorder';
+                
+                if (item.style.position !== 'relative' && item.style.position !== 'absolute') {
+                    item.style.position = 'relative';
+                }
+                item.appendChild(handle);
+                
+                handle.addEventListener('mouseenter', () => handle.style.opacity = '1');
+                handle.addEventListener('mouseleave', () => handle.style.opacity = '0.8');
+                
+                item.draggable = true;
+                item.dataset.dragEnabled = 'true';
+                
+                // Drag event handlers
+                item.addEventListener('dragstart', (e) => {
+                    item.style.opacity = '0.5';
+                    item.style.transform = 'scale(0.98)';
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', item.innerHTML);
+                });
+                
+                item.addEventListener('dragend', (e) => {
+                    item.style.opacity = '1';
+                    item.style.transform = 'scale(1)';
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (e.target !== item && item.contains(e.target)) return;
+                    item.classList.add('drag-over');
+                    item.style.borderTop = '3px solid #0d6efd';
+                });
+                
+                item.addEventListener('dragleave', (e) => {
+                    if (!item.contains(e.relatedTarget)) {
+                        item.classList.remove('drag-over');
+                        item.style.borderTop = 'none';
+                    }
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    item.classList.remove('drag-over');
+                    item.style.borderTop = 'none';
+                    const draggedItem = document.querySelector('[style*="opacity: 0.5"]');
+                    if (draggedItem && draggedItem !== item) {
+                        item.parentNode.insertBefore(draggedItem, item);
+                    }
+                });
+            });
+        });
+    }
 
     // Execute simple rich-text commands with better insertHTML support
     function execCmd(command, value = null) {
@@ -2011,6 +2115,7 @@
         wrapper.appendChild(inner);
 
         const actions = document.createElement('div');
+        actions.className = 'scratch-actions';
         actions.style.cssText = 'margin-top:8px; text-align:right;';
         actions.innerHTML = '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="editRawHtmlBlock(this)">Edit HTML</button>';
         wrapper.appendChild(actions);
@@ -2666,24 +2771,187 @@
         return url;
     }
 
-    // Insert a styled PDF card/link at the current cursor in contenteditable
+    // Insert a styled PDF card with preview thumbnail at the current cursor in contenteditable
     function insertPdfAtCursor(url, filename) {
         const displayName = filename || url.split('/').pop();
+        const cardId = 'pdf-card-' + Date.now();
+        const previewId = 'pdf-preview-' + Date.now();
         const pdfHtml = `
-        <div class="pdf-embed-card" style="display:flex; align-items:center; gap:12px; padding:14px 18px; margin:12px 0; background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border:1px solid #dee2e6; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:500px;" contenteditable="false">
-            <div style="flex-shrink:0; width:48px; height:48px; background:#dc3545; border-radius:8px; display:flex; align-items:center; justify-content:center;">
-                <i class="bi bi-file-earmark-pdf-fill" style="font-size:24px; color:#fff;"></i>
+        <div id="${cardId}" class="pdf-embed-card" style="display:flex; align-items:stretch; gap:12px; padding:14px 18px; margin:12px 0; background:linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border:1px solid #dee2e6; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:100%; overflow:hidden; position:relative;" contenteditable="false">
+            <div id="${previewId}" style="flex-shrink:0; width:80px; height:80px; background:#fff; border:1px solid #dee2e6; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
+                <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f3f4f6;">
+                    <span style="font-size:28px; color:#6c757d;">📄</span>
+                </div>
             </div>
-            <div style="flex:1; min-width:0;">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; min-width:0;">
                 <div style="font-weight:600; font-size:14px; color:#212529; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${displayName}</div>
                 <div style="font-size:12px; color:#6c757d; margin-top:2px;">PDF Document</div>
             </div>
-            <a href="${url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; padding:6px 14px; background:#0d6efd; color:#fff; border-radius:6px; text-decoration:none; font-size:13px; font-weight:500; white-space:nowrap;">
-                <i class="bi bi-download"></i> View PDF
-            </a>
+            <div style="flex-shrink:0; display:flex; gap:6px; align-items:center;">
+                <button type="button" class="pdf-preview-btn" data-url="${url}" data-name="${displayName}" style="display:inline-flex; align-items:center; gap:4px; padding:6px 12px; background:#0d6efd; color:#fff; border:none; border-radius:6px; text-decoration:none; font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer;">
+                    <i class="bi bi-eye"></i> Preview
+                </button>
+                <a href="${url}" target="_blank" rel="noopener noreferrer" title="Download PDF" style="display:inline-flex; align-items:center; padding:6px 8px; background:#6c757d; color:#fff; border-radius:6px; text-decoration:none; font-size:13px; cursor:pointer;">
+                    <i class="bi bi-download"></i>
+                </a>
+                <button type="button" class="pdf-remove-btn" title="Remove PDF" style="display:inline-flex; align-items:center; padding:6px 8px; background:#dc3545; color:#fff; border:none; border-radius:6px; text-decoration:none; font-size:13px; cursor:pointer;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
         </div><br/>
         `;
         execCmd('insertHTML', pdfHtml);
+        
+        // After HTML is inserted, generate PDF preview thumbnail and attach event listeners
+        setTimeout(() => {
+            const card = document.getElementById(cardId);
+            if (card) {
+                const previewDiv = document.getElementById(previewId);
+                generatePdfThumbnail(url, previewDiv);
+                
+                // Attach preview event listeners
+                card.querySelectorAll('.pdf-preview-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const pdfUrl = btn.dataset.url;
+                        const pdfName = btn.dataset.name;
+                        openPdfModal(pdfUrl, pdfName);
+                    });
+                });
+                
+                // Attach remove event listener
+                card.querySelectorAll('.pdf-remove-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        card.remove();
+                    });
+                });
+            }
+        }, 100);
+    }
+
+    // Generate PDF thumbnail preview
+    async function generatePdfThumbnail(url, container) {
+        try {
+            const doc = await pdfjsLib.getDocument(url).promise;
+            const page = await doc.getPage(1);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const context = canvas.getContext('2d');
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+            container.innerHTML = `<img src="${canvas.toDataURL()}" style="width:100%; height:100%; object-fit:cover;" />`;
+        } catch (err) {
+            console.warn('PDF thumbnail generation failed:', err);
+            container.innerHTML = '<span style="font-size:24px; color:#6c757d;">📄</span>';
+        }
+    }
+
+    // Open PDF preview modal
+    function openPdfModal(url, filename) {
+        if (document.getElementById('pdf_viewer_modal')) return;
+        
+        const modal = document.createElement('div');
+        modal.id = 'pdf_viewer_modal';
+        modal.style.cssText = 'position:fixed; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:10000;';
+        modal.innerHTML = `
+            <div style="width:90%; max-width:1000px; max-height:90vh; background:#fff; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; border-bottom:1px solid #dee2e6;">
+                    <strong style="font-size:16px;">${filename}</strong>
+                    <button type="button" id="pdf_modal_close" class="btn-close" style="cursor:pointer; font-size:24px; border:none; background:none; color:#000;">×</button>
+                </div>
+                <div id="pdf_viewer_container" style="flex:1; overflow:auto; background:#f5f5f5; display:flex; align-items:center; justify-content:center;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                        <div class="spinner-border text-primary" style="width:3rem; height:3rem;"></div>
+                        <p class="text-muted">Loading PDF...</p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:space-between; padding:12px; border-top:1px solid #dee2e6; background:#f9f9f9;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button type="button" id="pdf_prev_page" class="btn btn-sm btn-outline-secondary">← Prev</button>
+                        <input type="number" id="pdf_page_num" min="1" value="1" style="width:60px; padding:4px 8px; border:1px solid #dee2e6; border-radius:4px;">
+                        <span id="pdf_page_count" style="color:#6c757d; font-size:14px;">of 1</span>
+                        <button type="button" id="pdf_next_page" class="btn btn-sm btn-outline-secondary">Next →</button>
+                    </div>
+                    <a id="pdf_download_link" href="${url}" target="_blank" class="btn btn-sm btn-primary">
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        const closeBtn = document.getElementById('pdf_modal_close');
+        closeBtn.addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+        
+        // Load and render PDF
+        renderPdfPreview(url);
+    }
+
+    // Render PDF preview in modal
+    async function renderPdfPreview(url) {
+        try {
+            const doc = await pdfjsLib.getDocument(url).promise;
+            const pageCount = doc.numPages;
+            document.getElementById('pdf_page_count').textContent = `of ${pageCount}`;
+            
+            const pageInput = document.getElementById('pdf_page_num');
+            const container = document.getElementById('pdf_viewer_container');
+            
+            async function renderPage(pageNum) {
+                if (pageNum < 1 || pageNum > pageCount) return;
+                try {
+                    const page = await doc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 2 });
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const context = canvas.getContext('2d');
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    await page.render(renderContext).promise;
+                    container.innerHTML = '';
+                    canvas.style.maxWidth = '100%';
+                    canvas.style.maxHeight = '100%';
+                    canvas.style.objectFit = 'contain';
+                    container.appendChild(canvas);
+                    pageInput.value = pageNum;
+                } catch (err) {
+                    console.error('Page render error:', err);
+                    container.innerHTML = '<p class="text-danger">Failed to render page</p>';
+                }
+            }
+            
+            renderPage(1);
+            
+            document.getElementById('pdf_prev_page').addEventListener('click', () => {
+                const current = parseInt(pageInput.value) || 1;
+                renderPage(current - 1);
+            });
+            
+            document.getElementById('pdf_next_page').addEventListener('click', () => {
+                const current = parseInt(pageInput.value) || 1;
+                renderPage(current + 1);
+            });
+            
+            pageInput.addEventListener('change', () => {
+                const pageNum = parseInt(pageInput.value);
+                renderPage(pageNum);
+            });
+        } catch (err) {
+            console.error('PDF loading error:', err);
+            document.getElementById('pdf_viewer_container').innerHTML = '<p class="text-danger">Failed to load PDF. Please try downloading.</p>';
+        }
     }
     // Toggle live preview panel
     function toggleScratchPreview() {
@@ -2703,7 +2971,7 @@
         const clone = editor.cloneNode(true);
 
         // Strip admin-only elements (same logic as buildJSON scratch case)
-        clone.querySelectorAll('.scratch-raw-html [style*="text-align:right"]').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-raw-html .scratch-actions').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
@@ -2739,6 +3007,34 @@
         to {
             transform: rotate(360deg);
         }
+    }
+
+    /* Drag and drop styles */
+    .drag-over {
+        background-color: #e7f0ff !important;
+        border-left: 4px solid #0d6efd !important;
+    }
+
+    .media-item,
+    .gallery-item,
+    .stat-item,
+    .accordion-item,
+    .team-item,
+    .facility-item,
+    .testimonial-item,
+    .card-item,
+    .program-item,
+    .images-logo-item {
+        transition: opacity 0.2s ease, transform 0.2s ease, border 0.2s ease;
+    }
+
+    .drag-handle {
+        user-select: none;
+        cursor: grab;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
     }
 
     /* Styles for scratch-editor inserted sections */
@@ -2795,6 +3091,29 @@
     /* Toolbar sticks to the editor visually */
     .scratch-toolbar {
         user-select: none;
+    }
+
+    /* PDF modal styles */
+    #pdf_viewer_modal {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .pdf-embed-card {
+        transition: all 0.2s ease;
+    }
+
+    .pdf-embed-card:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15) !important;
     }
 </style>
 {% endblock %}
