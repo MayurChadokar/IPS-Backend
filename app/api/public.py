@@ -2,10 +2,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event, Activity, Alumni
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
+    ContactCreate,
     NewsListItem,
     NewsDetail,
     EventListItem,
@@ -461,6 +462,44 @@ async def submit_inquiry(
     db.refresh(new_inquiry)
     
     return {"message": "Inquiry submitted successfully", "id": new_inquiry.id}
+
+
+@router.post("/{college_slug}/contact", status_code=status.HTTP_201_CREATED)
+async def submit_contact(
+    college_slug: str,
+    contact: ContactCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Submit a new contact form with address information
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"College '{college_slug}' not found"
+        )
+    
+    new_contact = Contact(
+        college_slug=college.slug,
+        name=contact.name,
+        email=contact.email,
+        phone_no=contact.phone_no,
+        state=contact.state,
+        city=contact.city,
+        address=contact.address,
+        message=contact.message
+    )
+    
+    db.add(new_contact)
+    db.commit()
+    db.refresh(new_contact)
+    
+    return {"message": "Contact form submitted successfully", "id": new_contact.id}
 
 
 # ============= ACTIVITIES PUBLIC API =============

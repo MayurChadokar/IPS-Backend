@@ -1,0 +1,151 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Contacts{% endblock %}
+{% block page_title %}Contacts Management (IST){% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-bold small text-muted text-uppercase">College</label>
+                <select name="college_slug" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Colleges</option>
+                    {% for college in colleges %}
+                    <option value="{{ college.slug }}" {% if college_slug==college.slug %}selected{% endif %}>{{ college.name
+                        }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold small text-muted text-uppercase">Status</label>
+                <select name="read_status" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="unread" {% if read_status=="unread" %}selected{% endif %}>Unread</option>
+                    <option value="read" {% if read_status=="read" %}selected{% endif %}>Read</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold small text-muted text-uppercase">Rows</label>
+                <select name="limit" class="form-select" onchange="this.form.submit()">
+                    <option value="10" {% if limit==10 %}selected{% endif %}>10 rows</option>
+                    <option value="25" {% if limit==25 %}selected{% endif %}>25 rows</option>
+                    <option value="50" {% if limit==50 %}selected{% endif %}>50 rows</option>
+                    <option value="100" {% if limit==100 %}selected{% endif %}>100 rows</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="/admin/contacts" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Section -->
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Contacts (Total: {{ total_count }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="fw-bold">Status</th>
+                    <th class="fw-bold">Name</th>
+                    <th class="fw-bold">Email</th>
+                    <th class="fw-bold">Phone</th>
+                    <th class="fw-bold">City, State</th>
+                    <th class="fw-bold">College</th>
+                    <th class="fw-bold">Date (IST)</th>
+                    <th class="fw-bold">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if contacts %}
+                    {% for contact in contacts %}
+                    <tr>
+                        <td>
+                            <span class="badge {% if contact.read_status %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                {% if contact.read_status %}Read{% else %}Unread{% endif %}
+                            </span>
+                        </td>
+                        <td class="fw-bold">{{ contact.name }}</td>
+                        <td>
+                            {% if contact.email %}
+                                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if contact.phone_no %}
+                                <a href="tel:{{ contact.phone_no }}">{{ contact.phone_no }}</a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if contact.city or contact.state %}
+                                {{ contact.city or '' }}{% if contact.city and contact.state %}, {% endif %}{{ contact.state or '' }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ contact.college.name if contact.college else '-' }}</td>
+                        <td>
+                            <small class="text-muted">{{ contact.ist_date.strftime('%d %b %Y, %H:%M') if contact.ist_date else '-' }}</small>
+                        </td>
+                        <td>
+                            <a href="/admin/contacts/{{ contact.id }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">No contacts found</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="card-footer">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="/admin/contacts?page=1{% if college_slug %}&college_slug={{ college_slug }}{% endif %}{% if read_status %}&read_status={{ read_status }}{% endif %}">First</a>
+                </li>
+                
+                {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
+                    {% if p == page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ p }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="/admin/contacts?page={{ p }}{% if college_slug %}&college_slug={{ college_slug }}{% endif %}{% if read_status %}&read_status={{ read_status }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="/admin/contacts?page={{ total_pages }}{% if college_slug %}&college_slug={{ college_slug }}{% endif %}{% if read_status %}&read_status={{ read_status }}{% endif %}">Last</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

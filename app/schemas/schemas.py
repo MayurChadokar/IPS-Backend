@@ -387,3 +387,13 @@ class InquiryCreate(BaseModel):
     phone_number: Optional[str] = None
     course_interested: Optional[str] = None
     message: Optional[str] = None
+
+# ============= Contact Schemas =============
+class ContactCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone_no: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    address: Optional[str] = None
+    message: Optional[str] = None

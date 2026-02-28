@@ -54,6 +54,7 @@ class College(Base):
     faculties = relationship("Faculty", back_populates="college", cascade="all, delete-orphan")
     courses = relationship("Course", back_populates="college", cascade="all, delete-orphan")
     inquiries = relationship("Inquiry", back_populates="college", cascade="all, delete-orphan")
+    contacts = relationship("Contact", back_populates="college", cascade="all, delete-orphan")
     activities = relationship("Activity", back_populates="college", cascade="all, delete-orphan")
     news = relationship("News", back_populates="college", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="college", cascade="all, delete-orphan")
@@ -248,6 +249,34 @@ class Inquiry(Base):
     )
 
 
+class Contact(Base):
+    """
+    Contact form submissions with full address information
+    """
+    __tablename__ = "contacts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    college_slug = Column(String(100), ForeignKey("colleges.slug", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
+    phone_no = Column(String(20), nullable=True)
+    state = Column(String(100), nullable=True)
+    city = Column(String(100), nullable=True)
+    address = Column(Text, nullable=True)
+    message = Column(Text, nullable=True)
+    read_status = Column(Boolean, default=False)
+    admin_note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    college = relationship("College", back_populates="contacts", foreign_keys=[college_slug])
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
 class ActivityType(enum.Enum):
     """Types of activities for colleges"""
     CULTURAL = "cultural"
@@ -368,3 +397,7 @@ class Alumni(Base):
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
     )
+
+
+
+

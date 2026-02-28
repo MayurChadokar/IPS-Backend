@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType, News, Event, Alumni
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni
 from datetime import timedelta, datetime
 from typing import Optional
 import json
@@ -158,6 +158,7 @@ async def admin_dashboard(
     sections_count = db.query(Section).count()
     
     inquiries_count = db.query(Inquiry).count()
+    contacts_count = db.query(Contact).count()
     
     return templates.TemplateResponse("admin/dashboard.html", {
         "request": request,
@@ -165,7 +166,8 @@ async def admin_dashboard(
         "colleges_count": colleges_count,
         "pages_count": pages_count,
         "sections_count": sections_count,
-        "inquiries_count": inquiries_count
+        "inquiries_count": inquiries_count,
+        "contacts_count": contacts_count
     })
 
 
@@ -2327,6 +2329,121 @@ async def delete_inquiry(
         db.commit()
     
     return RedirectResponse(url="/admin/inquiries", status_code=303)
+
+
+# ========== CONTACTS MANAGEMENT ==========
+@router.get("/contacts", response_class=HTMLResponse)
+async def list_contacts(
+    request: Request,
+    college_slug: Optional[str] = Query(None),
+    read_status: Optional[str] = Query(None),
+    page: int = Query(1),
+    limit: int = Query(20),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List all contacts with filters"""
+    query = db.query(Contact)
+    
+    # Filter by college slug
+    if college_slug:
+        query = query.filter(Contact.college_slug == college_slug)
+    
+    # Filter by read status
+    if read_status == "read":
+        query = query.filter(Contact.read_status == True)
+    elif read_status == "unread":
+        query = query.filter(Contact.read_status == False)
+    
+    total_count = query.count()
+    
+    contacts = query\
+        .order_by(Contact.created_at.desc())\
+        .offset((page - 1) * limit)\
+        .limit(limit)\
+        .all()
+    
+    colleges = db.query(College).all()
+    
+    # Add IST time to each contact
+    for contact in contacts:
+        if contact.created_at:
+            contact.ist_date = contact.created_at + timedelta(hours=5, minutes=30)
+    
+    total_pages = (total_count + limit - 1) // limit if total_count > 0 else 1
+    
+    return templates.TemplateResponse("admin/contacts/list.html", {
+        "request": request,
+        "user": current_user,
+        "contacts": contacts,
+        "colleges": colleges,
+        "college_slug": college_slug,
+        "read_status": read_status,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "total_count": total_count
+    })
+
+
+@router.get("/contacts/{contact_id}", response_class=HTMLResponse)
+async def view_contact(
+    request: Request,
+    contact_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """View contact details"""
+    contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    # Mark as read when viewing
+    if not contact.read_status:
+        contact.read_status = True
+        db.commit()
+        
+    return templates.TemplateResponse("admin/contacts/detail.html", {
+        "request": request,
+        "user": current_user,
+        "contact": contact
+    })
+
+
+@router.post("/contacts/{contact_id}/update")
+async def update_contact(
+    contact_id: int,
+    read_status: bool = Form(False),
+    admin_note: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update contact status and notes"""
+    contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    contact.read_status = read_status
+    contact.admin_note = admin_note if admin_note else None
+    
+    db.commit()
+    
+    return RedirectResponse(url=f"/admin/contacts/{contact_id}", status_code=303)
+
+
+@router.post("/contacts/{contact_id}/delete")
+async def delete_contact(
+    contact_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete a contact"""
+    contact = db.query(Contact).filter(Contact.id == contact_id).first()
+    if contact:
+        db.delete(contact)
+        db.commit()
+    
+    return RedirectResponse(url="/admin/contacts", status_code=303)
 
 
 # ============= ALUMNI MANAGEMENT =============
