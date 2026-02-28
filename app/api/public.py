@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -88,6 +89,8 @@ async def get_page_by_college(
         meta_description=page.meta_description,
         sections=sections_dict
     )
+
+
 
 
 @router.get("/{college_slug}/pages", response_model=List[Dict[str, Any]])
@@ -661,3 +664,50 @@ async def get_activity_by_slug(
         end_date=a.end_date,
         created_at=a.created_at,
     )
+
+
+# ============= ALL COLLEGES WITH COURSES =============
+@router.get("/public/colleges-with-courses", response_model=Dict[str, Any])
+async def get_all_colleges_with_courses(db: Session = Depends(get_db)):
+    """
+    Returns all active colleges with their active course names.
+
+    Example: GET /api/public/colleges-with-courses
+    
+    Returns:
+    {
+        "colleges": [
+            {
+                "name": "IBMR",
+                "slug": "ibmr",
+                "courses": ["BBA", "MBA", "Ph.D"]
+            },
+            {
+                "name": "SOC",
+                "slug": "soc",
+                "courses": ["B.Sc", "BCA", "MCA", ...]
+            },
+            ...
+        ]
+    }
+    """
+    colleges = db.query(College).filter(College.is_active == True).all()
+    
+    colleges_data = []
+    for college in colleges:
+        courses = db.query(Course).filter(
+            Course.college_id == college.id,
+            Course.is_active == True
+        ).all()
+        
+        course_names = [course.name for course in courses]
+        
+        colleges_data.append({
+            "name": college.name,
+            "slug": college.slug,
+            "courses": course_names
+        })
+    
+    return {
+        "colleges": colleges_data
+    }
