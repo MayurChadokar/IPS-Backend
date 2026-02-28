@@ -4,88 +4,274 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #4f46e5;">
-            <h3><i class="bi bi-building me-2"></i>Colleges</h3>
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        opacity: 0.05;
+    }
+
+    .stat-card.blue { border-left-color: #4f46e5; }
+    .stat-card.blue::before { background: #4f46e5; }
+
+    .stat-card.green { border-left-color: #10b981; }
+    .stat-card.green::before { background: #10b981; }
+
+    .stat-card.amber { border-left-color: #f59e0b; }
+    .stat-card.amber::before { background: #f59e0b; }
+
+    .stat-card.red { border-left-color: #ef4444; }
+    .stat-card.red::before { background: #ef4444; }
+
+    .stat-card.purple { border-left-color: #8b5cf6; }
+    .stat-card.purple::before { background: #8b5cf6; }
+
+    .stat-card h3 {
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+    }
+
+    .stat-card h3 i {
+        font-size: 18px;
+        margin-right: 8px;
+    }
+
+    .stat-card.blue h3 i { color: #4f46e5; }
+    .stat-card.green h3 i { color: #10b981; }
+    .stat-card.amber h3 i { color: #f59e0b; }
+    .stat-card.red h3 i { color: #ef4444; }
+    .stat-card.purple h3 i { color: #8b5cf6; }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+</style>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card blue">
+            <h3><i class="bi bi-building"></i>Colleges</h3>
             <div class="stat-value">{{ colleges_count }}</div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #10b981;">
-            <h3><i class="bi bi-file-earmark-text me-2"></i>Pages</h3>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card green">
+            <h3><i class="bi bi-file-earmark-text"></i>Pages</h3>
             <div class="stat-value">{{ pages_count }}</div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #f59e0b;">
-            <h3><i class="bi bi-grid-3x3-gap me-2"></i>Sections</h3>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card amber">
+            <h3><i class="bi bi-grid-3x3-gap"></i>Sections</h3>
             <div class="stat-value">{{ sections_count }}</div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #ef4444;">
-            <h3><i class="bi bi-envelope me-2"></i>Inquiries</h3>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card red">
+            <h3><i class="bi bi-envelope"></i>Inquiries</h3>
             <div class="stat-value">{{ inquiries_count }}</div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #8b5cf6;">
-            <h3><i class="bi bi-chat-left-text me-2"></i>Contacts</h3>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card purple">
+            <h3><i class="bi bi-chat-left-text"></i>Contacts</h3>
             <div class="stat-value">{{ contacts_count }}</div>
         </div>
     </div>
 </div>
 
+<style>
+    .action-card {
+        background: white;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+    }
+
+    .action-card .card-header {
+        background: transparent;
+        border: none;
+        padding: 0 0 20px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .action-card .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .action-card .card-title i {
+        color: #4f46e5;
+    }
+
+    .action-btn {
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        color: #1e293b;
+        padding: 14px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        text-align: left;
+        position: relative;
+    }
+
+    .action-btn:hover {
+        border-color: #4f46e5;
+        background: #f0f4ff;
+        color: #4f46e5;
+        transform: translateX(4px);
+    }
+
+    .action-btn i {
+        font-size: 18px;
+    }
+
+    .system-info {
+        background: white;
+        border-radius: 12px;
+        padding: 28px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .system-info .card-header {
+        background: transparent;
+        border: none;
+        padding: 0 0 20px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .system-info .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .system-info .card-title i {
+        color: #4f46e5;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+    }
+
+    .info-value {
+        font-size: 14px;
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    .badge-status {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+    .badge-connected {
+        background: #d1fae5;
+        color: #047857;
+    }
+
+    .badge-ready {
+        background: #dbeafe;
+        color: #0284c7;
+    }
+</style>
+
 <div class="row g-4">
-    <div class="col-md-6">
-        <div class="card h-100">
+    <div class="col-lg-6">
+        <div class="action-card">
             <div class="card-header">
-                <h5 class="card-title mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h5>
+                <h5 class="card-title mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-3">
-                    <a href="/admin/colleges" class="btn btn-outline-primary btn-lg text-start">
-                        <i class="bi bi-building me-3"></i>Manage Colleges
+            <div class="card-body p-0 pt-3">
+                <div class="d-grid gap-2">
+                    <a href="/admin/colleges" class="action-btn">
+                        <i class="bi bi-building"></i> Manage Colleges
                     </a>
-                    <a href="/admin/colleges/new" class="btn btn-outline-success btn-lg text-start">
-                        <i class="bi bi-plus-circle me-3"></i>Create New College
+                    <a href="/admin/colleges/new" class="action-btn">
+                        <i class="bi bi-plus-circle"></i> Create New College
                     </a>
-                    <a href="/admin/inquiries" class="btn btn-outline-danger btn-lg text-start">
-                        <i class="bi bi-envelope me-3"></i>View Inquiries
+                    <a href="/admin/inquiries" class="action-btn">
+                        <i class="bi bi-envelope"></i> View Inquiries
                     </a>
-                    <a href="/admin/contacts" class="btn btn-outline-warning btn-lg text-start">
-                        <i class="bi bi-chat-left-text me-3"></i>View Contacts
+                    <a href="/admin/contacts" class="action-btn">
+                        <i class="bi bi-chat-left-text"></i> View Contacts
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-6">
-        <div class="card h-100">
+    <div class="col-lg-6">
+        <div class="system-info">
             <div class="card-header">
-                <h5 class="card-title mb-0"><i class="bi bi-info-circle me-2"></i>System Info</h5>
+                <h5 class="card-title mb-0"><i class="bi bi-info-circle"></i> System Status</h5>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Active Database
-                        <span class="badge bg-primary rounded-pill">Connected</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Cloudinary
-                        <span class="badge bg-success rounded-pill">Ready</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        API Version
-                        <span class="text-muted">v1.0</span>
-                    </li>
-                </ul>
+            <div class="card-body p-0 pt-3">
+                <div class="info-item">
+                    <span class="info-label">Database</span>
+                    <span class="badge-status badge-connected">Connected</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Cloudinary</span>
+                    <span class="badge-status badge-ready">Ready</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">API Version</span>
+                    <span class="info-value">v1.0</span>
+                </div>
             </div>
         </div>
     </div>
