@@ -299,6 +299,7 @@ class News(Base):
     content_html = Column(Text, nullable=False)  # HTML-formatted content
     thumbnail_image = Column(String(500), nullable=True)
     short_description = Column(Text, nullable=True)
+    gallery_images = Column(JSON, nullable=True)  # list of image URLs
     is_published = Column(Boolean, default=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

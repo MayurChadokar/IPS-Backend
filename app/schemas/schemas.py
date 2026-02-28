@@ -212,6 +212,7 @@ class NewsListItem(BaseModel):
     subtitle: Optional[str] = None
     thumbnail_image: Optional[str] = None
     short_description: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
     published_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -224,6 +225,7 @@ class NewsDetail(BaseModel):
     content_html: str
     thumbnail_image: Optional[str] = None
     short_description: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
     published_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,7 +1,7 @@
 python main.py 
 
 
-alembic revision --autogenerate -m "initial_schema"
+alembic revision --autogenerate -m "added gaalry"
 
 
 alembic stamp head

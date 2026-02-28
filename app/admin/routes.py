@@ -449,6 +449,7 @@ async def create_news(
     subtitle: str = Form(""),
     content_html: str = Form(""),
     thumbnail_image: UploadFile = File(None),
+    gallery_images: List[UploadFile] = File(None),
     short_description: str = Form(""),
     is_published: bool = Form(False),
     published_at: str = Form(""),
@@ -473,6 +474,23 @@ async def create_news(
                 "error": f"Thumbnail upload failed: {str(e)}"
             })
 
+    gallery_paths = []
+    if gallery_images:
+        for img in gallery_images:
+            if img and img.filename:
+                try:
+                    path = upload_image(img.file, folder="news_gallery")
+                    gallery_paths.append(path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/news/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": college,
+                        "news": None,
+                        "action": "Create",
+                        "error": f"Gallery image upload failed: {str(e)}"
+                    })
+
     n = News(
         college_id=college.id,
         title=title,
@@ -480,6 +498,7 @@ async def create_news(
         content_html=content_html,
         thumbnail_image=thumb_path,
         short_description=short_description or None,
+        gallery_images=gallery_paths if gallery_paths else None,
         is_published=is_published,
         published_at=(datetime.fromisoformat(published_at) if published_at else None)
     )
@@ -521,6 +540,8 @@ async def update_news(
     content_html: str = Form(""),
     thumbnail_image: UploadFile = File(None),
     remove_thumbnail_image: bool = Form(False),
+    gallery_images: List[UploadFile] = File(None),
+    remove_gallery_images: str = Form(""),
     short_description: str = Form(""),
     is_published: bool = Form(False),
     published_at: str = Form(""),
@@ -551,6 +572,37 @@ async def update_news(
                 "action": "Edit",
                 "error": f"Thumbnail upload failed: {str(e)}"
             })
+
+    # Handle gallery images removal
+    if remove_gallery_images:
+        removed_urls = [url.strip() for url in remove_gallery_images.split(',') if url.strip()]
+        if n.gallery_images:
+            n.gallery_images = [img for img in n.gallery_images if img not in removed_urls]
+        # Delete from cloud storage
+        for url in removed_urls:
+            try:
+                delete_image(get_public_id_from_url(url))
+            except Exception:
+                pass
+
+    # Handle gallery images upload
+    if gallery_images and gallery_images[0].filename:
+        gallery_paths = list(n.gallery_images) if n.gallery_images else []
+        for img in gallery_images:
+            if img and img.filename:
+                try:
+                    path = upload_image(img.file, folder="news_gallery")
+                    gallery_paths.append(path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/news/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": db.query(College).filter(College.id == n.college_id).first(),
+                        "news": n,
+                        "action": "Edit",
+                        "error": f"Gallery image upload failed: {str(e)}"
+                    })
+        n.gallery_images = gallery_paths if gallery_paths else None
 
     n.title = title
     n.subtitle = subtitle or None

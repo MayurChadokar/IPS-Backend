@@ -161,6 +161,7 @@ async def list_news_by_college(
             subtitle=n.subtitle,
             thumbnail_image=n.thumbnail_image,
             short_description=n.short_description,
+            gallery_images=n.gallery_images,
             published_at=n.published_at,
         )
         for n in items
@@ -188,6 +189,7 @@ async def get_news_detail(
         content_html=n.content_html,
         thumbnail_image=n.thumbnail_image,
         short_description=n.short_description,
+        gallery_images=n.gallery_images,
         published_at=n.published_at,
     )
 
