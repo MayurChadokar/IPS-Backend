@@ -2265,14 +2265,14 @@
 
         const title = document.createElement('h5');
         title.contentEditable = 'true';
-        title.style.cssText = 'margin:0; font-weight:700; outline:none; border-bottom:1px dashed transparent;';
+        title.style.cssText = 'margin:0; font-weight:700; outline:none; ';
         title.textContent = 'Card Title';
         title.addEventListener('focus', () => title.style.borderBottomColor = '#86b7fe');
         title.addEventListener('blur', () => title.style.borderBottomColor = 'transparent');
 
         const body = document.createElement('p');
         body.contentEditable = 'true';
-        body.style.cssText = 'margin:0; color:#6c757d; outline:none; border-bottom:1px dashed transparent; flex:1;';
+        body.style.cssText = 'margin:0; color:#6c757d; outline:none;  flex:1;';
         body.textContent = 'Short description or caption goes here.';
         body.addEventListener('focus', () => body.style.borderBottomColor = '#86b7fe');
         body.addEventListener('blur', () => body.style.borderBottomColor = 'transparent');
