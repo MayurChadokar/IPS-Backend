@@ -344,7 +344,7 @@
 
                 <!-- Editor -->
                 <div id="scratch_editor" contenteditable="true"
-                    style="min-height:280px; border:1px solid #dee2e6; border-radius:0 0 6px 6px; padding:16px; background:#fff; font-size:15px; line-height:1.7; outline:none;"
+                    style="min-height:280px; border:1px solid #dee2e6; border-radius:0 0 6px 6px; padding:16px; font-size:15px; line-height:1.7; outline:none;"
                     oninput="syncScratchPreview()"
                     onfocus="this.style.borderColor='#86b7fe'; this.style.boxShadow='0 0 0 0.25rem rgba(13,110,253,.25)';"
                     onblur="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">${html}</div>
@@ -2080,7 +2080,7 @@
         modal.style.zIndex = '9999';
 
         modal.innerHTML = `
-            <div style="width:90%; max-width:900px; background:#fff; border-radius:8px; padding:16px; box-shadow:0 6px 30px rgba(0,0,0,0.2);">
+            <div style="width:90%; max-width:900px; border-radius:8px; padding:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <strong>Insert / Edit HTML</strong>
                     <button type="button" class="btn-close" aria-label="Close" id="scratch_html_modal_close"></button>
@@ -2117,7 +2117,7 @@
         wrapper.className = 'scratch-raw-html';
         wrapper.contentEditable = 'false';
         wrapper.dataset.raw = '1';
-        wrapper.style.cssText = 'position:relative; border:1px dashed #ced4da; padding:12px; border-radius:6px; margin:10px 0; background:#fbfbfb;';
+        wrapper.style.cssText = 'position:relative; border:1px dashed #ced4da; padding:12px; border-radius:6px; margin:10px 0;';
 
         const inner = document.createElement('div');
         inner.className = 'raw-html-inner';
