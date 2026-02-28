@@ -188,7 +188,7 @@
                         <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
-                                <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*" style="padding: 8px;">
+                                <input type="file" name="hero_media_files" class="form-control hero-media-file" accept="image/*,video/*,.svg,.ico,.jfif" style="padding: 8px;">
                             </div>
                             <div style="flex: 1;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -251,7 +251,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 5px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
-                    <input type="file" name="text_media_file" class="form-control" id="text_image_file" accept="image/*,video/*">
+                    <input type="file" name="text_media_file" class="form-control" id="text_image_file" accept="image/*,video/*,.svg,.ico,.jfif">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -358,8 +358,8 @@
                     <div id="scratch_preview_content" style="padding:20px; background:#fff; min-height:120px;"></div>
                 </div>
 
-                <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*" style="display:none;" data-skip-preview="true" />
-                <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
+                <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*,.svg,.ico,.jfif" style="display:none;" data-skip-preview="true" />
+                <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*,.svg,.ico,.jfif" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
                 <input type="file" id="scratch_pdf_file" name="scratch_pdf_files" accept="application/pdf" style="display:none;" data-skip-preview="true" />
                 <small class="d-block text-muted mt-2"><i class="bi bi-info-circle"></i> Rich HTML editor — images &amp; PDFs uploaded immediately to Cloudinary and inserted inline.</small>
             </div>
@@ -447,7 +447,7 @@
                             <div style="display: flex; gap: 10px; align-items: start; margin-bottom: 10px;">
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">📁 Upload File (Cloudinary)</label>
-                                    <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*" style="padding: 8px;">
+                                    <input type="file" name="gallery_media_files" class="form-control gallery-media-file" accept="image/*,video/*,.svg,.ico,.jfif" style="padding: 8px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -482,7 +482,7 @@
                                 <div style="display:flex; gap:8px; flex-direction:column;">
                                     <div>
                                         <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">📁 Upload File (Cloudinary)</label>
-                                        <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file" data-existing="${it.logo || ''}">
+                                        <input type="file" name="images_logo_files" accept="image/*,.svg,.ico,.jfif" class="form-control image-logo-file" data-existing="${it.logo || ''}">
                                     </div>
                                     <div>
                                         <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">🔗 Or Enter URL</label>
@@ -553,7 +553,7 @@
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                                        <input type="file" name="team_media_files" class="form-control team-media-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="team_media_files" class="form-control team-media-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -674,7 +674,7 @@
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Icon (Cloudinary)</label>
-                                        <input type="file" name="cards_media_files" class="form-control card-media-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="cards_media_files" class="form-control card-media-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -771,7 +771,7 @@
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
-                                        <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -834,7 +834,7 @@
                 <div style="display: flex; gap: 10px;">
                     <div style="flex: 1;">
                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
-                        <input type="file" name="split_media_file" class="form-control" id="split_image_file" accept="image/*" style="padding: 8px;">
+                        <input type="file" name="split_media_file" class="form-control" id="split_image_file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                     </div>
                     <div style="flex: 1;">
                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -895,7 +895,7 @@
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                                        <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*" style="padding: 8px;">
+                                        <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -1005,7 +1005,7 @@
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <div>
                             <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">📁 Upload File (Cloudinary)</label>
-                            <input type="file" name="images_logo_files" accept="image/*" class="form-control image-logo-file">
+                            <input type="file" name="images_logo_files" accept="image/*,.svg,.ico,.jfif" class="form-control image-logo-file">
                         </div>
                         <div>
                             <label style="font-size:12px; color:#777; margin-bottom:3px; display:block;">🔗 Or Enter URL</label>
@@ -1052,7 +1052,7 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                    <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*" style="padding: 8px;">
+                    <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -1101,7 +1101,7 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Icon (Cloudinary)</label>
-                    <input type="file" name="cards_media_files" class="form-control card-icon-file" accept="image/*" style="padding: 8px;">
+                    <input type="file" name="cards_media_files" class="form-control card-icon-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -1158,7 +1158,7 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Image (Cloudinary)</label>
-                    <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*" style="padding: 8px;">
+                    <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -1208,7 +1208,7 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                    <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*" style="padding: 8px;">
+                    <input type="file" name="testimonials_media_files" class="form-control testimonial-media-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>

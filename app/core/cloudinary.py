@@ -51,7 +51,7 @@ def process_image_to_webp(file_obj: BinaryIO, quality: int = 85) -> io.BytesIO:
 
 
 def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms", 
-                 convert_to_webp: bool = True, quality: int = 85) -> str:
+                 convert_to_webp: bool = True, quality: int = 85, filename: str = None) -> str:
     """
     Upload an image or file to Cloudinary with automatic WebP conversion
     
@@ -60,6 +60,7 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
         folder: Cloudinary folder name
         convert_to_webp: Whether to convert images to WebP (default True)
         quality: WebP quality for conversion (1-100, default 85)
+        filename: Optional filename to determine file type
     
     Returns:
         Secure URL of the uploaded file
@@ -68,8 +69,23 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
         Exception: If upload fails
     """
     try:
-        # Check if it's a file object and if it's an image
-        if hasattr(file_path_or_obj, 'read') and convert_to_webp:
+        # Determine if this is a vector/icon format that shouldn't be converted
+        is_vector_or_icon = False
+        if filename and isinstance(filename, str):
+            try:
+                ext = filename.lower().split('.')[-1]
+                is_vector_or_icon = ext in ['svg', 'ico', 'jfif']
+            except Exception:
+                pass
+        elif hasattr(file_path_or_obj, 'name') and file_path_or_obj.name:
+            try:
+                ext = file_path_or_obj.name.lower().split('.')[-1]
+                is_vector_or_icon = ext in ['svg', 'ico', 'jfif']
+            except Exception:
+                pass
+        
+        # Check if it's a file object and if it's an image that can be converted
+        if hasattr(file_path_or_obj, 'read') and convert_to_webp and not is_vector_or_icon:
             # Try to determine if it's an image by checking content type or trying to process it
             try:
                 # Save current position
@@ -93,24 +109,26 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
                 response = cloudinary.uploader.upload(
                     processed_file,
                     folder=folder,
-                    resource_type="auto",
+                    resource_type="image",
                     format="webp"  # Force WebP format
                 )
             except Exception as img_error:
-                # Not an image or processing failed, upload as-is
+                # Not an image or processing failed, upload as-is with resource_type="image"
                 print(f"Not an image or processing failed ({img_error}), uploading as-is")
                 file_path_or_obj.seek(0)
                 response = cloudinary.uploader.upload(
                     file_path_or_obj,
                     folder=folder,
-                    resource_type="auto"
+                    resource_type="image"  # Explicitly use "image" for SVG, ICO, etc.
                 )
         else:
-            # Upload file path or non-image file as-is
+            # Vector/icon format or WebP conversion disabled - upload as image, not raw
+            if hasattr(file_path_or_obj, 'seek'):
+                file_path_or_obj.seek(0)
             response = cloudinary.uploader.upload(
                 file_path_or_obj,
                 folder=folder,
-                resource_type="auto"
+                resource_type="image"  # Use "image" instead of "auto" for proper handling
             )
         
         return response.get("secure_url")

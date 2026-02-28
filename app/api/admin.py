@@ -600,7 +600,7 @@ async def upload_file(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     try:
-        url = upload_image(file.file, folder=folder)
+        url = upload_image(file.file, folder=folder, filename=file.filename)
         return {"url": url, "filename": file.filename}
     except Exception as e:
         raise HTTPException(
