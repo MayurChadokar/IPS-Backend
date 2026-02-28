@@ -57,6 +57,7 @@ class College(Base):
     activities = relationship("Activity", back_populates="college", cascade="all, delete-orphan")
     news = relationship("News", back_populates="college", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="college", cascade="all, delete-orphan")
+    alumni = relationship("Alumni", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -336,6 +337,32 @@ class Event(Base):
 
     # Relationships
     college = relationship("College", back_populates="events")
+
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Alumni(Base):
+    """
+    Alumni members for each college
+    """
+    __tablename__ = "alumni"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    achievement = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    main_image = Column(String(500), nullable=True)
+    gallery_images = Column(JSON, nullable=True)  # list of image URLs
+    videos = Column(JSON, nullable=True)  # list of video URLs
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="alumni")
 
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}

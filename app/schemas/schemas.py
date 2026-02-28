@@ -285,6 +285,62 @@ class ActivityDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============= Alumni Schemas =============
+class AlumniBase(BaseModel):
+    name: str
+    achievement: Optional[str] = None
+    description: Optional[str] = None
+    main_image: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
+    is_active: bool = True
+
+
+class AlumniCreate(AlumniBase):
+    college_id: int
+
+
+class AlumniUpdate(BaseModel):
+    name: Optional[str] = None
+    achievement: Optional[str] = None
+    description: Optional[str] = None
+    main_image: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+
+class AlumniResponse(AlumniBase):
+    id: int
+    college_id: int
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlumniListItem(BaseModel):
+    id: int
+    name: str
+    achievement: Optional[str] = None
+    main_image: Optional[str] = None
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlumniDetail(BaseModel):
+    id: int
+    name: str
+    achievement: Optional[str] = None
+    description: Optional[str] = None
+    main_image: Optional[str] = None
+    gallery_images: Optional[List[str]] = None
+    videos: Optional[List[str]] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ============= Template Schemas =============
 class PageTemplateBase(BaseModel):
     template_key: str

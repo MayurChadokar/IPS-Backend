@@ -1,0 +1,190 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Alumni - {{ college.name }}{% endblock %}
+{% block page_title %}{{ action }} Alumni Member{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><i class="bi bi-person-badge me-2"></i>{{ action }} Alumni - {{ college.name }}</h2>
+    </div>
+
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                        value="{{ alumni.name if alumni else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="achievement" class="form-label">Achievement</label>
+                    <input type="text" class="form-control" id="achievement" name="achievement" 
+                        value="{{ alumni.achievement if alumni else '' }}" placeholder="e.g., CEO at XYZ Company, International Award Winner">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="4"
+                    placeholder="Detailed information about the alumni member">{{ alumni.description if alumni else '' }}</textarea>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="main_image" class="form-label">
+                        Main Image
+                        {% if alumni and alumni.main_image %}
+                        <span class="badge badge-info">Current</span>
+                        {% endif %}
+                    </label>
+                    <input type="file" class="form-control" id="main_image" name="main_image" accept="image/*">
+                    {% if alumni and alumni.main_image %}
+                    <small class="text-muted d-block mt-2">
+                        <img src="{{ alumni.main_image }}" alt="{{ alumni.name }}" style="max-width: 100px; max-height: 100px; border-radius: 4px; margin-top: 10px;">
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label for="gallery_images" class="form-label">Gallery Images</label>
+                    <input type="file" class="form-control" id="gallery_images" name="gallery_images" accept="image/*" multiple>
+                    <small class="text-muted d-block mt-2">Upload multiple images for the gallery</small>
+                </div>
+            </div>
+
+            {% if alumni and alumni.gallery_images %}
+            <div class="mb-3">
+                <label class="form-label">Current Gallery Images</label>
+                <div class="row g-2" id="galleryImagesContainer">
+                    {% for image in alumni.gallery_images %}
+                    <div class="col-md-2 gallery-image-item" data-image-url="{{ image }}">
+                        <div class="position-relative" style="border-radius: 4px; overflow: hidden;">
+                            <img src="{{ image }}" alt="Gallery" style="width: 100%; height: 100px; object-fit: cover; border-radius: 4px;">
+                            <button type="button" class="btn btn-sm btn-danger delete-gallery-image" 
+                                style="position: absolute; top: 2px; right: 2px; padding: 2px 6px; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;"
+                                title="Delete this image">
+                                <i class="bi bi-x" style="font-size: 16px;"></i>
+                            </button>
+                            <small class="text-muted d-block text-center mt-1">{{ image.split('/')[-1][:20] }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="deleteGalleryImages" name="delete_gallery_images" value="">
+            </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label">Videos</label>
+                <ul class="nav nav-tabs" id="videosTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="video-upload-tab" data-bs-toggle="tab" data-bs-target="#video-upload" type="button" role="tab">
+                            <i class="bi bi-cloud-upload me-2"></i>Upload Video Files
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="video-links-tab" data-bs-toggle="tab" data-bs-target="#video-links" type="button" role="tab">
+                            <i class="bi bi-link-45deg me-2"></i>Paste Video Links
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content border border-top-0 p-3" id="videosTabContent">
+                    <!-- Upload Videos Tab -->
+                    <div class="tab-pane fade show active" id="video-upload" role="tabpanel">
+                        <label for="video_files" class="form-label">Select Video Files</label>
+                        <input type="file" class="form-control" id="video_files" name="video_files" accept="video/mp4,video/webm,video/ogg" multiple>
+                        <small class="text-muted d-block mt-2">Supported formats: MP4, WebM, OGG. You can select multiple files.</small>
+                    </div>
+
+                    <!-- Paste Links Tab -->
+                    <div class="tab-pane fade" id="video-links" role="tabpanel">
+                        <label for="video_links" class="form-label">Video URLs</label>
+                        <textarea class="form-control" id="video_links" name="video_links" rows="3"
+                            placeholder="Enter video URLs (one per line). Supports: YouTube, Vimeo, etc.&#10;Example:&#10;https://www.youtube.com/watch?v=video1&#10;https://vimeo.com/video2">{{ alumni.videos|join('&#10;') if alumni and alumni.videos else '' }}</textarea>
+                        <small class="text-muted d-block mt-2">Enter one video URL per line (YouTube, Vimeo, or direct video link)</small>
+                    </div>
+                </div>
+            </div>
+
+            {% if alumni and alumni.videos %}
+            <div class="mb-3">
+                <label class="form-label">Current Videos</label>
+                <div class="row g-2">
+                    {% for video in alumni.videos %}
+                    <div class="col-md-4">
+                        <div class="position-relative" style="background: #f0f0f0; border-radius: 4px; overflow: hidden;">
+                            {% if 'youtube' in video.lower() %}
+                                {% set video_id = video.split('v=')[-1] %}
+                                <iframe width="100%" height="150" src="https://www.youtube.com/embed/{{ video_id }}" frameborder="0" allowfullscreen style="border: none;"></iframe>
+                            {% elif 'vimeo' in video.lower() %}
+                                {% set video_id = video.split('/')[-1] %}
+                                <iframe width="100%" height="150" src="https://player.vimeo.com/video/{{ video_id }}" frameborder="0" allowfullscreen style="border: none;"></iframe>
+                            {% else %}
+                                <video width="100%" height="150" controls style="background: #000; border-radius: 4px;">
+                                    <source src="{{ video }}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            {% endif %}
+                            <small class="text-muted d-block text-center mt-1">{{ video.split('/')[-1][:25] }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-2"></i>{{ action }} Alumni
+                </button>
+                <a href="/admin/colleges/{{ college.id }}/alumni" class="btn btn-secondary">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle gallery image deletion
+    const deleteButtons = document.querySelectorAll('.delete-gallery-image');
+    const deleteInput = document.getElementById('deleteGalleryImages');
+    let deletedImages = [];
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const imageItem = this.closest('.gallery-image-item');
+            const imageUrl = imageItem.getAttribute('data-image-url');
+            
+            // Add to deleted list
+            deletedImages.push(imageUrl);
+            
+            // Update hidden input with deleted images
+            deleteInput.value = JSON.stringify(deletedImages);
+            
+            // Remove from display with animation
+            imageItem.style.transition = 'opacity 0.3s ease';
+            imageItem.style.opacity = '0';
+            setTimeout(() => {
+                imageItem.remove();
+            }, 300);
+        });
+    });
+
+    // Update the hidden input before form submission
+    document.querySelector('form').addEventListener('submit', function() {
+        deleteInput.value = JSON.stringify(deletedImages);
+    });
+});
+</script>
+{% endblock %}

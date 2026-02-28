@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType, News, Event
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Activity, ActivityType, News, Event, Alumni
 from datetime import timedelta, datetime
 from typing import Optional
 import json
@@ -2275,4 +2275,318 @@ async def delete_inquiry(
         db.commit()
     
     return RedirectResponse(url="/admin/inquiries", status_code=303)
+
+
+# ============= ALUMNI MANAGEMENT =============
+@router.get("/colleges/{college_id}/alumni", response_class=HTMLResponse)
+async def list_alumni_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List alumni for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    alumni_list = db.query(Alumni).filter(Alumni.college_id == college_id).order_by(Alumni.created_at.desc()).all()
+
+    return templates.TemplateResponse("admin/alumni/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "alumni_list": alumni_list
+    })
+
+
+@router.get("/colleges/{college_id}/alumni/new", response_class=HTMLResponse)
+async def create_alumni_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create alumni form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/alumni/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "alumni": None,
+        "action": "Create"
+    })
+
+
+@router.post("/colleges/{college_id}/alumni/new")
+async def create_alumni(
+    request: Request,
+    college_id: int,
+    name: str = Form(...),
+    achievement: str = Form(""),
+    description: str = Form(""),
+    main_image: UploadFile = File(None),
+    gallery_images: list = File(None),
+    video_files: list = File(None),
+    video_links: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create new alumni member"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    main_image_path = None
+    if main_image and main_image.filename:
+        try:
+            main_image_path = upload_image(main_image.file, folder="alumni")
+        except Exception as e:
+            return templates.TemplateResponse("admin/alumni/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "alumni": None,
+                "action": "Create",
+                "error": f"Image upload failed: {str(e)}"
+            })
+
+    # Handle gallery images
+    gallery_images_list = []
+    if gallery_images:
+        if not isinstance(gallery_images, list):
+            gallery_images = [gallery_images]
+        
+        for img in gallery_images:
+            if img and img.filename:
+                try:
+                    img_path = upload_image(img.file, folder="alumni_gallery")
+                    gallery_images_list.append(img_path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/alumni/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": college,
+                        "alumni": None,
+                        "action": "Create",
+                        "error": f"Gallery image upload failed: {str(e)}"
+                    })
+
+    # Handle video files and links
+    videos_list = []
+    
+    # Process uploaded video files
+    if video_files:
+        if not isinstance(video_files, list):
+            video_files = [video_files]
+        
+        for video in video_files:
+            if video and video.filename:
+                try:
+                    video_path = upload_image(video.file, folder="alumni_videos")
+                    videos_list.append(video_path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/alumni/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": college,
+                        "alumni": None,
+                        "action": "Create",
+                        "error": f"Video upload failed: {str(e)}"
+                    })
+
+    # Process video links
+    if video_links:
+        video_urls = [url.strip() for url in video_links.split('\n') if url.strip()]
+        videos_list.extend(video_urls)
+
+    alumni = Alumni(
+        college_id=college.id,
+        name=name,
+        achievement=achievement or None,
+        description=description or None,
+        main_image=main_image_path,
+        gallery_images=gallery_images_list if gallery_images_list else None,
+        videos=videos_list if videos_list else None
+    )
+
+    db.add(alumni)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college.id}/alumni", status_code=303)
+
+
+@router.get("/alumni/{alumni_id}/edit", response_class=HTMLResponse)
+async def edit_alumni_form(
+    request: Request,
+    alumni_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Edit alumni form"""
+    alumni = db.query(Alumni).filter(Alumni.id == alumni_id).first()
+    if not alumni:
+        raise HTTPException(status_code=404, detail="Alumni not found")
+
+    college = db.query(College).filter(College.id == alumni.college_id).first()
+
+    return templates.TemplateResponse("admin/alumni/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "alumni": alumni,
+        "action": "Edit"
+    })
+
+
+@router.post("/alumni/{alumni_id}/edit")
+async def update_alumni(
+    request: Request,
+    alumni_id: int,
+    name: str = Form(...),
+    achievement: str = Form(""),
+    description: str = Form(""),
+    main_image: UploadFile = File(None),
+    gallery_images: list = File(None),
+    video_files: list = File(None),
+    video_links: str = Form(""),
+    delete_gallery_images: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Update alumni member"""
+    alumni = db.query(Alumni).filter(Alumni.id == alumni_id).first()
+    if not alumni:
+        raise HTTPException(status_code=404, detail="Alumni not found")
+
+    college = db.query(College).filter(College.id == alumni.college_id).first()
+
+    # Handle main image upload
+    if main_image and main_image.filename:
+        try:
+            # Delete old image if exists
+            if alumni.main_image:
+                delete_image(alumni.main_image)
+            alumni.main_image = upload_image(main_image.file, folder="alumni")
+        except Exception as e:
+            return templates.TemplateResponse("admin/alumni/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "alumni": alumni,
+                "action": "Edit",
+                "error": f"Image upload failed: {str(e)}"
+            })
+
+    # Handle deleted gallery images
+    if delete_gallery_images:
+        try:
+            deleted_urls = json.loads(delete_gallery_images)
+            if alumni.gallery_images:
+                # Remove deleted images from array
+                alumni.gallery_images = [img for img in alumni.gallery_images if img not in deleted_urls]
+                # Delete from Cloudinary
+                for img_url in deleted_urls:
+                    try:
+                        delete_image(img_url)
+                    except:
+                        pass
+        except:
+            pass
+
+    # Handle gallery images - append to existing ones
+    if gallery_images:
+        if not isinstance(gallery_images, list):
+            gallery_images = [gallery_images]
+        
+        # Initialize if None
+        if not alumni.gallery_images:
+            alumni.gallery_images = []
+        
+        for img in gallery_images:
+            if img and img.filename:
+                try:
+                    img_path = upload_image(img.file, folder="alumni_gallery")
+                    alumni.gallery_images.append(img_path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/alumni/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": college,
+                        "alumni": alumni,
+                        "action": "Edit",
+                        "error": f"Gallery image upload failed: {str(e)}"
+                    })
+
+    # Handle videos - replace with new ones (both files and links)
+    videos_list = []
+    
+    # Process uploaded video files
+    if video_files:
+        if not isinstance(video_files, list):
+            video_files = [video_files]
+        
+        for video in video_files:
+            if video and video.filename:
+                try:
+                    video_path = upload_image(video.file, folder="alumni_videos")
+                    videos_list.append(video_path)
+                except Exception as e:
+                    return templates.TemplateResponse("admin/alumni/form.html", {
+                        "request": request,
+                        "user": current_user,
+                        "college": college,
+                        "alumni": alumni,
+                        "action": "Edit",
+                        "error": f"Video upload failed: {str(e)}"
+                    })
+
+    # Process video links
+    if video_links:
+        video_urls = [url.strip() for url in video_links.split('\n') if url.strip()]
+        videos_list.extend(video_urls)
+
+    # Update videos only if new ones were provided
+    if videos_list:
+        alumni.videos = videos_list
+    elif not video_files and not video_links:
+        # If nothing provided, keep existing
+        pass
+
+    alumni.name = name
+    alumni.achievement = achievement or None
+    alumni.description = description or None
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college.id}/alumni", status_code=303)
+
+
+@router.post("/alumni/{alumni_id}/delete")
+async def delete_alumni(
+    alumni_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Delete alumni member"""
+    alumni = db.query(Alumni).filter(Alumni.id == alumni_id).first()
+    if not alumni:
+        raise HTTPException(status_code=404, detail="Alumni not found")
+
+    college_id = alumni.college_id
+
+    # Delete main image if exists
+    if alumni.main_image:
+        try:
+            delete_image(alumni.main_image)
+        except:
+            pass
+
+    db.delete(alumni)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/alumni", status_code=303)
 

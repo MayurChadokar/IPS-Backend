@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Alumni - {{ college.name }}{% endblock %}
+{% block page_title %}Manage Alumni{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title"><i class="bi bi-person-badge me-2"></i>Alumni - {{ college.name }}</h2>
+        <a href="/admin/colleges/{{ college.id }}/alumni/new" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Alumni Member
+        </a>
+    </div>
+
+    <div class="card-body p-0">
+        {% if alumni_list %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Name</th>
+                        <th>Achievement</th>
+                        <th style="width: 100px;">Image</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 220px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumni in alumni_list %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark">{{ alumni.id }}</span></td>
+                        <td><strong>{{ alumni.name }}</strong></td>
+                        <td>{{ alumni.achievement[:50] if alumni.achievement else '-' }}</td>
+                        <td>
+                            {% if alumni.main_image %}
+                            <img src="{{ alumni.main_image }}" alt="{{ alumni.name }}" style="max-width: 50px; max-height: 50px; border-radius: 4px;">
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if alumni.is_active %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge badge-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-1">
+                                <a href="/admin/alumni/{{ alumni.id }}/edit" class="btn btn-sm btn-outline-primary"
+                                    title="Edit Alumni">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form method="POST" action="/admin/alumni/{{ alumni.id }}/delete"
+                                    onsubmit="return confirm('Delete this alumni member?');"
+                                    class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Alumni">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-person-badge" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No alumni members found. Add your first alumni to get started.</p>
+            <a href="/admin/colleges/{{ college.id }}/alumni/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Alumni Member
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

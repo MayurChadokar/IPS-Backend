@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event, Activity
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, News, Event, Activity, Alumni
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
@@ -11,6 +11,8 @@ from app.schemas.schemas import (
     EventDetail,
     ActivityListItem,
     ActivityDetail,
+    AlumniListItem,
+    AlumniDetail,
     CollegePublicInfo,
 )
 from typing import List, Dict, Any, Optional
@@ -548,6 +550,78 @@ async def get_activity_detail(
         created_at=a.created_at,
     )
 
+
+# ============= ALUMNI ENDPOINTS =============
+@router.get("/{college_slug}/alumni", response_model=List[AlumniListItem])
+async def list_alumni_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List active alumni members for a college
+
+    Example: GET /api/ipsa/alumni
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    alumni_list = db.query(Alumni).filter(
+        Alumni.college_id == college.id,
+        Alumni.is_active == True
+    ).order_by(Alumni.created_at.desc()).all()
+
+    return [
+        AlumniListItem(
+            id=a.id,
+            name=a.name,
+            achievement=a.achievement,
+            main_image=a.main_image,
+            is_active=a.is_active,
+        )
+        for a in alumni_list
+    ]
+
+
+@router.get("/{college_slug}/alumni/{alumni_id}", response_model=AlumniDetail)
+async def get_alumni_detail(
+    college_slug: str,
+    alumni_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get alumni detail by ID
+
+    Example: GET /api/ipsa/alumni/1
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    a = db.query(Alumni).filter(
+        Alumni.id == alumni_id,
+        Alumni.college_id == college.id
+    ).first()
+    if not a or not a.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alumni not found")
+
+    return AlumniDetail(
+        id=a.id,
+        name=a.name,
+        achievement=a.achievement,
+        description=a.description,
+        main_image=a.main_image,
+        gallery_images=a.gallery_images,
+        videos=a.videos,
+        created_at=a.created_at,
+    )
 
 @router.get("/{college_slug}/activities/slug/{activity_slug}", response_model=ActivityDetail)
 async def get_activity_by_slug(
