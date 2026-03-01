@@ -35,6 +35,17 @@ class PageBase(BaseModel):
     slug: str
     title: str
     meta_description: Optional[str] = None
+    meta_title: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    canonical_url: Optional[str] = None
+    robots: Optional[str] = "index, follow"
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    og_image: Optional[str] = None
+    twitter_title: Optional[str] = None
+    twitter_description: Optional[str] = None
+    twitter_image: Optional[str] = None
+    schema_markup: Optional[str] = None
     is_active: bool = True
 
 
@@ -45,6 +56,17 @@ class PageCreate(PageBase):
 class PageUpdate(BaseModel):
     title: Optional[str] = None
     meta_description: Optional[str] = None
+    meta_title: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    canonical_url: Optional[str] = None
+    robots: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    og_image: Optional[str] = None
+    twitter_title: Optional[str] = None
+    twitter_description: Optional[str] = None
+    twitter_image: Optional[str] = None
+    schema_markup: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -182,11 +204,23 @@ class PagePublicResponse(BaseModel):
     """
     Response for public frontend API
     Example: GET /api/ipsa/pages/home
+    Includes all SEO metadata for frontend consumption
     """
     college: str  # slug
     page: str  # slug
     title: str
     meta_description: Optional[str] = None
+    meta_title: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    canonical_url: Optional[str] = None
+    robots: Optional[str] = None
+    og_title: Optional[str] = None
+    og_description: Optional[str] = None
+    og_image: Optional[str] = None
+    twitter_title: Optional[str] = None
+    twitter_description: Optional[str] = None
+    twitter_image: Optional[str] = None
+    schema_markup: Optional[str] = None
     sections: Dict[str, Any]  # Keyed by section_key
     
     model_config = ConfigDict(from_attributes=True)

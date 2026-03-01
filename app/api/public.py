@@ -88,6 +88,17 @@ async def get_page_by_college(
         page=page_slug,
         title=page.title,
         meta_description=page.meta_description,
+        meta_title=page.meta_title,
+        meta_keywords=page.meta_keywords,
+        canonical_url=page.canonical_url,
+        robots=page.robots,
+        og_title=page.og_title,
+        og_description=page.og_description,
+        og_image=page.og_image,
+        twitter_title=page.twitter_title,
+        twitter_description=page.twitter_description,
+        twitter_image=page.twitter_image,
+        schema_markup=page.schema_markup,
         sections=sections_dict
     )
 
