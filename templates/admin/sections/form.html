@@ -1308,8 +1308,9 @@
                     // 1. Remove "Edit HTML" action bars inside .scratch-raw-html blocks
                     clone.querySelectorAll('.scratch-raw-html .scratch-actions').forEach(el => el.remove());
 
-                    // 2. Remove "✕ Remove" buttons inside .scratch-card-block
+                    // 2. Remove admin buttons inside .scratch-card-block
                     clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
+                    clone.querySelectorAll('.scratch-card-exit').forEach(el => el.remove());
 
                     // 3. Remove "Button URL" text inputs inside card button rows
                     clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
@@ -1317,10 +1318,14 @@
                     // 4. Remove hidden file inputs that were added for card image uploads
                     clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
 
-                    // 5. Remove the image drag-resize overlay if somehow serialised
+                    // 5. Remove admin buttons/file inputs inside .scratch-imgtext-block
+                    clone.querySelectorAll('.scratch-imgtext-admin').forEach(el => el.remove());
+                    clone.querySelectorAll('.scratch-imgtext-block > input[type="file"]').forEach(el => el.remove());
+
+                    // 6. Remove the image drag-resize overlay if somehow serialised
                     clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
 
-                    // 6. Remove PDF admin controls (preview, download, remove buttons)
+                    // 7. Remove PDF admin controls (preview, download, remove buttons)
                     clone.querySelectorAll('.scratch-admin-controls').forEach(el => el.remove());
 
                     // Simplify PDF card styling for frontend
@@ -2266,19 +2271,49 @@
         const textCol = document.createElement('div');
         textCol.style.cssText = 'flex:1; padding:20px; display:flex; flex-direction:column; gap:8px;';
 
+        // Helper: place cursor after the card in the main editor
+        function exitCard() {
+            const editor = document.getElementById('scratch_editor');
+            if (!editor) return;
+            // Ensure there is a <p> after the card to land in
+            let after = cardWrap.nextSibling;
+            if (!after || (after.nodeType === 1 && after.tagName !== 'P')) {
+                const newP = document.createElement('p');
+                newP.innerHTML = '<br>';
+                cardWrap.parentNode.insertBefore(newP, after);
+                after = newP;
+            }
+            try {
+                const range = document.createRange();
+                range.setStart(after, 0);
+                range.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                editor.focus();
+            } catch (ex) { editor.focus(); }
+        }
+
         const title = document.createElement('h5');
         title.contentEditable = 'true';
-        title.style.cssText = 'margin:0; font-weight:700; outline:none; ';
+        title.style.cssText = 'margin:0; font-weight:700; outline:none;';
         title.textContent = 'Card Title';
         title.addEventListener('focus', () => title.style.borderBottomColor = '#86b7fe');
         title.addEventListener('blur', () => title.style.borderBottomColor = 'transparent');
+        title.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); body.focus(); }
+        });
 
         const body = document.createElement('p');
         body.contentEditable = 'true';
-        body.style.cssText = 'margin:0; color:#6c757d; outline:none;  flex:1;';
+        body.style.cssText = 'margin:0; color:#6c757d; outline:none; flex:1;';
         body.textContent = 'Short description or caption goes here.';
         body.addEventListener('focus', () => body.style.borderBottomColor = '#86b7fe');
         body.addEventListener('blur', () => body.style.borderBottomColor = 'transparent');
+        body.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); btn.focus(); }
+            if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); title.focus(); }
+        });
 
         const btnRow = document.createElement('div');
         btnRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
@@ -2290,12 +2325,24 @@
         btn.style.cssText = 'display:inline-block; outline:none;';
         btn.textContent = 'Learn more';
         btn.addEventListener('click', e => e.preventDefault());
+        // Tab from btn label → focus URL input; Enter in btn → exit card
+        btn.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); linkInput.focus(); }
+            if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); body.focus(); }
+            if (e.key === 'Enter') { e.preventDefault(); exitCard(); }
+        });
 
         const linkInput = document.createElement('input');
         linkInput.type = 'text';
-        linkInput.placeholder = 'Button URL';
+        linkInput.placeholder = 'Button URL (Tab to exit card)';
         linkInput.style.cssText = 'flex:1; min-width:120px; font-size:12px; padding:4px 8px; border:1px solid #dee2e6; border-radius:4px;';
         linkInput.addEventListener('input', () => btn.href = linkInput.value || '#');
+        // Tab from URL input → exit card; Shift+Tab → back to btn label
+        linkInput.addEventListener('keydown', e => {
+            if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); exitCard(); }
+            if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); btn.focus(); }
+            if (e.key === 'Enter') { e.preventDefault(); exitCard(); }
+        });
 
         btnRow.appendChild(btn);
         btnRow.appendChild(linkInput);
@@ -2311,17 +2358,30 @@
             cardFileInput.remove();
         });
 
+        // "Add Below" button — places cursor after the card so user can keep typing or insert another card
+        const addBelowBtn = document.createElement('button');
+        addBelowBtn.type = 'button';
+        addBelowBtn.title = 'Move cursor below this card';
+        addBelowBtn.className = 'scratch-card-exit';
+        addBelowBtn.style.cssText = 'position:absolute; bottom:6px; right:6px; padding:2px 10px; font-size:11px; background:#0d6efd; color:#fff; border:none; border-radius:4px; cursor:pointer; opacity:0.85;';
+        addBelowBtn.innerHTML = '↓ Add Below';
+        addBelowBtn.addEventListener('mouseenter', () => addBelowBtn.style.opacity = '1');
+        addBelowBtn.addEventListener('mouseleave', () => addBelowBtn.style.opacity = '0.85');
+        addBelowBtn.addEventListener('click', () => exitCard());
+
         textCol.appendChild(title);
         textCol.appendChild(body);
         textCol.appendChild(btnRow);
 
         cardWrap.style.position = 'relative';
         cardWrap.appendChild(removeBtn);
+        cardWrap.appendChild(addBelowBtn);
         cardWrap.appendChild(imgCol);
         cardWrap.appendChild(textCol);
         cardWrap.appendChild(cardFileInput);
 
         const p = document.createElement('p');
+        p.innerHTML = '<br>';
         const frag = document.createDocumentFragment();
         frag.appendChild(cardWrap);
         frag.appendChild(p);
@@ -2574,15 +2634,15 @@
             const t = e.target;
             if (_activeOverlay && _activeOverlay.contains(t)) return; // inside overlay controls
 
-            if (t && t.tagName === 'IMG' && editor.contains(t) && !t.closest('.scratch-card-block')) {
-                e.preventDefault();
-                attachResizeOverlay(t);
-            } else if (t && t.classList && t.classList.contains('scratch-image-placeholder')) {
+            if (t && t.classList && t.classList.contains('scratch-image-placeholder')) {
                 removeResizeOverlay();
                 if (blockFileInput) {
                     blockFileInput.dataset.targetId = t.id;
                     blockFileInput.click();
                 }
+            } else if (t && t.tagName === 'IMG' && editor.contains(t) && !t.closest('.scratch-card-block') && !t.classList.contains('scratch-image-placeholder')) {
+                e.preventDefault();
+                attachResizeOverlay(t);
             } else if (t !== _activeResizeImg) {
                 removeResizeOverlay();
             }
@@ -2725,35 +2785,157 @@
     }
 
     function insertImageTextBlock(position = 'left') {
-        const id = 'scratch_block_img_' + Date.now();
-        const contentId = 'scratch_block_content_' + Date.now();
-        const imgColId = 'scratch_block_imgcol_' + Date.now();
-        const imgHtml = `<img id="${id}" class="scratch-image-placeholder" src="" alt="Image" style="width:100%; height:auto; object-fit:cover; border-radius:8px; background:#f3f4f6; min-height:160px;">`;
-        const textHtml = `<div id="${contentId}" contenteditable="true" style="min-height:160px; padding:8px;">\n<h3>Heading</h3>\n<p>Write your heading, paragraph or bullets here...</p>\n</div>`;
+        const editor = document.getElementById('scratch_editor');
+        if (!editor) return;
 
-        // Use Bootstrap row/cols so the block behaves like a proper section
-        let blockHtml = '';
-        if (position === 'left') {
-            blockHtml = `
-            <div class="scratch-section container-fluid" style="padding:12px 8px; margin:14px 0; border-radius:8px; background:#fff; border:1px solid #eef2f6;">
-                <div class="row align-items-center">
-                    <div id="${imgColId}" class="col-md-6 img-col">${imgHtml}</div>
-                    <div class="col-md-6 text-col">${textHtml}</div>
-                </div>
-            </div>
-            `;
-        } else {
-            blockHtml = `
-            <div class="scratch-section container-fluid" style="padding:12px 8px; margin:14px 0; border-radius:8px; background:#fff; border:1px solid #eef2f6;">
-                <div class="row align-items-center">
-                    <div class="col-md-6 text-col">${textHtml}</div>
-                    <div id="${imgColId}" class="col-md-6 img-col">${imgHtml}</div>
-                </div>
-            </div>
-            `;
+        // ── Outer wrapper (CSS Grid for robust containment) ─────────────────
+        const wrap = document.createElement('div');
+        wrap.className = 'scratch-imgtext-block';
+        wrap.contentEditable = 'false';
+        wrap.style.cssText = `display:grid; grid-template-columns:${position === 'left' ? '45% 1fr' : '1fr 45%'}; margin:14px 0; border:1px solid #dee2e6; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:relative;`;
+
+        // ── Image column ────────────────────────────────────────────────────
+        const imgCol = document.createElement('div');
+        imgCol.className = 'imgtext-img-col';
+        imgCol.style.cssText = 'min-height:220px; background:#e9ecef; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;';
+        imgCol.title = 'Click to upload image';
+
+        const imgSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="#adb5bd" viewBox="0 0 16 16"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg>`;
+        imgCol.innerHTML = `<div style="text-align:center; color:#adb5bd;"><div style="margin-bottom:8px;">${imgSvg}</div><small style="font-size:12px;">Click to add image</small></div>`;
+
+        // Hidden file input for image upload
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*,.svg,.ico,.jfif';
+        fileInput.style.display = 'none';
+        fileInput.dataset.skipPreview = 'true';
+
+        imgCol.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async function () {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                imgCol.innerHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover; display:block; opacity:0.7;">`;
+            };
+            reader.readAsDataURL(file);
+            try {
+                const url = await uploadFileToCloudinary(file);
+                imgCol.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; display:block;">`;
+            } catch (err) {
+                alert('Image upload failed: ' + err.message);
+                imgCol.innerHTML = `<div style="text-align:center; color:#adb5bd;"><div style="margin-bottom:8px;">${imgSvg}</div><small style="font-size:12px;">Click to add image</small></div>`;
+            } finally {
+                fileInput.value = '';
+            }
+        });
+
+        // ── Text column ─────────────────────────────────────────────────────
+        const textCol = document.createElement('div');
+        textCol.className = 'imgtext-text-col';
+        textCol.contentEditable = 'true';
+        textCol.style.cssText = 'padding:20px; min-height:220px; outline:none; font-size:15px; line-height:1.7; background:#fafbfc;';
+        textCol.innerHTML = '<h3>Heading</h3><p>Write your heading, paragraph or bullets here...</p>';
+
+        // Visual feedback when text column is active
+        textCol.addEventListener('focus', function () {
+            this.style.background = '#fff';
+            this.style.boxShadow = 'inset 0 0 0 2px rgba(13,110,253,0.15)';
+        });
+        textCol.addEventListener('blur', function () {
+            this.style.background = '#fafbfc';
+            this.style.boxShadow = 'none';
+        });
+
+        // ── Prevent Enter from pushing text outside the block ────────────────
+        textCol.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                // Let browser handle it, then detect & fix any content escape
+                setTimeout(() => {
+                    const sel = window.getSelection();
+                    if (!sel || !sel.anchorNode) return;
+                    let node = sel.anchorNode;
+                    if (node.nodeType === 3) node = node.parentElement;
+                    if (!textCol.contains(node)) {
+                        // Content escaped the grid cell — move it back
+                        let escaped = node;
+                        while (escaped.parentElement && escaped.parentElement !== editor) {
+                            escaped = escaped.parentElement;
+                        }
+                        if (escaped && editor.contains(escaped) && escaped !== wrap) {
+                            textCol.appendChild(escaped);
+                            const range = document.createRange();
+                            range.setStart(escaped, 0);
+                            range.collapse(true);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                }, 0);
+            }
+        });
+
+        // ── Exit helper ─────────────────────────────────────────────────────
+        function exitBlock() {
+            let after = wrap.nextSibling;
+            if (!after || (after.nodeType === 1 && after.tagName !== 'P')) {
+                const newP = document.createElement('p');
+                newP.innerHTML = '<br>';
+                wrap.parentNode.insertBefore(newP, after);
+                after = newP;
+            }
+            try {
+                const range = document.createRange();
+                range.setStart(after, 0);
+                range.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                editor.focus();
+            } catch (ex) { editor.focus(); }
         }
 
-        execCmd('insertHTML', blockHtml);
+        // ── Admin controls bar (absolute positioned, outside grid flow) ─────
+        const adminBar = document.createElement('div');
+        adminBar.className = 'scratch-imgtext-admin';
+        adminBar.contentEditable = 'false';
+        adminBar.style.cssText = 'position:absolute; top:4px; right:4px; display:flex; gap:4px; z-index:5;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.style.cssText = 'padding:2px 8px; font-size:11px; background:#fff; border:1px solid #dc3545; color:#dc3545; border-radius:4px; cursor:pointer;';
+        removeBtn.textContent = '✕ Remove';
+        removeBtn.addEventListener('click', () => wrap.remove());
+
+        const addBelowBtn = document.createElement('button');
+        addBelowBtn.type = 'button';
+        addBelowBtn.className = 'scratch-card-exit';
+        addBelowBtn.style.cssText = 'padding:2px 10px; font-size:11px; background:#0d6efd; color:#fff; border:none; border-radius:4px; cursor:pointer;';
+        addBelowBtn.textContent = '+ Add Below';
+        addBelowBtn.addEventListener('click', () => exitBlock());
+
+        adminBar.appendChild(removeBtn);
+        adminBar.appendChild(addBelowBtn);
+
+        // ── Assemble (image + text in correct DOM order for grid) ────────────
+        if (position === 'left') {
+            wrap.appendChild(imgCol);
+            wrap.appendChild(textCol);
+        } else {
+            wrap.appendChild(textCol);
+            wrap.appendChild(imgCol);
+        }
+        // fileInput & adminBar are position:absolute / display:none so they
+        // don't participate in the grid layout
+        wrap.appendChild(fileInput);
+        wrap.appendChild(adminBar);
+
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        const frag = document.createDocumentFragment();
+        frag.appendChild(wrap);
+        frag.appendChild(p);
+        insertFragmentAtCursor(frag);
     }
 
     // Upload a PDF file to Cloudinary via the raw upload endpoint
@@ -2992,8 +3174,11 @@
         // Strip admin-only elements (same logic as buildJSON scratch case)
         clone.querySelectorAll('.scratch-raw-html .scratch-actions').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block .btn-outline-danger').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-card-exit').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block input[type="text"]').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-card-block input[type="file"]').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-imgtext-admin').forEach(el => el.remove());
+        clone.querySelectorAll('.scratch-imgtext-block > input[type="file"]').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-img-overlay').forEach(el => el.remove());
         clone.querySelectorAll('.scratch-admin-controls').forEach(el => el.remove());
         clone.querySelectorAll('.pdf-embed-card').forEach(el => {
@@ -3152,8 +3337,31 @@
 
     /* Frontend: hide controls and use simple styling */
     #scratch_preview_content .scratch-admin-controls,
-    .content-section .scratch-admin-controls {
+    .content-section .scratch-admin-controls,
+    #scratch_preview_content .scratch-card-exit,
+    .content-section .scratch-card-exit,
+    #scratch_preview_content .scratch-imgtext-admin,
+    .content-section .scratch-imgtext-admin {
         display: none !important;
+    }
+
+    /* Image + Text block */
+    .scratch-imgtext-block .imgtext-img-col img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .scratch-imgtext-block .imgtext-text-col:focus {
+        outline: none;
+    }
+    @media (max-width: 768px) {
+        .scratch-imgtext-block {
+            grid-template-columns: 1fr !important;
+        }
+        .scratch-imgtext-block .imgtext-img-col {
+            min-height: 200px;
+        }
     }
 
 </style>
