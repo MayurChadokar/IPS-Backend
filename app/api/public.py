@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
@@ -294,7 +294,7 @@ async def get_college_info(
     db: Session = Depends(get_db)
 ):
     """
-    Get college information including its name, logo, and all active pages.
+    Get college information including its name, logo, pages, and social media links.
     """
     college = db.query(College).filter(
         College.slug == college_slug,
@@ -322,12 +322,27 @@ async def get_college_info(
         for page in pages
     ]
     
+    # Get all active social media links
+    social_links = db.query(SocialMediaLink).filter(
+        SocialMediaLink.college_id == college.id,
+        SocialMediaLink.is_active == True
+    ).all()
+    
+    social_list = [
+        {
+            "platform": link.platform.value,
+            "url": link.url
+        }
+        for link in social_links
+    ]
+    
     return CollegePublicInfo(
         name=college.name,
         slug=college.slug,
         logo=college.logo,
         domain=college.domain,
-        pages=pages_list
+        pages=pages_list,
+        social_media_links=social_list
     )
 
 

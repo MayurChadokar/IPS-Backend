@@ -5,13 +5,14 @@ from app.core.database import get_db
 from app.core.security import get_current_active_admin, SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from app.models.models import UserRole
-from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course
+from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink
 from app.schemas.schemas import (
     CollegeCreate, CollegeUpdate, CollegeResponse,
     PageCreate, PageUpdate, PageResponse,
     SectionCreate, SectionUpdate, SectionResponse,
     FacultyCreate, FacultyUpdate, FacultyResponse,
     CourseCreate, CourseUpdate, CourseResponse,
+    SocialMediaLinkCreate, SocialMediaLinkUpdate, SocialMediaLinkResponse,
     ClonePageRequest, CreateCollegeFromTemplate
 )
 from typing import List, Dict, Any
@@ -105,6 +106,107 @@ async def delete_college(
         )
     
     db.delete(db_college)
+    db.commit()
+    return None
+
+
+# ============= SOCIAL MEDIA LINK MANAGEMENT =============
+@router.post("/colleges/{college_id}/social-links", response_model=SocialMediaLinkResponse, status_code=status.HTTP_201_CREATED)
+async def create_social_media_link(
+    college_id: int,
+    social_link: SocialMediaLinkCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Create a new social media link for a college"""
+    # Verify college exists
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="College not found"
+        )
+    
+    db_link = SocialMediaLink(college_id=college_id, **social_link.model_dump(exclude={'college_id'}))
+    db.add(db_link)
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+
+@router.get("/colleges/{college_id}/social-links", response_model=List[SocialMediaLinkResponse])
+async def list_social_media_links(
+    college_id: int,
+    db: Session = Depends(get_db)
+):
+    """List all social media links for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="College not found"
+        )
+    
+    links = db.query(SocialMediaLink).filter(
+        SocialMediaLink.college_id == college_id
+    ).all()
+    return links
+
+
+@router.get("/social-links/{link_id}", response_model=SocialMediaLinkResponse)
+async def get_social_media_link(
+    link_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific social media link"""
+    link = db.query(SocialMediaLink).filter(SocialMediaLink.id == link_id).first()
+    if not link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social media link not found"
+        )
+    return link
+
+
+@router.put("/social-links/{link_id}", response_model=SocialMediaLinkResponse)
+async def update_social_media_link(
+    link_id: int,
+    social_link: SocialMediaLinkUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Update a social media link"""
+    db_link = db.query(SocialMediaLink).filter(SocialMediaLink.id == link_id).first()
+    if not db_link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social media link not found"
+        )
+    
+    update_data = social_link.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_link, key, value)
+    
+    db.commit()
+    db.refresh(db_link)
+    return db_link
+
+
+@router.delete("/social-links/{link_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_social_media_link(
+    link_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Delete a social media link"""
+    db_link = db.query(SocialMediaLink).filter(SocialMediaLink.id == link_id).first()
+    if not db_link:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Social media link not found"
+        )
+    
+    db.delete(db_link)
     db.commit()
     return None
 

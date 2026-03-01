@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni, SocialMediaLink
 from datetime import timedelta, datetime
 from typing import Optional
 import json
@@ -209,6 +209,7 @@ async def create_college(
     logo: UploadFile = File(None),
     domain: str = Form(""),
     is_active: bool = Form(True),
+    social_media_data: str = Form("[]"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -238,9 +239,29 @@ async def create_college(
     
     try:
         db.add(college)
+        db.flush()  # Flush to get college ID
+        
+        # Add social media links
+        try:
+            social_data = json.loads(social_media_data)
+            for item in social_data:
+                if item.get('platform') and item.get('url'):
+                    social_link = SocialMediaLink(
+                        college_id=college.id,
+                        platform=item['platform'],
+                        url=item['url'],
+                        is_active=True,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.add(social_link)
+        except (json.JSONDecodeError, KeyError):
+            pass
+        
         db.commit()
         return RedirectResponse(url="/admin/colleges", status_code=303)
     except Exception as e:
+        db.rollback()
         return templates.TemplateResponse("admin/colleges/form.html", {
             "request": request,
             "user": current_user,
@@ -279,6 +300,7 @@ async def update_college(
     logo: UploadFile = File(None),
     domain: str = Form(""),
     is_active: bool = Form(True),
+    social_media_data: str = Form("[]"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ):
@@ -306,9 +328,30 @@ async def update_college(
     college.is_active = is_active
     
     try:
+        # Delete existing social media links
+        db.query(SocialMediaLink).filter(SocialMediaLink.college_id == college_id).delete()
+        
+        # Add new social media links
+        try:
+            social_data = json.loads(social_media_data)
+            for item in social_data:
+                if item.get('platform') and item.get('url'):
+                    social_link = SocialMediaLink(
+                        college_id=college_id,
+                        platform=item['platform'],
+                        url=item['url'],
+                        is_active=True,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    )
+                    db.add(social_link)
+        except (json.JSONDecodeError, KeyError):
+            pass
+        
         db.commit()
         return RedirectResponse(url="/admin/colleges", status_code=303)
     except Exception as e:
+        db.rollback()
         return templates.TemplateResponse("admin/colleges/form.html", {
             "request": request,
             "user": current_user,

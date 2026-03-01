@@ -30,6 +30,36 @@ class CollegeResponse(CollegeBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ============= Social Media Link Schemas =============
+class SocialMediaLinkBase(BaseModel):
+    platform: str
+    url: str
+    is_active: bool = True
+
+
+class SocialMediaLinkCreate(SocialMediaLinkBase):
+    college_id: int
+
+
+class SocialMediaLinkUpdate(BaseModel):
+    platform: Optional[str] = None
+    url: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class SocialMediaLinkResponse(SocialMediaLinkBase):
+    id: int
+    college_id: int
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CollegeResponseWithSocial(CollegeResponse):
+    """College response with social media links"""
+    social_media_links: List[SocialMediaLinkResponse] = []
+
+
 # ============= Page Schemas =============
 class PageBase(BaseModel):
     slug: str
@@ -235,6 +265,7 @@ class CollegePublicInfo(BaseModel):
     logo: Optional[str] = None
     domain: Optional[str] = None
     pages: List[Dict[str, Any]]
+    social_media_links: List[Dict[str, Any]] = []
     
     model_config = ConfigDict(from_attributes=True)
 

@@ -12,6 +12,18 @@ class UserRole(enum.Enum):
     EDITOR = "editor"
 
 
+class SocialMediaPlatform(enum.Enum):
+    """Social media platforms for college links"""
+    INSTAGRAM = "instagram"
+    FACEBOOK = "facebook"
+    TWITTER = "twitter"
+    LINKEDIN = "linkedin"
+    YOUTUBE = "youtube"
+    WHATSAPP = "whatsapp"
+    TELEGRAM = "telegram"
+    TIKTOK = "tiktok"
+
+
 class User(Base):
     """
     Admin/User table for authentication
@@ -27,6 +39,28 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class SocialMediaLink(Base):
+    """
+    Social media links for each college
+    """
+    __tablename__ = "social_media_links"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    platform = Column(SQLEnum(SocialMediaPlatform), nullable=False)
+    url = Column(String(500), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    college = relationship("College", back_populates="social_media_links")
     
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
@@ -59,6 +93,7 @@ class College(Base):
     news = relationship("News", back_populates="college", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="college", cascade="all, delete-orphan")
     alumni = relationship("Alumni", back_populates="college", cascade="all, delete-orphan")
+    social_media_links = relationship("SocialMediaLink", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):

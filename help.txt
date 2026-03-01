@@ -1,7 +1,10 @@
 python main.py 
 
 
-alembic revision --autogenerate -m "added gaalry"
+alembic revision --autogenerate -m "added social media"
 
 
 alembic stamp head
+
+
+alembic upgrade head

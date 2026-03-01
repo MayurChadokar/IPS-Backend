@@ -68,6 +68,46 @@
                 </div>
             </div>
 
+            <hr class="my-4">
+
+            <div class="mb-4">
+                <h5 class="mb-3"><i class="bi bi-share-square me-2"></i>Social Media Links</h5>
+                
+                <div id="socialMediaContainer">
+                    {% if college and college.social_media_links %}
+                        {% for link in college.social_media_links %}
+                        <div class="social-media-row mb-3 p-3 bg-light rounded d-flex gap-2 align-items-end">
+                            <div class="flex-grow-1">
+                                <label class="form-label mb-1">Platform</label>
+                                <select class="form-select social-platform" name="social_platform">
+                                    <option value="">-- Select Platform --</option>
+                                    <option value="instagram" {% if link.platform.value == 'instagram' %}selected{% endif %}>Instagram</option>
+                                    <option value="facebook" {% if link.platform.value == 'facebook' %}selected{% endif %}>Facebook</option>
+                                    <option value="twitter" {% if link.platform.value == 'twitter' %}selected{% endif %}>Twitter/X</option>
+                                    <option value="linkedin" {% if link.platform.value == 'linkedin' %}selected{% endif %}>LinkedIn</option>
+                                    <option value="youtube" {% if link.platform.value == 'youtube' %}selected{% endif %}>YouTube</option>
+                                    <option value="whatsapp" {% if link.platform.value == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+                                    <option value="telegram" {% if link.platform.value == 'telegram' %}selected{% endif %}>Telegram</option>
+                                    <option value="tiktok" {% if link.platform.value == 'tiktok' %}selected{% endif %}>TikTok</option>
+                                </select>
+                            </div>
+                            <div class="flex-grow-2">
+                                <label class="form-label mb-1">URL</label>
+                                <input type="url" class="form-control social-url" name="social_url" value="{{ link.url }}" placeholder="https://...">
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm remove-social-row" title="Remove">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" id="addSocialBtn">
+                    <i class="bi bi-plus-circle me-1"></i> Add Social Media Link
+                </button>
+            </div>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-success">
                     <i class="bi bi-check-circle"></i> {{ action }} College
@@ -79,4 +119,83 @@
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addBtn = document.getElementById('addSocialBtn');
+        const container = document.getElementById('socialMediaContainer');
+
+        function createSocialRow() {
+            const row = document.createElement('div');
+            row.className = 'social-media-row mb-3 p-3 bg-light rounded d-flex gap-2 align-items-end';
+            row.innerHTML = `
+                <div class="flex-grow-1">
+                    <label class="form-label mb-1">Platform</label>
+                    <select class="form-select social-platform" name="social_platform">
+                        <option value="">-- Select Platform --</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="twitter">Twitter/X</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="tiktok">TikTok</option>
+                    </select>
+                </div>
+                <div class="flex-grow-2">
+                    <label class="form-label mb-1">URL</label>
+                    <input type="url" class="form-control social-url" name="social_url" placeholder="https://...">
+                </div>
+                <button type="button" class="btn btn-danger btn-sm remove-social-row" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            `;
+            
+            row.querySelector('.remove-social-row').addEventListener('click', function() {
+                row.remove();
+            });
+            
+            return row;
+        }
+
+        addBtn.addEventListener('click', function() {
+            container.appendChild(createSocialRow());
+        });
+
+        // Add remove button listeners to existing rows
+        container.querySelectorAll('.remove-social-row').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.social-media-row').remove();
+            });
+        });
+
+        // Handle form submission to preserve social media data
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const socialRows = container.querySelectorAll('.social-media-row');
+            const socialData = [];
+            
+            socialRows.forEach(row => {
+                const platform = row.querySelector('.social-platform').value;
+                const url = row.querySelector('.social-url').value;
+                
+                if (platform && url) {
+                    socialData.push({ platform, url });
+                }
+            });
+            
+            // Store social data in hidden input
+            let hiddenInput = document.getElementById('socialMediaData');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = 'socialMediaData';
+                hiddenInput.name = 'social_media_data';
+                form.appendChild(hiddenInput);
+            }
+            hiddenInput.value = JSON.stringify(socialData);
+        });
+    });
+</script>
 {% endblock %}
