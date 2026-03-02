@@ -126,6 +126,22 @@
     // Store existing content if editing
     const existingContent = {{ (section.content.content_json | tojson) if section and section.content else '{}' }};
 
+    // Helper: safely escape user data for use inside JS template-literal HTML.
+    // Converts special chars to HTML entities so the template literal won't break,
+    // and the browser decodes them back to original values for .value / .textContent.
+    function escAttr(s) {
+        if (s == null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/`/g, '&#96;')
+            .replace(/\\/g, '&#92;')
+            .replace(/\$\{/g, '&#36;{');
+    }
+
     // Helper to detect video URLs (files or common providers)
     function isYouTube(url) {
         if (!url) return false;
@@ -508,10 +524,10 @@
 
         team: () => {
             const members = existingContent.members || [{ name: '', title: '', description: '', image: '' }];
-            return `
+            const html = `
             <div class="form-group">
                 <label class="form-label">Section Title</label>
-                <input type="text" class="form-control" id="team_title" placeholder="Our Leadership Team" value="${existingContent.title || ''}">
+                <input type="text" class="form-control" id="team_title" placeholder="Our Leadership Team" value="${escAttr(existingContent.title)}">
             </div>
             <div class="form-group">
                 <label class="form-label">Team Members</label>
@@ -521,35 +537,38 @@
                             <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Name *</label>
-                                    <input type="text" class="form-control team-name" placeholder="John Doe" value="${member.name || ''}" style="margin-bottom: 10px;">
+                                    <input type="text" class="form-control team-name" placeholder="John Doe" value="${escAttr(member.name)}" style="margin-bottom: 10px;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Title/Position *</label>
-                                    <input type="text" class="form-control team-title" placeholder="Director, President, etc." value="${member.title || ''}" style="margin-bottom: 10px;">
+                                    <input type="text" class="form-control team-title" placeholder="Director, President, etc." value="${escAttr(member.title)}" style="margin-bottom: 10px;">
                                 </div>
                             </div>
                             
                             <div style="margin-bottom: 15px;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
-                                <textarea class="form-control team-description" rows="4" placeholder="Brief description or bio..." style="margin-bottom: 10px;">${member.description || ''}</textarea>
+                                <textarea class="form-control team-description" rows="4" placeholder="Brief description or bio..." style="margin-bottom: 10px;">${escAttr(member.description)}</textarea>
                             </div>
                             
                             <div style="margin-bottom: 15px;">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
+                                <div class="team-photo-preview">
                                 ${member.image && !member.image.startsWith('__UPLOAD__') ? `
-                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;" class="team-current-photo">
                                         <div class="d-flex align-items-start gap-3">
-                                            <img src="${member.image}" alt="Current" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\"width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border-radius: 50%; border: 2px solid #ddd;\"><i class=\"bi bi-person-fill\" style=\"font-size: 32px; color: #ccc;\"></i></div>'">
+                                            <img src="${escAttr(member.image)}" alt="Current" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #ddd;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div style="width: 100px; height: 100px; display: none; align-items: center; justify-content: center; background: #f0f0f0; border-radius: 50%; border: 2px solid #ddd;"><i class="bi bi-person-fill" style="font-size: 32px; color: #ccc;"></i></div>
                                             <div class="flex-grow-1">
                                                 <p class="mb-2"><strong>Current Photo:</strong></p>
-                                                <small class="d-block text-muted mb-2"><a href="${member.image}" target="_blank" class="text-primary">${member.image.split('/').pop()}</a></small>
-                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.team-item').querySelector('.team-image').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                <small class="d-block text-muted mb-2"><a href="${escAttr(member.image)}" target="_blank" class="text-primary">${escAttr((member.image || '').split('/').pop())}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="removeTeamPhoto(this)">
                                                     <i class="bi bi-x-circle"></i> Remove Photo
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 ` : ''}
+                                </div>
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
@@ -557,7 +576,7 @@
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
-                                        <input type="text" class="form-control team-image" placeholder="https://example.com/photo.jpg" value="${member.image && !member.image.startsWith('__UPLOAD__') ? member.image : ''}" style="padding: 10px;">
+                                        <input type="text" class="form-control team-image" placeholder="https://example.com/photo.jpg" value="${member.image && !member.image.startsWith('__UPLOAD__') ? escAttr(member.image) : ''}" style="padding: 10px;">
                                     </div>
                                 </div>
                             </div>
@@ -569,7 +588,8 @@
                 <button type="button" class="btn btn-secondary" onclick="addTeamMember()" style="margin-top: 10px;">+ Add Team Member</button>
                 <small style="display: block; color: #95a5a6; margin-top: 5px;">Add leadership team members with their photos, titles, and descriptions</small>
             </div>
-        `;
+            `;
+            return html;
         },
 
         contact: () => {
@@ -1030,6 +1050,7 @@
 
     function addTeamMember() {
         const container = document.getElementById('team_container');
+        if (!container) { console.error('team_container not found'); return; }
         const newMember = document.createElement('div');
         newMember.className = 'team-item';
         newMember.style.cssText = 'border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 5px; background: #f9f9f9;';
@@ -1052,10 +1073,11 @@
         
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Photo</label>
+            <div class="team-photo-preview"></div>
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">📁 Upload Photo (Cloudinary)</label>
-                    <input type="file" name="team_media_files" class="form-control team-image-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
+                    <input type="file" name="team_media_files" class="form-control team-media-file" accept="image/*,.svg,.ico,.jfif" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🔗 Or Enter URL</label>
@@ -1068,6 +1090,15 @@
     `;
         container.appendChild(newMember);
         initDragAndDrop();
+    }
+
+    function removeTeamPhoto(btn) {
+        const teamItem = btn.closest('.team-item');
+        if (!teamItem) return;
+        const imageInput = teamItem.querySelector('.team-image');
+        if (imageInput) imageInput.value = '';
+        const preview = teamItem.querySelector('.team-current-photo');
+        if (preview) preview.remove();
     }
 
     function addFeatureItem() {
@@ -1421,26 +1452,32 @@
                     const titleInput = item.querySelector('.team-title');
                     const descInput = item.querySelector('.team-description');
                     const urlInput = item.querySelector('.team-image');
-                    const fileInput = item.querySelector('.team-media-file, .team-image-file');
+                    const fileInput = item.querySelector('.team-media-file');
 
                     let memberImage = '';
-                    if (fileInput && fileInput.files.length > 0) {
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
                         memberImage = '__UPLOAD__' + fileInput.files[0].name;
                     } else if (urlInput && urlInput.value.trim()) {
                         memberImage = urlInput.value.trim();
                     }
 
-                    if (nameInput && nameInput.value.trim()) {
+                    const name = nameInput ? nameInput.value.trim() : '';
+                    const title = titleInput ? titleInput.value.trim() : '';
+                    const description = descInput ? descInput.value.trim() : '';
+
+                    // Save member if it has at least a name or title
+                    if (name || title) {
                         teamMembers.push({
-                            name: nameInput.value.trim(),
-                            title: titleInput ? titleInput.value.trim() : '',
-                            description: descInput ? descInput.value.trim() : '',
+                            name: name,
+                            title: title,
+                            description: description,
                             image: memberImage
                         });
                     }
                 }
+                const teamTitleEl = document.getElementById('team_title');
                 jsonData = {
-                    title: document.getElementById('team_title').value,
+                    title: teamTitleEl ? teamTitleEl.value : '',
                     members: teamMembers
                 };
                 break;
@@ -1689,7 +1726,6 @@
                 'hero-media-file': { selector: '.hero-media-url', by: 'class' },
                 'gallery-media-file': { selector: '.gallery-media-url', by: 'class' },
                 'team-media-file': { selector: '.team-image', by: 'class' },
-                'team-image-file': { selector: '.team-image', by: 'class' },
                 'card-media-file': { selector: '.card-icon-url', by: 'class' },
                 'card-icon-file': { selector: '.card-icon-url', by: 'class' },
                 'facility-image-file': { selector: '.facility-image-url', by: 'class' },
