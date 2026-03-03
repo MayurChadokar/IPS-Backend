@@ -219,10 +219,10 @@ async def create_college(
     logo_path = None
     footer_logo_path = None
     
-    # Handle logo upload
+    # Handle logo upload (no WebP conversion to preserve transparency)
     if logo and logo.filename:
         try:
-            logo_path = upload_image(logo.file, folder="college_logos")
+            logo_path = upload_image(logo.file, folder="college_logos", convert_to_webp=False)
         except Exception as e:
             return templates.TemplateResponse("admin/colleges/form.html", {
                 "request": request,
@@ -232,10 +232,10 @@ async def create_college(
                 "error": f"Logo upload failed: {str(e)}"
             })
     
-    # Handle footer logo upload
+    # Handle footer logo upload (no WebP conversion to preserve transparency)
     if footer_logo and footer_logo.filename:
         try:
-            footer_logo_path = upload_image(footer_logo.file, folder="college_logos")
+            footer_logo_path = upload_image(footer_logo.file, folder="college_logos", convert_to_webp=False)
         except Exception as e:
             return templates.TemplateResponse("admin/colleges/form.html", {
                 "request": request,
@@ -329,10 +329,10 @@ async def update_college(
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
     
-    # Handle logo upload if new file provided
+    # Handle logo upload if new file provided (no WebP conversion to preserve transparency)
     if logo and logo.filename:
         try:
-            college.logo = upload_image(logo.file, folder="college_logos")
+            college.logo = upload_image(logo.file, folder="college_logos", convert_to_webp=False)
         except Exception as e:
             return templates.TemplateResponse("admin/colleges/form.html", {
                 "request": request,
@@ -342,10 +342,10 @@ async def update_college(
                 "error": f"Logo upload failed: {str(e)}"
             })
     
-    # Handle footer logo upload if new file provided
+    # Handle footer logo upload if new file provided (no WebP conversion to preserve transparency)
     if footer_logo and footer_logo.filename:
         try:
-            college.footer_logo = upload_image(footer_logo.file, folder="college_logos")
+            college.footer_logo = upload_image(footer_logo.file, folder="college_logos", convert_to_webp=False)
         except Exception as e:
             return templates.TemplateResponse("admin/colleges/form.html", {
                 "request": request,
