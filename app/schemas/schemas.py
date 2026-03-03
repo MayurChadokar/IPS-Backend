@@ -8,6 +8,8 @@ class CollegeBase(BaseModel):
     name: str
     slug: str
     logo: Optional[str] = None
+    footer_logo: Optional[str] = None
+    document_download_link: Optional[str] = None
     domain: Optional[str] = None
     is_active: bool = True
 
@@ -19,6 +21,8 @@ class CollegeCreate(CollegeBase):
 class CollegeUpdate(BaseModel):
     name: Optional[str] = None
     logo: Optional[str] = None
+    footer_logo: Optional[str] = None
+    document_download_link: Optional[str] = None
     domain: Optional[str] = None
     is_active: Optional[bool] = None
 
@@ -263,6 +267,8 @@ class CollegePublicInfo(BaseModel):
     name: str
     slug: str
     logo: Optional[str] = None
+    footer_logo: Optional[str] = None
+    document_download_link: Optional[str] = None
     domain: Optional[str] = None
     pages: List[Dict[str, Any]]
     social_media_links: List[Dict[str, Any]] = []

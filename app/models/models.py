@@ -77,6 +77,8 @@ class College(Base):
     name = Column(String(255), nullable=False)
     slug = Column(String(100), unique=True, nullable=False, index=True)
     logo = Column(String(500), nullable=True)
+    footer_logo = Column(String(500), nullable=True)
+    document_download_link = Column(String(500), nullable=True)
     domain = Column(String(255), nullable=True, unique=True)  # For domain mapping
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

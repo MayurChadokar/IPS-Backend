@@ -207,6 +207,8 @@ async def create_college(
     name: str = Form(...),
     slug: str = Form(...),
     logo: UploadFile = File(None),
+    footer_logo: UploadFile = File(None),
+    document_download_link: str = Form(""),
     domain: str = Form(""),
     is_active: bool = Form(True),
     social_media_data: str = Form("[]"),
@@ -215,6 +217,7 @@ async def create_college(
 ):
     """Create new college"""
     logo_path = None
+    footer_logo_path = None
     
     # Handle logo upload
     if logo and logo.filename:
@@ -229,10 +232,25 @@ async def create_college(
                 "error": f"Logo upload failed: {str(e)}"
             })
     
+    # Handle footer logo upload
+    if footer_logo and footer_logo.filename:
+        try:
+            footer_logo_path = upload_image(footer_logo.file, folder="college_logos")
+        except Exception as e:
+            return templates.TemplateResponse("admin/colleges/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": None,
+                "action": "Create",
+                "error": f"Footer logo upload failed: {str(e)}"
+            })
+    
     college = College(
         name=name,
         slug=slug,
         logo=logo_path,
+        footer_logo=footer_logo_path,
+        document_download_link=document_download_link if document_download_link else None,
         domain=domain if domain else None,
         is_active=is_active
     )
@@ -298,6 +316,8 @@ async def update_college(
     name: str = Form(...),
     slug: str = Form(...),
     logo: UploadFile = File(None),
+    footer_logo: UploadFile = File(None),
+    document_download_link: str = Form(""),
     domain: str = Form(""),
     is_active: bool = Form(True),
     social_media_data: str = Form("[]"),
@@ -322,8 +342,22 @@ async def update_college(
                 "error": f"Logo upload failed: {str(e)}"
             })
     
+    # Handle footer logo upload if new file provided
+    if footer_logo and footer_logo.filename:
+        try:
+            college.footer_logo = upload_image(footer_logo.file, folder="college_logos")
+        except Exception as e:
+            return templates.TemplateResponse("admin/colleges/form.html", {
+                "request": request,
+                "user": current_user,
+                "college": college,
+                "action": "Edit",
+                "error": f"Footer logo upload failed: {str(e)}"
+            })
+    
     college.name = name
     college.slug = slug
+    college.document_download_link = document_download_link if document_download_link else None
     college.domain = domain if domain else None
     college.is_active = is_active
     

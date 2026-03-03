@@ -49,6 +49,26 @@
             </div>
 
             <div class="mb-3">
+                <label class="form-label">Footer Logo</label>
+                {% if college and college.footer_logo %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <img src="{{ college.footer_logo }}" alt="Current footer logo"
+                        style="max-width: 200px; max-height: 100px; border: 1px solid #dee2e6; padding: 8px; border-radius: 8px; background: white;">
+                    <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Current footer logo</p>
+                </div>
+                {% endif %}
+                <input type="file" name="footer_logo" class="form-control" accept="image/*">
+                <div class="form-text">Upload a footer logo image (JPG, PNG, or GIF)</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Document Download Link <small class="text-muted">(optional)</small></label>
+                <input type="text" name="document_download_link" class="form-control" value="{{ college.document_download_link if college else '' }}"
+                    placeholder="https://example.com/document.pdf">
+                <div class="form-text">URL for downloadable document (e.g., brochure, prospectus)</div>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Domain <small class="text-muted">(optional)</small></label>
                 <input type="text" name="domain" class="form-control" value="{{ college.domain if college else '' }}"
                     placeholder="college.edu">

@@ -340,6 +340,8 @@ async def get_college_info(
         name=college.name,
         slug=college.slug,
         logo=college.logo,
+        footer_logo=college.footer_logo,
+        document_download_link=college.document_download_link,
         domain=college.domain,
         pages=pages_list,
         social_media_links=social_list
