@@ -51,7 +51,8 @@ def process_image_to_webp(file_obj: BinaryIO, quality: int = 85) -> io.BytesIO:
 
 
 def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms", 
-                 convert_to_webp: bool = True, quality: int = 85, filename: str = None) -> str:
+                 convert_to_webp: bool = True, quality: int = 85, filename: str = None,
+                 resource_type: str = "image") -> str:
     """
     Upload an image or file to Cloudinary with automatic WebP conversion
     
@@ -61,6 +62,7 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
         convert_to_webp: Whether to convert images to WebP (default True)
         quality: WebP quality for conversion (1-100, default 85)
         filename: Optional filename to determine file type
+        resource_type: Cloudinary resource type ("image", "video", "auto", "raw")
     
     Returns:
         Secure URL of the uploaded file
@@ -109,17 +111,17 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
                 response = cloudinary.uploader.upload(
                     processed_file,
                     folder=folder,
-                    resource_type="image",
+                    resource_type=resource_type,
                     format="webp"  # Force WebP format
                 )
             except Exception as img_error:
-                # Not an image or processing failed, upload as-is with resource_type="image"
+                # Not an image or processing failed, upload as-is
                 print(f"Not an image or processing failed ({img_error}), uploading as-is")
                 file_path_or_obj.seek(0)
                 response = cloudinary.uploader.upload(
                     file_path_or_obj,
                     folder=folder,
-                    resource_type="image"  # Explicitly use "image" for SVG, ICO, etc.
+                    resource_type=resource_type
                 )
         else:
             # Vector/icon format or WebP conversion disabled - upload as image, not raw
@@ -128,7 +130,7 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
             response = cloudinary.uploader.upload(
                 file_path_or_obj,
                 folder=folder,
-                resource_type="image"  # Use "image" instead of "auto" for proper handling
+                resource_type=resource_type
             )
         
         return response.get("secure_url")

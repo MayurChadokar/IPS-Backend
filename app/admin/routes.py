@@ -2632,7 +2632,7 @@ async def create_alumni(
         for video in video_files:
             if video and video.filename:
                 try:
-                    video_path = upload_image(video.file, folder="alumni_videos")
+                    video_path = upload_image(video.file, folder="alumni_videos", convert_to_webp=False, resource_type="video")
                     videos_list.append(video_path)
                 except Exception as e:
                     return templates.TemplateResponse("admin/alumni/form.html", {
@@ -2778,7 +2778,7 @@ async def update_alumni(
         for video in video_files:
             if video and video.filename:
                 try:
-                    video_path = upload_image(video.file, folder="alumni_videos")
+                    video_path = upload_image(video.file, folder="alumni_videos", convert_to_webp=False, resource_type="video")
                     videos_list.append(video_path)
                 except Exception as e:
                     return templates.TemplateResponse("admin/alumni/form.html", {
