@@ -71,62 +71,86 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
         Exception: If upload fails
     """
     try:
-        # Determine if this is a vector/icon format that shouldn't be converted
-        is_vector_or_icon = False
-        if filename and isinstance(filename, str):
-            try:
-                ext = filename.lower().split('.')[-1]
-                is_vector_or_icon = ext in ['svg', 'ico', 'jfif']
-            except Exception:
-                pass
-        elif hasattr(file_path_or_obj, 'name') and file_path_or_obj.name:
-            try:
-                ext = file_path_or_obj.name.lower().split('.')[-1]
-                is_vector_or_icon = ext in ['svg', 'ico', 'jfif']
-            except Exception:
-                pass
+        # Determine file extension from filename
+        ext = None
+        if filename and isinstance(filename, str) and '.' in filename:
+            ext = filename.lower().rsplit('.', 1)[-1]
+        elif hasattr(file_path_or_obj, 'name') and file_path_or_obj.name and '.' in str(file_path_or_obj.name):
+            ext = str(file_path_or_obj.name).lower().rsplit('.', 1)[-1]
         
-        # Check if it's a file object and if it's an image that can be converted
-        if hasattr(file_path_or_obj, 'read') and convert_to_webp and not is_vector_or_icon:
-            # Try to determine if it's an image by checking content type or trying to process it
+        is_svg = ext == 'svg'
+        is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv']
+        # ICO and JFIF should skip WebP conversion but upload as image
+        is_skip_conversion = ext in ['svg', 'ico', 'gif']
+        
+        # Ensure file is at the beginning
+        if hasattr(file_path_or_obj, 'seek'):
+            file_path_or_obj.seek(0)
+        
+        # SVG files: upload as raw so Cloudinary preserves the SVG format
+        if is_svg:
+            print(f"Uploading SVG file as-is (raw)...")
+            response = cloudinary.uploader.upload(
+                file_path_or_obj,
+                folder=folder,
+                resource_type="raw",
+                format="svg"
+            )
+            return response.get("secure_url")
+        
+        # Video files: upload with resource_type="video"
+        if is_video:
+            print(f"Uploading video file ({ext})...")
+            response = cloudinary.uploader.upload(
+                file_path_or_obj,
+                folder=folder,
+                resource_type="video"
+            )
+            return response.get("secure_url")
+        
+        # Files that should skip WebP conversion (ICO, GIF, etc.)
+        if is_skip_conversion:
+            print(f"Uploading {ext} file without conversion...")
+            response = cloudinary.uploader.upload(
+                file_path_or_obj,
+                folder=folder,
+                resource_type=resource_type
+            )
+            return response.get("secure_url")
+        
+        # Standard image files: try WebP conversion
+        if hasattr(file_path_or_obj, 'read') and convert_to_webp:
             try:
-                # Save current position
                 current_pos = file_path_or_obj.tell() if hasattr(file_path_or_obj, 'tell') else 0
                 
-                # Try to open as image
                 test_img = Image.open(file_path_or_obj)
-                file_path_or_obj.seek(current_pos)  # Reset position
+                file_path_or_obj.seek(current_pos)
                 
-                # Check if it's already WebP
                 if test_img.format == 'WEBP':
                     print("Image is already in WebP format, uploading as-is")
-                    file_path_or_obj.seek(current_pos)
                     processed_file = file_path_or_obj
                 else:
                     print(f"Converting {test_img.format} image to WebP...")
                     file_path_or_obj.seek(current_pos)
                     processed_file = process_image_to_webp(file_path_or_obj, quality=quality)
                 
-                # Upload the processed image
                 response = cloudinary.uploader.upload(
                     processed_file,
                     folder=folder,
                     resource_type=resource_type,
-                    format="webp"  # Force WebP format
+                    format="webp"
                 )
             except Exception as img_error:
-                # Not an image or processing failed, upload as-is
-                print(f"Not an image or processing failed ({img_error}), uploading as-is")
+                # Processing failed — upload as-is with auto resource type detection
+                print(f"Image processing failed ({img_error}), uploading as-is with auto detection")
                 file_path_or_obj.seek(0)
                 response = cloudinary.uploader.upload(
                     file_path_or_obj,
                     folder=folder,
-                    resource_type=resource_type
+                    resource_type="auto"
                 )
         else:
-            # Vector/icon format or WebP conversion disabled - upload as image, not raw
-            if hasattr(file_path_or_obj, 'seek'):
-                file_path_or_obj.seek(0)
+            # No conversion requested or not a file object
             response = cloudinary.uploader.upload(
                 file_path_or_obj,
                 folder=folder,

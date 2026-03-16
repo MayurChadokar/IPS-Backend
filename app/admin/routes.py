@@ -763,7 +763,7 @@ async def upload_editor_image(
     """Upload image used by rich text editors (TinyMCE). Returns JSON with `location`."""
     try:
         print(f"Uploading editor image via Cloudinary for user={current_user.id}, filename={file.filename}")
-        url = upload_image(file.file, folder="editor_images")
+        url = upload_image(file.file, folder="editor_images", filename=file.filename)
         print(f"Upload successful: {url}")
         # Return multiple common keys so various TinyMCE upload flows accept the URL
         return JSONResponse({
@@ -810,6 +810,55 @@ async def upload_editor_pdf(
 
     except Exception as e:
         print(f"PDF upload error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# Upload endpoint for video files (saved locally as fallback for large videos)
+@router.post("/uploads/video")
+async def upload_editor_video(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin)
+):
+    """Upload a video file – saves to local uploads/videos/ directory and returns a public URL."""
+    import uuid, shutil
+
+    allowed_extensions = ('.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v')
+    if not file.filename or not file.filename.lower().endswith(allowed_extensions):
+        return JSONResponse({"error": "Only video files are allowed (MP4, WebM, MOV, AVI, MKV, FLV, WMV, M4V)"}, status_code=400)
+
+    # Size limit: 500 MB for server uploads (generous limit for local storage)
+    MAX_VIDEO_SIZE = 500 * 1024 * 1024
+    file_size = file.file.seek(0, 2)  # Seek to end to get file size
+    file.file.seek(0)  # Reset to beginning
+    
+    if file_size > MAX_VIDEO_SIZE:
+        return JSONResponse(
+            {"error": f"Video file too large. Maximum size is 500 MB, but received {file_size / (1024 * 1024):.2f} MB"}, 
+            status_code=413
+        )
+
+    try:
+        # Create videos sub-directory inside uploads/
+        video_dir = UPLOAD_DIR / "videos"
+        video_dir.mkdir(parents=True, exist_ok=True)
+
+        # Use UUID prefix to avoid collisions
+        safe_name = f"{uuid.uuid4().hex}_{file.filename}"
+        dest = video_dir / safe_name
+
+        with dest.open("wb") as out_file:
+            shutil.copyfileobj(file.file, out_file)
+
+        # Build the public URL using the request base URL
+        base_url = str(request.base_url).rstrip("/")
+        url = f"{base_url}/uploads/videos/{safe_name}"
+
+        print(f"Video saved locally: {dest} → {url}")
+        return JSONResponse({"location": url, "src": url, "url": url})
+
+    except Exception as e:
+        print(f"Video upload error: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -1572,7 +1621,7 @@ async def create_section(
         if section_type == 'hero' and hero_media_files:
             for file in hero_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in images array
@@ -1589,14 +1638,14 @@ async def create_section(
                 content_data['images'] = new_images
         
         elif section_type == 'text' and text_media_file and text_media_file.filename:
-            url = upload_image(text_media_file.file, folder=f"sections/{section_key}")
+            url = upload_image(text_media_file.file, folder=f"sections/{section_key}", filename=text_media_file.filename)
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
         
         elif section_type == 'gallery' and gallery_media_files:
             for file in gallery_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in images array
@@ -1615,7 +1664,7 @@ async def create_section(
         elif section_type == 'team' and team_media_files:
             for file in team_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in members array
@@ -1630,7 +1679,7 @@ async def create_section(
         elif section_type == 'cards' and cards_media_files:
             for file in cards_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in cards array
@@ -1645,7 +1694,7 @@ async def create_section(
         elif section_type == 'facilities' and facilities_media_files:
             for file in facilities_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in facilities array
@@ -1658,14 +1707,14 @@ async def create_section(
                             upload_index += 1
         
         elif section_type == 'split' and split_media_file and split_media_file.filename:
-            url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
+            url = upload_image(split_media_file.file, folder=f"sections/{section_key}", filename=split_media_file.filename)
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
 
         elif section_type == 'testimonials' and testimonials_media_files:
             for file in testimonials_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in items array
@@ -1681,7 +1730,7 @@ async def create_section(
             # Upload each logo file and replace __UPLOAD__ placeholders in items
             for file in images_logo_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
 
             if 'items' in content_data:
@@ -1791,7 +1840,7 @@ async def update_section(
         if section_type == 'hero' and hero_media_files:
             for file in hero_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in images array
@@ -1808,14 +1857,14 @@ async def update_section(
                 content_data['images'] = new_images
         
         elif section_type == 'text' and text_media_file and text_media_file.filename:
-            url = upload_image(text_media_file.file, folder=f"sections/{section_key}")
+            url = upload_image(text_media_file.file, folder=f"sections/{section_key}", filename=text_media_file.filename)
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
         
         elif section_type == 'gallery' and gallery_media_files:
             for file in gallery_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in images array
@@ -1834,7 +1883,7 @@ async def update_section(
         elif section_type == 'team' and team_media_files:
             for file in team_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in members array
@@ -1849,7 +1898,7 @@ async def update_section(
         elif section_type == 'cards' and cards_media_files:
             for file in cards_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in cards array
@@ -1864,7 +1913,7 @@ async def update_section(
         elif section_type == 'facilities' and facilities_media_files:
             for file in facilities_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in facilities array
@@ -1877,14 +1926,14 @@ async def update_section(
                             upload_index += 1
         
         elif section_type == 'split' and split_media_file and split_media_file.filename:
-            url = upload_image(split_media_file.file, folder=f"sections/{section_key}")
+            url = upload_image(split_media_file.file, folder=f"sections/{section_key}", filename=split_media_file.filename)
             if 'image' in content_data and content_data['image'].startswith('__UPLOAD__'):
                 content_data['image'] = url
 
         elif section_type == 'testimonials' and testimonials_media_files:
             for file in testimonials_media_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
             
             # Replace __UPLOAD__ placeholders in items array
@@ -1899,7 +1948,7 @@ async def update_section(
             # Upload each logo file and replace placeholders in items
             for file in images_logo_files:
                 if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}")
+                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
                     uploaded_files.append(url)
 
             if 'items' in content_data:
