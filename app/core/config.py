@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
     
+    # Meritto CRM
+    MERITTO_SECRET_KEY: str = "f70d121075f002fd05c97a36cb3f8844"
+    MERITTO_ACCESS_KEY: str = "afd36d8368544019928438e61625e760"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from app.core.config import settings
 from app.api import public, admin, auth
 from app.admin import routes as admin_ui
@@ -37,11 +38,7 @@ app.include_router(admin_ui.router, prefix="/admin", tags=["Admin UI"])
 
 @app.get("/")
 async def root():
-    return {
-        "message": "Multi-College CMS API",
-        "version": settings.VERSION,
-        "docs": "/docs"
-    }
+    return RedirectResponse(url="/admin/login")
 
 
 @app.get("/health")

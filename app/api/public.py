@@ -1,7 +1,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+import asyncio
 from app.core.database import get_db
+from app.services.meritto_crm import meritto_service
 from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink
 from app.schemas.schemas import (
     PagePublicResponse,
@@ -489,6 +491,18 @@ async def submit_inquiry(
     db.commit()
     db.refresh(new_inquiry)
     
+    # Send to Meritto CRM in parallel (non-blocking)
+    asyncio.create_task(
+        meritto_service.send_inquiry_to_crm(
+            name=inquiry.name,
+            email=inquiry.email,
+            phone_number=inquiry.phone_number,
+            course_interested=inquiry.course_interested,
+            message=inquiry.message,
+            college_name=college.name
+        )
+    )
+    
     return {"message": "Inquiry submitted successfully", "id": new_inquiry.id}
 
 
@@ -526,6 +540,20 @@ async def submit_contact(
     db.add(new_contact)
     db.commit()
     db.refresh(new_contact)
+    
+    # Send to Meritto CRM in parallel (non-blocking)
+    asyncio.create_task(
+        meritto_service.send_contact_to_crm(
+            name=contact.name,
+            email=contact.email,
+            phone_no=contact.phone_no,
+            state=contact.state,
+            city=contact.city,
+            address=contact.address,
+            message=contact.message,
+            college_name=college.name
+        )
+    )
     
     return {"message": "Contact form submitted successfully", "id": new_contact.id}
 
