@@ -406,22 +406,29 @@ async function loadCrmStats() {
             }
         });
         
-        if (!response.ok) return;
+        console.log('CRM Stats Response Status:', response.status, response.ok);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('CRM Stats Error Response:', errorText);
+            return;
+        }
         
         const data = await response.json();
+        console.log('CRM Stats Data:', data);
         
         // Update stat cards
-        document.getElementById('crm-total').textContent = data.total_syncs;
-        document.getElementById('crm-success').textContent = `✓ ${data.successful}`;
-        document.getElementById('crm-failed').textContent = `✗ ${data.failed}`;
-        document.getElementById('crm-rate').textContent = `${data.success_rate_percent}%`;
+        document.getElementById('crm-total').textContent = data.total_syncs || 0;
+        document.getElementById('crm-success').textContent = `✓ ${data.successful || 0}`;
+        document.getElementById('crm-failed').textContent = `✗ ${data.failed || 0}`;
+        document.getElementById('crm-rate').textContent = `${data.success_rate_percent || 0}%`;
         
         // Update info panel
-        document.getElementById('crm-info-total').textContent = data.total_syncs;
-        document.getElementById('crm-info-success').textContent = data.successful;
-        document.getElementById('crm-info-failed').textContent = data.failed;
-        document.getElementById('crm-info-pending').textContent = (data.pending + data.retrying);
-        document.getElementById('crm-info-rate').textContent = `${data.success_rate_percent}%`;
+        document.getElementById('crm-info-total').textContent = data.total_syncs || 0;
+        document.getElementById('crm-info-success').textContent = data.successful || 0;
+        document.getElementById('crm-info-failed').textContent = data.failed || 0;
+        document.getElementById('crm-info-pending').textContent = (data.pending || 0) + (data.retrying || 0);
+        document.getElementById('crm-info-rate').textContent = `${data.success_rate_percent || 0}%`;
         
         // Update color coding
         if (data.success_rate_percent >= 95) {
