@@ -95,6 +95,16 @@ class MeritoCRMService:
         except Exception as e:
             logger.error(f"[DB_LOG_ERROR] Failed to log to database: {str(e)}")
     
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers for Meritto API requests."""
+        headers = {
+            "secret-key": self.secret_key,
+            "access-key": self.access_key,
+            "Content-Type": "application/json"
+        }
+        logger.debug(f"[HEADERS] Using headers with keys: secret-key={self.secret_key[:10]}**, access-key={self.access_key[:10]}**")
+        return headers
+    
     def _validate_and_clean_phone(self, phone_number: str) -> tuple[Optional[str], Optional[str]]:
         """
         Validate and clean phone number for India (must be 10 digits).
