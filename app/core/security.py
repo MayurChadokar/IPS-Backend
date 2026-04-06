@@ -85,3 +85,60 @@ def get_current_active_admin(current_user: User = Depends(get_current_user)) -> 
             detail="Not enough permissions"
         )
     return current_user
+
+
+def get_current_admin_with_session_fallback(
+    request,
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Get current admin from JWT token OR session cookie (for AJAX requests from admin panel).
+    Tries JWT first, then falls back to session cookie.
+    """
+    from app.models.models import UserRole
+    
+    # Try JWT token first
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    if token:
+        try:
+            credentials_exception = HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: int = payload.get("sub")
+            if user_id is None:
+                raise credentials_exception
+            
+            user = db.query(User).filter(User.id == user_id).first()
+            if user and user.is_active:
+                if user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Not enough permissions"
+                    )
+                return user
+        except JWTError:
+            pass
+    
+    # Fall back to session cookie (from admin panel)
+    from app.admin.routes import SESSION_COOKIE_NAME
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if session_token:
+        try:
+            payload = jwt.decode(session_token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: int = payload.get("sub")
+            if user_id is not None:
+                user = db.query(User).filter(User.id == user_id).first()
+                if user and user.is_active:
+                    if user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+                        return user
+        except JWTError:
+            pass
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )

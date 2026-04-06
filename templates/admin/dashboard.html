@@ -403,7 +403,8 @@ async function loadCrmStats() {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
         
         console.log('CRM Stats Response Status:', response.status, response.ok);
@@ -458,7 +459,8 @@ async function showCrmLogs() {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
         
         if (!response.ok) throw new Error('Failed to load logs');
@@ -527,7 +529,8 @@ async function showCrmFailed() {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
-            }
+            },
+            credentials: 'include'
         });
         
         if (!response.ok) throw new Error('Failed to load failed syncs');

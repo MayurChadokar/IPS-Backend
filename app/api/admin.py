@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile,
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
-from app.core.security import get_current_active_admin, SECRET_KEY, ALGORITHM
+from app.core.security import get_current_active_admin, get_current_admin_with_session_fallback, SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from app.models.models import UserRole
 from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink, CrmSyncAudit
@@ -714,12 +714,13 @@ async def upload_file(
 # ============= MERITTO CRM SYNC AUDIT =============
 @router.get("/crm-sync/audit", response_model=List[Dict[str, Any]])
 async def get_crm_sync_audit(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     entity_type: str = Query(None, description="Filter by entity type: inquiry, contact, or None for all"),
     status: str = Query(None, description="Filter by status: pending, success, failed, retrying"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_admin)
+    current_user: User = Depends(get_current_admin_with_session_fallback)
 ):
     """
     Get Meritto CRM sync audit logs.
@@ -762,8 +763,9 @@ async def get_crm_sync_audit(
 
 @router.get("/crm-sync/stats", response_model=Dict[str, Any])
 async def get_crm_sync_stats(
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_admin)
+    current_user: User = Depends(get_current_admin_with_session_fallback)
 ):
     """Get Meritto CRM sync statistics"""
     
@@ -792,10 +794,11 @@ async def get_crm_sync_stats(
 
 @router.get("/crm-sync/failed")
 async def get_failed_syncs(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_admin)
+    current_user: User = Depends(get_current_admin_with_session_fallback)
 ):
     """Get all failed sync attempts"""
     
@@ -823,9 +826,10 @@ async def get_failed_syncs(
 
 @router.get("/crm-sync/email/{email}")
 async def get_sync_logs_by_email(
+    request: Request,
     email: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_admin)
+    current_user: User = Depends(get_current_admin_with_session_fallback)
 ):
     """Get all sync logs for a specific email"""
     
