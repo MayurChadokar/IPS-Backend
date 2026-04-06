@@ -436,5 +436,28 @@ class Alumni(Base):
     )
 
 
+class CrmSyncAudit(Base):
+    """
+    Audit table to track all Meritto CRM sync attempts for inquiries and contacts
+    """
+    __tablename__ = "meritto_crm_sync_audit"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    entity_type = Column(String(50), nullable=False)  # 'inquiry' or 'contact'
+    entity_id = Column(Integer, nullable=False)  # ID of inquiry or contact
+    entity_email = Column(String(255), nullable=False, index=True)
+    entity_name = Column(String(255), nullable=False)
+    college_name = Column(String(255), nullable=True)
+    status = Column(String(20), nullable=False, index=True)  # 'pending', 'success', 'failed', 'retrying'
+    attempt_count = Column(Integer, default=0)
+    last_attempt_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)
+    response_data = Column(JSON, nullable=True)  # Store response for debugging
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
 
 

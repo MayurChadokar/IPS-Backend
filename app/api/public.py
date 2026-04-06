@@ -491,9 +491,12 @@ async def submit_inquiry(
     db.commit()
     db.refresh(new_inquiry)
     
+    print(f"[ENDPOINT] New inquiry created - ID: {new_inquiry.id}, Email: {inquiry.email}")
+    
     # Send to Meritto CRM in parallel (non-blocking)
     asyncio.create_task(
         meritto_service.send_inquiry_to_crm(
+            inquiry_id=new_inquiry.id,
             name=inquiry.name,
             email=inquiry.email,
             phone_number=inquiry.phone_number,
@@ -541,9 +544,12 @@ async def submit_contact(
     db.commit()
     db.refresh(new_contact)
     
+    print(f"[ENDPOINT] New contact created - ID: {new_contact.id}, Email: {contact.email}")
+    
     # Send to Meritto CRM in parallel (non-blocking)
     asyncio.create_task(
         meritto_service.send_contact_to_crm(
+            contact_id=new_contact.id,
             name=contact.name,
             email=contact.email,
             phone_no=contact.phone_no,

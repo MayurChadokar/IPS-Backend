@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
 from app.core.security import get_current_active_admin, SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from app.models.models import UserRole
-from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink
+from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink, CrmSyncAudit
 from app.schemas.schemas import (
     CollegeCreate, CollegeUpdate, CollegeResponse,
     PageCreate, PageUpdate, PageResponse,
@@ -709,3 +709,143 @@ async def upload_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Upload failed: {str(e)}"
         )
+
+
+# ============= MERITTO CRM SYNC AUDIT =============
+@router.get("/crm-sync/audit", response_model=List[Dict[str, Any]])
+async def get_crm_sync_audit(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    entity_type: str = Query(None, description="Filter by entity type: inquiry, contact, or None for all"),
+    status: str = Query(None, description="Filter by status: pending, success, failed, retrying"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """
+    Get Meritto CRM sync audit logs.
+    
+    Filters:
+    - entity_type: 'inquiry' or 'contact'
+    - status: 'pending', 'success', 'failed', 'retrying'
+    
+    Example: GET /admin/crm-sync/audit?entity_type=inquiry&status=failed
+    """
+    query = db.query(CrmSyncAudit).order_by(CrmSyncAudit.created_at.desc())
+    
+    if entity_type:
+        query = query.filter(CrmSyncAudit.entity_type == entity_type)
+    
+    if status:
+        query = query.filter(CrmSyncAudit.status == status)
+    
+    total = query.count()
+    logs = query.offset(skip).limit(limit).all()
+    
+    return [
+        {
+            "id": log.id,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "entity_name": log.entity_name,
+            "entity_email": log.entity_email,
+            "college_name": log.college_name,
+            "status": log.status,
+            "attempt_count": log.attempt_count,
+            "error_message": log.error_message,
+            "last_attempt_at": log.last_attempt_at,
+            "created_at": log.created_at,
+            "updated_at": log.updated_at
+        }
+        for log in logs
+    ]
+
+
+@router.get("/crm-sync/stats", response_model=Dict[str, Any])
+async def get_crm_sync_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Get Meritto CRM sync statistics"""
+    
+    total_syncs = db.query(CrmSyncAudit).count()
+    successful = db.query(CrmSyncAudit).filter(CrmSyncAudit.status == "success").count()
+    failed = db.query(CrmSyncAudit).filter(CrmSyncAudit.status == "failed").count()
+    pending = db.query(CrmSyncAudit).filter(CrmSyncAudit.status == "pending").count()
+    retrying = db.query(CrmSyncAudit).filter(CrmSyncAudit.status == "retrying").count()
+    
+    inquiry_syncs = db.query(CrmSyncAudit).filter(CrmSyncAudit.entity_type == "inquiry").count()
+    contact_syncs = db.query(CrmSyncAudit).filter(CrmSyncAudit.entity_type == "contact").count()
+    
+    success_rate = (successful / total_syncs * 100) if total_syncs > 0 else 0
+    
+    return {
+        "total_syncs": total_syncs,
+        "successful": successful,
+        "failed": failed,
+        "pending": pending,
+        "retrying": retrying,
+        "inquiry_syncs": inquiry_syncs,
+        "contact_syncs": contact_syncs,
+        "success_rate_percent": round(success_rate, 2)
+    }
+
+
+@router.get("/crm-sync/failed")
+async def get_failed_syncs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Get all failed sync attempts"""
+    
+    failed_logs = db.query(CrmSyncAudit).filter(
+        CrmSyncAudit.status == "failed"
+    ).order_by(
+        CrmSyncAudit.created_at.desc()
+    ).offset(skip).limit(limit).all()
+    
+    return [
+        {
+            "id": log.id,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "entity_name": log.entity_name,
+            "entity_email": log.entity_email,
+            "college_name": log.college_name,
+            "error_message": log.error_message,
+            "attempt_count": log.attempt_count,
+            "created_at": log.created_at
+        }
+        for log in failed_logs
+    ]
+
+
+@router.get("/crm-sync/email/{email}")
+async def get_sync_logs_by_email(
+    email: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Get all sync logs for a specific email"""
+    
+    logs = db.query(CrmSyncAudit).filter(
+        CrmSyncAudit.entity_email == email
+    ).order_by(
+        CrmSyncAudit.created_at.desc()
+    ).all()
+    
+    return [
+        {
+            "id": log.id,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "status": log.status,
+            "error_message": log.error_message,
+            "attempt_count": log.attempt_count,
+            "last_attempt_at": log.last_attempt_at,
+            "created_at": log.created_at
+        }
+        for log in logs
+    ]
+
