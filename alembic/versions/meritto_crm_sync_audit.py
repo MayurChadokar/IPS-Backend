@@ -1,7 +1,7 @@
 """Add Meritto CRM Sync Audit table for tracking sync attempts
 
 Revision ID: meritto_crm_sync_audit
-Revises: fb6e9374efb7
+Revises: 2703c5092f11
 Create Date: 2026-04-06
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'meritto_crm_sync_audit'
-down_revision = 'fb6e9374efb7'
+down_revision = '2703c5092f11'
 branch_labels = None
 depends_on = None
 
