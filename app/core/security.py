@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -88,7 +88,7 @@ def get_current_active_admin(current_user: User = Depends(get_current_user)) -> 
 
 
 def get_current_admin_with_session_fallback(
-    request,
+    request: Request,
     db: Session = Depends(get_db)
 ) -> User:
     """

@@ -714,7 +714,6 @@ async def upload_file(
 # ============= MERITTO CRM SYNC AUDIT =============
 @router.get("/crm-sync/audit", response_model=List[Dict[str, Any]])
 async def get_crm_sync_audit(
-    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     entity_type: str = Query(None, description="Filter by entity type: inquiry, contact, or None for all"),
@@ -763,7 +762,6 @@ async def get_crm_sync_audit(
 
 @router.get("/crm-sync/stats", response_model=Dict[str, Any])
 async def get_crm_sync_stats(
-    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_with_session_fallback)
 ):
@@ -794,7 +792,6 @@ async def get_crm_sync_stats(
 
 @router.get("/crm-sync/failed")
 async def get_failed_syncs(
-    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -826,7 +823,6 @@ async def get_failed_syncs(
 
 @router.get("/crm-sync/email/{email}")
 async def get_sync_logs_by_email(
-    request: Request,
     email: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_with_session_fallback)
