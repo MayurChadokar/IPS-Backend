@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadCrmStats() {
     try {
-        const response = await fetch('/admin/crm-sync/stats', {
+        const response = await fetch('/api/admin/crm-sync/stats', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -454,7 +454,7 @@ async function showCrmLogs() {
     content.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>';
     
     try {
-        const response = await fetch('/admin/crm-sync/audit?limit=50', {
+        const response = await fetch('/api/admin/crm-sync/audit?limit=50', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -523,7 +523,7 @@ async function showCrmFailed() {
     content.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>';
     
     try {
-        const response = await fetch('/admin/crm-sync/failed?limit=50', {
+        const response = await fetch('/api/admin/crm-sync/failed?limit=50', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
