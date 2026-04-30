@@ -519,7 +519,7 @@ class MeritoCRMService:
             logger.debug(f"[INQUIRY] C Course: {c_course}")
         
         if c_specialization:
-            extra_fields["c_specialization"] = c_specialization
+            extra_fields["specialization"] = c_specialization
             logger.debug(f"[INQUIRY] C Specialization: {c_specialization}")
         
         result = await self.send_lead(
@@ -611,7 +611,7 @@ class MeritoCRMService:
             logger.debug(f"[CONTACT] C Course: {c_course}")
         
         if c_specialization:
-            extra_fields["c_specialization"] = c_specialization
+            extra_fields["specialization"] = c_specialization
             logger.debug(f"[CONTACT] C Specialization: {c_specialization}")
         
         result = await self.send_lead(

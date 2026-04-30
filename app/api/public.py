@@ -512,7 +512,7 @@ async def submit_inquiry(
         "message": inquiry.message,
         "college_name": college.name,
         "c_course": inquiry.c_course,
-        "specialization": inquiry.c_specialization,
+        "c_specialization": inquiry.c_specialization,
     }
     print(f"[ENDPOINT][INQUIRY] Meritto payload: {meritto_payload}")
 
@@ -573,7 +573,7 @@ async def submit_contact(
             message=contact.message,
             college_name=college.name,
             c_course=contact.c_course,
-            specialization=contact.c_specialization
+            c_specialization=contact.c_specialization
         )
     )
     
