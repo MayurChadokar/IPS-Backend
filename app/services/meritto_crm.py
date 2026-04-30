@@ -538,7 +538,9 @@ class MeritoCRMService:
         city: Optional[str] = None,
         address: Optional[str] = None,
         message: Optional[str] = None,
-        college_name: Optional[str] = None
+        college_name: Optional[str] = None,
+        c_course: Optional[str] = None,
+        c_specialization: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Send a contact form submission to Meritto CRM.
@@ -591,6 +593,14 @@ class MeritoCRMService:
         if message:
             extra_fields["inquiry"] = message
             logger.debug(f"[CONTACT] Message length: {len(message)} chars")
+        
+        if c_course:
+            extra_fields["c_course"] = c_course
+            logger.debug(f"[CONTACT] C Course: {c_course}")
+        
+        if c_specialization:
+            extra_fields["c_specialization"] = c_specialization
+            logger.debug(f"[CONTACT] C Specialization: {c_specialization}")
         
         result = await self.send_lead(
             name=name,

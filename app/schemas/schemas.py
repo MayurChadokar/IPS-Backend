@@ -470,3 +470,5 @@ class ContactCreate(BaseModel):
     city: Optional[str] = None
     address: Optional[str] = None
     message: Optional[str] = None
+    c_course: Optional[str] = None
+    c_specialization: Optional[str] = None

@@ -559,7 +559,9 @@ async def submit_contact(
             city=contact.city,
             address=contact.address,
             message=contact.message,
-            college_name=college.name
+            college_name=college.name,
+            c_course=contact.c_course,
+            c_specialization=contact.c_specialization
         )
     )
     
