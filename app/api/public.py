@@ -496,10 +496,11 @@ async def submit_inquiry(
         f"[ENDPOINT][INQUIRY] Local payload: name={inquiry.name}, email={inquiry.email}, "
         f"phone_number={inquiry.phone_number}, state={inquiry.state}, city={inquiry.city}, "
         f"course_interested={inquiry.course_interested}, c_course={inquiry.c_course}, "
-        f"c_specialization={inquiry.c_specialization}"
+        f"----------specialization={inquiry.c_specialization}-------------"
     )
     
     # Send to Meritto CRM in parallel (non-blocking)
+    # specialization = inquiry.c_specialization
     meritto_payload = {
         "inquiry_id": new_inquiry.id,
         "name": inquiry.name,
@@ -511,7 +512,7 @@ async def submit_inquiry(
         "message": inquiry.message,
         "college_name": college.name,
         "c_course": inquiry.c_course,
-        "c_specialization": inquiry.c_specialization,
+        "specialization": inquiry.c_specialization,
     }
     print(f"[ENDPOINT][INQUIRY] Meritto payload: {meritto_payload}")
 
@@ -572,7 +573,7 @@ async def submit_contact(
             message=contact.message,
             college_name=college.name,
             c_course=contact.c_course,
-            c_specialization=contact.c_specialization
+            specialization=contact.c_specialization
         )
     )
     
