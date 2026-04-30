@@ -454,6 +454,8 @@ class MeritoCRMService:
         name: str,
         email: str,
         phone_number: str,
+        state: Optional[str] = None,
+        city: Optional[str] = None,
         course_interested: Optional[str] = None,
         message: Optional[str] = None,
         college_name: Optional[str] = None,
@@ -468,6 +470,8 @@ class MeritoCRMService:
             name: Inquirer name
             email: Inquirer email
             phone_number: Inquirer phone number (10 digits for India)
+            state: Inquirer state
+            city: Inquirer city
             course_interested: Course name they're interested in
             message: Inquiry message
             college_name: College name for context
@@ -497,6 +501,14 @@ class MeritoCRMService:
         if course_interested:
             extra_fields["course"] = course_interested
             logger.debug(f"[INQUIRY] Course: {course_interested}")
+
+        if state:
+            extra_fields["state"] = state
+            logger.debug(f"[INQUIRY] State: {state}")
+
+        if city:
+            extra_fields["city"] = city
+            logger.debug(f"[INQUIRY] City: {city}")
         
         if message:
             extra_fields["message"] = message

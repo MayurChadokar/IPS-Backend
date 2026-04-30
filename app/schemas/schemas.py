@@ -456,6 +456,8 @@ class InquiryCreate(BaseModel):
     name: str
     email: Optional[str] = None
     phone_number: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
     course_interested: Optional[str] = None
     message: Optional[str] = None
     c_course: Optional[str] = None

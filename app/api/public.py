@@ -492,20 +492,31 @@ async def submit_inquiry(
     db.refresh(new_inquiry)
     
     print(f"[ENDPOINT] New inquiry created - ID: {new_inquiry.id}, Email: {inquiry.email}")
+    print(
+        f"[ENDPOINT][INQUIRY] Local payload: name={inquiry.name}, email={inquiry.email}, "
+        f"phone_number={inquiry.phone_number}, state={inquiry.state}, city={inquiry.city}, "
+        f"course_interested={inquiry.course_interested}, c_course={inquiry.c_course}, "
+        f"c_specialization={inquiry.c_specialization}"
+    )
     
     # Send to Meritto CRM in parallel (non-blocking)
+    meritto_payload = {
+        "inquiry_id": new_inquiry.id,
+        "name": inquiry.name,
+        "email": inquiry.email,
+        "phone_number": inquiry.phone_number,
+        "state": inquiry.state,
+        "city": inquiry.city,
+        "course_interested": inquiry.course_interested,
+        "message": inquiry.message,
+        "college_name": college.name,
+        "c_course": inquiry.c_course,
+        "c_specialization": inquiry.c_specialization,
+    }
+    print(f"[ENDPOINT][INQUIRY] Meritto payload: {meritto_payload}")
+
     asyncio.create_task(
-        meritto_service.send_inquiry_to_crm(
-            inquiry_id=new_inquiry.id,
-            name=inquiry.name,
-            email=inquiry.email,
-            phone_number=inquiry.phone_number,
-            course_interested=inquiry.course_interested,
-            message=inquiry.message,
-            college_name=college.name,
-            c_course=inquiry.c_course,
-            c_specialization=inquiry.c_specialization
-        )
+        meritto_service.send_inquiry_to_crm(**meritto_payload)
     )
     
     return {"message": "Inquiry submitted successfully", "id": new_inquiry.id}
