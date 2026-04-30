@@ -1,7 +1,7 @@
 python main.py 
 
 
-alembic revision --autogenerate -m "added social media"
+alembic revision --autogenerate -m "added crmsyncing"
 
 
 alembic stamp head
