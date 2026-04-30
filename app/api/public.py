@@ -502,7 +502,9 @@ async def submit_inquiry(
             phone_number=inquiry.phone_number,
             course_interested=inquiry.course_interested,
             message=inquiry.message,
-            college_name=college.name
+            college_name=college.name,
+            c_course=inquiry.c_course,
+            c_specialization=inquiry.c_specialization
         )
     )
     

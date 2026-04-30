@@ -458,6 +458,8 @@ class InquiryCreate(BaseModel):
     phone_number: Optional[str] = None
     course_interested: Optional[str] = None
     message: Optional[str] = None
+    c_course: Optional[str] = None
+    c_specialization: Optional[str] = None
 
 # ============= Contact Schemas =============
 class ContactCreate(BaseModel):
