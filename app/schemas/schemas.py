@@ -462,6 +462,11 @@ class InquiryCreate(BaseModel):
     message: Optional[str] = None
     c_course: Optional[str] = None
     c_specialization: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_term: Optional[str] = None
+    utm_content: Optional[str] = None
 
 # ============= Contact Schemas =============
 class ContactCreate(BaseModel):

@@ -460,7 +460,12 @@ class MeritoCRMService:
         message: Optional[str] = None,
         college_name: Optional[str] = None,
         c_course: Optional[str] = None,
-        c_specialization: Optional[str] = None
+        c_specialization: Optional[str] = None,
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        utm_term: Optional[str] = None,
+        utm_content: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Send an inquiry submission to Meritto CRM.
@@ -521,6 +526,26 @@ class MeritoCRMService:
         if c_specialization:
             extra_fields["specialization"] = c_specialization
             logger.debug(f"[INQUIRY] C Specialization: {c_specialization}")
+
+        if utm_source:
+            extra_fields["utm_source"] = utm_source
+            logger.debug(f"[INQUIRY] UTM Source: {utm_source}")
+
+        if utm_medium:
+            extra_fields["utm_medium"] = utm_medium
+            logger.debug(f"[INQUIRY] UTM Medium: {utm_medium}")
+
+        if utm_campaign:
+            extra_fields["utm_campaign"] = utm_campaign
+            logger.debug(f"[INQUIRY] UTM Campaign: {utm_campaign}")
+
+        if utm_term:
+            extra_fields["utm_term"] = utm_term
+            logger.debug(f"[INQUIRY] UTM Term: {utm_term}")
+
+        if utm_content:
+            extra_fields["utm_content"] = utm_content
+            logger.debug(f"[INQUIRY] UTM Content: {utm_content}")
         
         result = await self.send_lead(
             name=name,
