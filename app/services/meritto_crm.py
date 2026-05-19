@@ -460,6 +460,7 @@ class MeritoCRMService:
         message: Optional[str] = None,
         college_name: Optional[str] = None,
         c_course: Optional[str] = None,
+        specialization: Optional[str] = None,
         c_specialization: Optional[str] = None,
         utm_source: Optional[str] = None,
         utm_medium: Optional[str] = None,
@@ -523,9 +524,10 @@ class MeritoCRMService:
             extra_fields["c_course"] = c_course
             logger.debug(f"[INQUIRY] C Course: {c_course}")
         
-        if c_specialization:
-            extra_fields["specialization"] = c_specialization
-            logger.debug(f"[INQUIRY] C Specialization: {c_specialization}")
+        specialization_value = specialization or c_specialization
+        if specialization_value:
+            extra_fields["specialization"] = specialization_value
+            logger.debug(f"[INQUIRY] Specialization: {specialization_value}")
 
         if utm_source:
             extra_fields["utm_source"] = utm_source
