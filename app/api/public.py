@@ -513,6 +513,10 @@ async def submit_inquiry(
         "college_name": college.name,
         "c_course": inquiry.c_course,
         "specialization": inquiry.c_specialization,
+        "source": inquiry.utm_source,
+        "medium": inquiry.utm_medium,
+        "campaign": inquiry.utm_campaign,
+        "term": inquiry.utm_term,
     }
     print(f"[ENDPOINT][INQUIRY] Meritto payload: {meritto_payload}")
 
