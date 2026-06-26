@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni, SocialMediaLink
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni, SocialMediaLink, JournalVolume, Journal
 from datetime import timedelta, datetime
 from typing import Optional
 import json
@@ -2884,4 +2884,366 @@ async def delete_alumni(
     db.commit()
 
     return RedirectResponse(url=f"/admin/colleges/{college_id}/alumni", status_code=303)
+
+
+# ============= JOURNALS & VOLUMES MANAGEMENT =============
+
+# --- JOURNALS ---
+@router.get("/colleges/{college_id}/journals", response_class=HTMLResponse)
+async def list_journals_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    journals = db.query(Journal).filter(Journal.college_id == college_id).order_by(Journal.created_at.desc()).all()
+
+    return templates.TemplateResponse("admin/journals/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journals": journals
+    })
+
+@router.get("/colleges/{college_id}/journals/new", response_class=HTMLResponse)
+async def create_journal_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/journals/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journal": None,
+        "action": "Create"
+    })
+
+@router.post("/colleges/{college_id}/journals/new")
+async def create_journal(
+    request: Request,
+    college_id: int,
+    name: str = Form(...),
+    logo: Optional[UploadFile] = File(None),
+    about_html: str = Form(""),
+    call_for_papers_html: str = Form(""),
+    policies_html: str = Form(""),
+    author_guidelines_html: str = Form(""),
+    contact_us_html: str = Form(""),
+    is_active: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    logo_url = None
+    if logo and logo.filename:
+        logo_url = upload_image(logo.file, folder=f"colleges/{college.slug}/journals")
+
+    journal = Journal(
+        college_id=college_id,
+        name=name,
+        logo_url=logo_url,
+        home_html=home_html,
+        about_html=about_html if about_html else None,
+        call_for_papers_html=call_for_papers_html if call_for_papers_html else None,
+        policies_html=policies_html if policies_html else None,
+        author_guidelines_html=author_guidelines_html if author_guidelines_html else None,
+        contact_us_html=contact_us_html if contact_us_html else None,
+        is_active=is_active
+    )
+
+    db.add(journal)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/journals", status_code=303)
+
+@router.get("/journals/{journal_id}/edit", response_class=HTMLResponse)
+async def edit_journal_form(
+    request: Request,
+    journal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+        
+    college = db.query(College).filter(College.id == journal.college_id).first()
+
+    return templates.TemplateResponse("admin/journals/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journal": journal,
+        "action": "Edit"
+    })
+
+@router.post("/journals/{journal_id}/edit")
+async def edit_journal(
+    request: Request,
+    journal_id: int,
+    name: str = Form(...),
+    logo: Optional[UploadFile] = File(None),
+    home_html: str = Form(""),
+    about_html: str = Form(""),
+    call_for_papers_html: str = Form(""),
+    policies_html: str = Form(""),
+    author_guidelines_html: str = Form(""),
+    contact_us_html: str = Form(""),
+    is_active: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+
+    college = db.query(College).filter(College.id == journal.college_id).first()
+
+    if logo and logo.filename:
+        if journal.logo_url:
+            public_id = get_public_id_from_url(journal.logo_url)
+            if public_id:
+                delete_image(public_id)
+        journal.logo_url = upload_image(logo.file, folder=f"colleges/{college.slug}/journals")
+
+    journal.name = name
+    journal.home_html = home_html
+    journal.about_html = about_html
+    journal.call_for_papers_html = call_for_papers_html if call_for_papers_html else None
+    journal.policies_html = policies_html if policies_html else None
+    journal.author_guidelines_html = author_guidelines_html if author_guidelines_html else None
+    journal.contact_us_html = contact_us_html if contact_us_html else None
+    journal.is_active = is_active
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{journal.college_id}/journals", status_code=303)
+
+@router.post("/journals/{journal_id}/delete")
+async def delete_journal(
+    request: Request,
+    journal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+        
+    college_id = journal.college_id
+    db.delete(journal)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/colleges/{college_id}/journals", status_code=303)
+
+# --- JOURNAL VOLUMES ---
+@router.get("/journals/{journal_id}/volumes", response_class=HTMLResponse)
+async def list_journal_volumes_page(
+    request: Request,
+    journal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+        
+    college = db.query(College).filter(College.id == journal.college_id).first()
+
+    volumes = db.query(JournalVolume).filter(JournalVolume.journal_id == journal_id).order_by(JournalVolume.created_at.desc()).all()
+
+    return templates.TemplateResponse("admin/journal_volumes/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journal": journal,
+        "volumes": volumes
+    })
+
+@router.get("/journals/{journal_id}/volumes/new", response_class=HTMLResponse)
+async def create_journal_volume_form(
+    request: Request,
+    journal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+        
+    college = db.query(College).filter(College.id == journal.college_id).first()
+
+    return templates.TemplateResponse("admin/journal_volumes/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journal": journal,
+        "volume": None,
+        "action": "Create"
+    })
+
+@router.post("/journals/{journal_id}/volumes/new")
+async def create_journal_volume(
+    request: Request,
+    journal_id: int,
+    volume_title: str = Form(...),
+    editorial_file: Optional[UploadFile] = File(None),
+    contents_file: Optional[UploadFile] = File(None),
+    papers_json: str = Form(""),
+    is_active: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    journal = db.query(Journal).filter(Journal.id == journal_id).first()
+    if not journal:
+        raise HTTPException(status_code=404, detail="Journal not found")
+
+    papers_data = []
+    form_data = await request.form()
+    if papers_json:
+        try:
+            papers_data = json.loads(papers_json)
+            # Process paper file uploads
+            for i, paper in enumerate(papers_data):
+                file_key = f"paper_pdf_{i}"
+                file_obj = form_data.get(file_key)
+                if file_obj and getattr(file_obj, 'filename', None):
+                    url = upload_image(file_obj.file, folder=f"colleges/{journal.college_id}/papers", filename=file_obj.filename, resource_type="auto")
+                    paper["pdf_link"] = url
+        except json.JSONDecodeError:
+            pass
+
+    editorial_url = None
+    if editorial_file and editorial_file.filename:
+        editorial_url = upload_image(editorial_file.file, folder=f"colleges/{journal.college_id}/volumes", filename=editorial_file.filename, resource_type="auto")
+
+    contents_url = None
+    if contents_file and contents_file.filename:
+        contents_url = upload_image(contents_file.file, folder=f"colleges/{journal.college_id}/volumes", filename=contents_file.filename, resource_type="auto")
+
+    volume = JournalVolume(
+        college_id=journal.college_id,
+        journal_id=journal.id,
+        volume_title=volume_title,
+        editorial_link=editorial_url,
+        contents_link=contents_url,
+        papers=papers_data,
+        is_active=is_active
+    )
+
+    db.add(volume)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/journals/{journal_id}/volumes", status_code=303)
+
+@router.get("/journal-volumes/{volume_id}/edit", response_class=HTMLResponse)
+async def edit_journal_volume_form(
+    request: Request,
+    volume_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not volume:
+        raise HTTPException(status_code=404, detail="Volume not found")
+        
+    journal = db.query(Journal).filter(Journal.id == volume.journal_id).first()
+    college = db.query(College).filter(College.id == volume.college_id).first()
+
+    return templates.TemplateResponse("admin/journal_volumes/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "journal": journal,
+        "volume": volume,
+        "action": "Edit"
+    })
+
+@router.post("/journal-volumes/{volume_id}/edit")
+async def edit_journal_volume(
+    request: Request,
+    volume_id: int,
+    volume_title: str = Form(...),
+    editorial_file: Optional[UploadFile] = File(None),
+    contents_file: Optional[UploadFile] = File(None),
+    papers_json: str = Form(""),
+    is_active: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not volume:
+        raise HTTPException(status_code=404, detail="Volume not found")
+
+    papers_data = []
+    form_data = await request.form()
+    if papers_json:
+        try:
+            papers_data = json.loads(papers_json)
+            # Process paper file uploads
+            for i, paper in enumerate(papers_data):
+                file_key = f"paper_pdf_{i}"
+                file_obj = form_data.get(file_key)
+                if file_obj and getattr(file_obj, 'filename', None):
+                    url = upload_image(file_obj.file, folder=f"colleges/{volume.college_id}/papers", filename=file_obj.filename, resource_type="auto")
+                    # Optionally delete old PDF if it exists
+                    if paper.get("pdf_link"):
+                        public_id = get_public_id_from_url(paper["pdf_link"])
+                        if public_id:
+                            delete_image(public_id)
+                    paper["pdf_link"] = url
+        except json.JSONDecodeError:
+            pass
+
+    if editorial_file and editorial_file.filename:
+        if volume.editorial_link:
+            public_id = get_public_id_from_url(volume.editorial_link)
+            if public_id:
+                delete_image(public_id)
+        volume.editorial_link = upload_image(editorial_file.file, folder=f"colleges/{volume.college_id}/volumes", filename=editorial_file.filename, resource_type="auto")
+
+    if contents_file and contents_file.filename:
+        if volume.contents_link:
+            public_id = get_public_id_from_url(volume.contents_link)
+            if public_id:
+                delete_image(public_id)
+        volume.contents_link = upload_image(contents_file.file, folder=f"colleges/{volume.college_id}/volumes", filename=contents_file.filename, resource_type="auto")
+
+    volume.volume_title = volume_title
+    volume.papers = papers_data
+    volume.is_active = is_active
+
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/journals/{volume.journal_id}/volumes", status_code=303)
+
+@router.post("/journal-volumes/{volume_id}/delete")
+async def delete_journal_volume(
+    request: Request,
+    volume_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not volume:
+        raise HTTPException(status_code=404, detail="Volume not found")
+        
+    journal_id = volume.journal_id
+    db.delete(volume)
+    db.commit()
+
+    return RedirectResponse(url=f"/admin/journals/{journal_id}/volumes", status_code=303)
 

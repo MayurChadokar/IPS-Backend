@@ -96,6 +96,8 @@ class College(Base):
     events = relationship("Event", back_populates="college", cascade="all, delete-orphan")
     alumni = relationship("Alumni", back_populates="college", cascade="all, delete-orphan")
     social_media_links = relationship("SocialMediaLink", back_populates="college", cascade="all, delete-orphan")
+    journals = relationship("Journal", back_populates="college", cascade="all, delete-orphan")
+    journal_volumes = relationship("JournalVolume", back_populates="college", cascade="all, delete-orphan")
 
 
 class Page(Base):
@@ -456,6 +458,65 @@ class CrmSyncAudit(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class Journal(Base):
+    """
+    Journal representing a collection of volumes and its static pages
+    """
+    __tablename__ = "journals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    logo_url = Column(String(500), nullable=True)
+    home_html = Column(Text, nullable=True)
+    about_html = Column(Text, nullable=True)
+    call_for_papers_html = Column(Text, nullable=True)
+    policies_html = Column(Text, nullable=True)
+    author_guidelines_html = Column(Text, nullable=True)
+    contact_us_html = Column(Text, nullable=True)
+    
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="journals")
+    volumes = relationship("JournalVolume", back_populates="journal", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
+class JournalVolume(Base):
+    """
+    Journal Volumes for a journal
+    """
+    __tablename__ = "journal_volumes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    journal_id = Column(Integer, ForeignKey("journals.id", ondelete="CASCADE"), nullable=False)
+    volume_title = Column(String(255), nullable=False)
+    editorial_link = Column(String(500), nullable=True)
+    contents_link = Column(String(500), nullable=True)
+    
+    # JSON list of papers: [{"title": "...", "authors": "...", "page_range": "...", "pdf_link": "..."}]
+    papers = Column(JSON, nullable=True) 
+    
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    college = relationship("College", back_populates="journal_volumes")
+    journal = relationship("Journal", back_populates="volumes")
+
     __table_args__ = (
         {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
     )

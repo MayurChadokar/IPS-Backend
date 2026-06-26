@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_active_admin, get_current_admin_with_session_fallback, SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
 from app.models.models import UserRole
-from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink, CrmSyncAudit
+from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink, CrmSyncAudit, JournalVolume
 from app.schemas.schemas import (
     CollegeCreate, CollegeUpdate, CollegeResponse,
     PageCreate, PageUpdate, PageResponse,
@@ -13,6 +13,7 @@ from app.schemas.schemas import (
     FacultyCreate, FacultyUpdate, FacultyResponse,
     CourseCreate, CourseUpdate, CourseResponse,
     SocialMediaLinkCreate, SocialMediaLinkUpdate, SocialMediaLinkResponse,
+    JournalVolumeCreate, JournalVolumeUpdate, JournalVolumeResponse,
     ClonePageRequest, CreateCollegeFromTemplate
 )
 from typing import List, Dict, Any
@@ -849,3 +850,98 @@ async def get_sync_logs_by_email(
         for log in logs
     ]
 
+
+# ============= JOURNAL VOLUME MANAGEMENT =============
+@router.post("/colleges/{college_id}/journal-volumes", response_model=JournalVolumeResponse, status_code=status.HTTP_201_CREATED)
+async def create_journal_volume(
+    college_id: int,
+    volume: JournalVolumeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Create a new journal volume for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="College not found"
+        )
+    
+    # Store papers as a list of dicts (JSON)
+    volume_data = volume.model_dump()
+    if 'papers' in volume_data and volume_data['papers'] is not None:
+        volume_data['papers'] = [p for p in volume_data['papers']]
+    
+    db_volume = JournalVolume(college_id=college_id, **volume_data)
+    db.add(db_volume)
+    db.commit()
+    db.refresh(db_volume)
+    return db_volume
+
+
+@router.get("/colleges/{college_id}/journal-volumes", response_model=List[JournalVolumeResponse])
+async def list_journal_volumes_by_college(
+    college_id: int, 
+    db: Session = Depends(get_db)
+):
+    """List all journal volumes for a college"""
+    volumes = db.query(JournalVolume).filter(JournalVolume.college_id == college_id).order_by(JournalVolume.created_at.desc()).all()
+    return volumes
+
+
+@router.get("/journal-volumes/{volume_id}", response_model=JournalVolumeResponse)
+async def get_journal_volume(volume_id: int, db: Session = Depends(get_db)):
+    """Get journal volume by ID"""
+    volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not volume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Journal volume not found"
+        )
+    return volume
+
+
+@router.put("/journal-volumes/{volume_id}", response_model=JournalVolumeResponse)
+async def update_journal_volume(
+    volume_id: int,
+    volume_update: JournalVolumeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Update journal volume"""
+    db_volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not db_volume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Journal volume not found"
+        )
+    
+    update_data = volume_update.model_dump(exclude_unset=True)
+    if 'papers' in update_data and update_data['papers'] is not None:
+        update_data['papers'] = [p for p in update_data['papers']]
+
+    for field, value in update_data.items():
+        setattr(db_volume, field, value)
+    
+    db.commit()
+    db.refresh(db_volume)
+    return db_volume
+
+
+@router.delete("/journal-volumes/{volume_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_journal_volume(
+    volume_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin)
+):
+    """Delete journal volume"""
+    db_volume = db.query(JournalVolume).filter(JournalVolume.id == volume_id).first()
+    if not db_volume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Journal volume not found"
+        )
+    
+    db.delete(db_volume)
+    db.commit()
+    return None

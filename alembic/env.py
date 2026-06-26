@@ -19,7 +19,7 @@ from app.models.models import Base
 config = context.config
 
 # set the database url from environment variable
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"].replace('%', '%%'))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

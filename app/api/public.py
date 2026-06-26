@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import asyncio
 from app.core.database import get_db
 from app.services.meritto_crm import meritto_service
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink
+from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
@@ -18,6 +18,9 @@ from app.schemas.schemas import (
     AlumniListItem,
     AlumniDetail,
     CollegePublicInfo,
+    JournalVolumeResponse,
+    JournalVolumeSummary,
+    JournalResponse,
 )
 from typing import List, Dict, Any, Optional
 
@@ -838,3 +841,121 @@ async def get_all_colleges_with_courses(db: Session = Depends(get_db)):
     return {
         "colleges": colleges_data
     }
+
+
+# ============= JOURNALS & VOLUMES =============
+@router.get("/{college_slug}/journals", response_model=List[JournalResponse])
+async def list_journals_by_college(
+    college_slug: str,
+    db: Session = Depends(get_db)
+):
+    """
+    List active journals for a college (with static HTML content)
+    Example: GET /api/ibmr/journals
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    journals = db.query(Journal).filter(
+        Journal.college_id == college.id,
+        Journal.is_active == True
+    ).order_by(Journal.created_at.desc()).all()
+
+    return journals
+
+
+@router.get("/{college_slug}/journal-volumes", response_model=List[JournalVolumeResponse])
+async def list_journal_volumes_by_college(
+    college_slug: str,
+    journal_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    List active journal volumes for a college.
+    Can optionally filter by journal_id.
+    Example: GET /api/ibmr/journal-volumes?journal_id=1
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    query = db.query(JournalVolume).filter(
+        JournalVolume.college_id == college.id,
+        JournalVolume.is_active == True
+    )
+    
+    if journal_id:
+        query = query.filter(JournalVolume.journal_id == journal_id)
+
+    volumes = query.order_by(JournalVolume.created_at.desc()).all()
+
+    return volumes
+
+@router.get("/{college_slug}/journal-volumes-summary", response_model=List[JournalVolumeSummary])
+async def list_journal_volumes_summary(
+    college_slug: str,
+    journal_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    List only the titles and IDs of active journal volumes for a college.
+    Can optionally filter by journal_id.
+    Example: GET /api/ibmr/journal-volumes-summary?journal_id=1
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    query = db.query(JournalVolume).filter(
+        JournalVolume.college_id == college.id,
+        JournalVolume.is_active == True
+    )
+    
+    if journal_id:
+        query = query.filter(JournalVolume.journal_id == journal_id)
+
+    volumes = query.order_by(JournalVolume.created_at.desc()).all()
+
+    return volumes
+
+@router.get("/{college_slug}/journal-volumes/{volume_id}", response_model=JournalVolumeResponse)
+async def get_journal_volume_details(
+    college_slug: str,
+    volume_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get full details for a specific active journal volume including papers.
+    Example: GET /api/ibmr/journal-volumes/1
+    """
+    college = db.query(College).filter(
+        College.slug == college_slug,
+        College.is_active == True
+    ).first()
+
+    if not college:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"College '{college_slug}' not found")
+
+    volume = db.query(JournalVolume).filter(
+        JournalVolume.id == volume_id,
+        JournalVolume.college_id == college.id,
+        JournalVolume.is_active == True
+    ).first()
+    
+    if not volume:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Volume not found")
+
+    return volume

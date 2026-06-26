@@ -1,0 +1,202 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Journal{% endblock %}
+{% block page_title %}{{ action }} Journal{% endblock %}
+
+{% block extra_css %}
+<!-- Include Quill CSS for rich text editing -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor {
+        min-height: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">{{ action }} Journal</h3>
+                <a href="/admin/colleges/{{ college.id }}/journals" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% if journal %}/admin/journals/{{ journal.id }}/edit{% else %}/admin/colleges/{{ college.id }}/journals/new{% endif %}" id="journalForm" enctype="multipart/form-data">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Journal Name *</label>
+                            <input type="text" class="form-control" name="name" value="{{ journal.name if journal else 'Unnayan' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Journal Logo</label>
+                            <input type="file" class="form-control" name="logo" accept="image/*">
+                            {% if journal and journal.logo_url %}
+                            <div class="mt-2">
+                                <img src="{{ journal.logo_url }}" alt="Current Logo" class="img-thumbnail" style="max-height: 80px;">
+                                <small class="text-muted d-block">Current logo</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if not journal or journal.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active (Visible on website)</label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h4 class="mb-3">Static Pages</h4>
+                    <p class="text-muted small">Fill out the HTML/Text content for the static sections of this journal.</p>
+
+                    <!-- Hidden inputs for rich text -->
+                    <input type="hidden" name="home_html" id="home_html">
+                    <input type="hidden" name="about_html" id="about_html">
+                    <input type="hidden" name="call_for_papers_html" id="call_for_papers_html">
+                    <input type="hidden" name="policies_html" id="policies_html">
+                    <input type="hidden" name="author_guidelines_html" id="author_guidelines_html">
+                    <input type="hidden" name="contact_us_html" id="contact_us_html">
+
+                    <!-- Accordion for Editors -->
+                    <div class="accordion" id="editorsAccordion">
+                        <!-- Home -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingHome">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHome" aria-expanded="true" aria-controls="collapseHome">
+                                Home Page
+                            </button>
+                            </h2>
+                            <div id="collapseHome" class="accordion-collapse collapse show" aria-labelledby="headingHome" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-home">{{ journal.home_html | safe if journal and journal.home_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingAbout">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAbout" aria-expanded="false" aria-controls="collapseAbout">
+                                About Us
+                            </button>
+                            </h2>
+                            <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-about">{{ journal.about_html | safe if journal and journal.about_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Call for Papers -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingCall">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCall" aria-expanded="false" aria-controls="collapseCall">
+                                Call for Papers
+                            </button>
+                            </h2>
+                            <div id="collapseCall" class="accordion-collapse collapse" aria-labelledby="headingCall" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-call">{{ journal.call_for_papers_html | safe if journal and journal.call_for_papers_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Policies -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingPolicies">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePolicies" aria-expanded="false" aria-controls="collapsePolicies">
+                                Policies
+                            </button>
+                            </h2>
+                            <div id="collapsePolicies" class="accordion-collapse collapse" aria-labelledby="headingPolicies" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-policies">{{ journal.policies_html | safe if journal and journal.policies_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Author Guidelines -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingAuthor">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAuthor" aria-expanded="false" aria-controls="collapseAuthor">
+                                Author Guidelines
+                            </button>
+                            </h2>
+                            <div id="collapseAuthor" class="accordion-collapse collapse" aria-labelledby="headingAuthor" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-author">{{ journal.author_guidelines_html | safe if journal and journal.author_guidelines_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Us -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingContact">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContact" aria-expanded="false" aria-controls="collapseContact">
+                                Contact Us
+                            </button>
+                            </h2>
+                            <div id="collapseContact" class="accordion-collapse collapse" aria-labelledby="headingContact" data-bs-parent="#editorsAccordion">
+                                <div class="accordion-body">
+                                    <div id="editor-contact">{{ journal.contact_us_html | safe if journal and journal.contact_us_html else '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="/admin/colleges/{{ college.id }}/journals" class="btn btn-light">Cancel</a>
+                        <button type="button" class="btn btn-primary px-5" onclick="submitForm()">Save Journal Details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script>
+    var toolbarOptions = [
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote', 'code-block'],
+        [{ 'header': 1 }, { 'header': 2 }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'direction': 'rtl' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['clean'],
+        ['link', 'image', 'video'],
+        [{ 'table': [] }]
+    ];
+
+    var quillHome = new Quill('#editor-home', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    var quillAbout = new Quill('#editor-about', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    var quillCall = new Quill('#editor-call', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    var quillPolicies = new Quill('#editor-policies', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    var quillAuthor = new Quill('#editor-author', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    var quillContact = new Quill('#editor-contact', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+
+    function submitForm() {
+        document.getElementById('home_html').value = quillHome.root.innerHTML;
+        document.getElementById('about_html').value = quillAbout.root.innerHTML;
+        document.getElementById('call_for_papers_html').value = quillCall.root.innerHTML;
+        document.getElementById('policies_html').value = quillPolicies.root.innerHTML;
+        document.getElementById('author_guidelines_html').value = quillAuthor.root.innerHTML;
+        document.getElementById('contact_us_html').value = quillContact.root.innerHTML;
+        
+        document.getElementById('journalForm').submit();
+    }
+</script>
+{% endblock %}

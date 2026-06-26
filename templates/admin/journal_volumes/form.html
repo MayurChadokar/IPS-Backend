@@ -1,0 +1,143 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ action }} Journal Volume{% endblock %}
+{% block page_title %}{{ action }} Journal Volume{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">{{ action }} Journal Volume</h3>
+                <a href="/admin/journals/{{ journal.id }}/volumes" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% if volume %}/admin/journal-volumes/{{ volume.id }}/edit{% else %}/admin/journals/{{ journal.id }}/volumes/new{% endif %}" id="volumeForm" enctype="multipart/form-data">
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Volume Title *</label>
+                            <input type="text" class="form-control" name="volume_title" value="{{ volume.volume_title if volume else '' }}" placeholder="e.g. Jan 2026 Volume XVIII Issue 1" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Editorial File (PDF)</label>
+                            <input type="file" class="form-control" name="editorial_file" accept=".pdf,.doc,.docx">
+                            {% if volume and volume.editorial_link %}
+                                <div class="mt-1"><small><a href="{{ volume.editorial_link }}" target="_blank">View Current Editorial File</a></small></div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contents File (PDF)</label>
+                            <input type="file" class="form-control" name="contents_file" accept=".pdf,.doc,.docx">
+                            {% if volume and volume.contents_link %}
+                                <div class="mt-1"><small><a href="{{ volume.contents_link }}" target="_blank">View Current Contents File</a></small></div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if not volume or volume.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active (Visible on website)</label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h4 class="mb-3">Papers</h4>
+                    <p class="text-muted small">Add the list of papers published in this volume.</p>
+                    
+                    <!-- Hidden input to store JSON string of papers -->
+                    <input type="hidden" name="papers_json" id="papers_json">
+
+                    <div id="papers-container">
+                        <!-- Papers will be added here via JS -->
+                    </div>
+
+                    <button type="button" class="btn btn-outline-success mt-2" onclick="addPaper()">
+                        <i class="bi bi-plus-lg"></i> Add Paper
+                    </button>
+
+                    <hr class="my-4">
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="/admin/journals/{{ journal.id }}/volumes" class="btn btn-light">Cancel</a>
+                        <button type="button" class="btn btn-primary px-5" onclick="submitForm()">Save Volume</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let papers = {{ (volume.papers | tojson | safe) if volume and volume.papers else '[]' }};
+    const container = document.getElementById('papers-container');
+
+    function renderPapers() {
+        container.innerHTML = '';
+        papers.forEach((paper, index) => {
+            const html = `
+                <div class="card mb-3 border-info">
+                    <div class="card-header bg-info bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+                        <strong class="text-info">Paper #${index + 1}</strong>
+                        <button type="button" class="btn btn-sm btn-danger py-0 px-2" onclick="removePaper(${index})"><i class="bi bi-trash"></i></button>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <label class="form-label small">Title *</label>
+                                <input type="text" class="form-control form-control-sm" value="${paper.title || ''}" onchange="updatePaper(${index}, 'title', this.value)" required>
+                            </div>
+                            <div class="col-md-5 mb-2">
+                                <label class="form-label small">Authors *</label>
+                                <input type="text" class="form-control form-control-sm" value="${paper.authors || ''}" onchange="updatePaper(${index}, 'authors', this.value)" required>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label small">Page Range</label>
+                                <input type="text" class="form-control form-control-sm" placeholder="e.g. 1-22" value="${paper.page_range || ''}" onchange="updatePaper(${index}, 'page_range', this.value)">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label small">Paper PDF</label>
+                                <input type="file" class="form-control form-control-sm" name="paper_pdf_${index}" accept=".pdf,.doc,.docx">
+                                ${paper.pdf_link ? `<div class="mt-1"><small><a href="${paper.pdf_link}" target="_blank">View Current PDF</a></small></div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function addPaper() {
+        papers.push({ title: '', authors: '', page_range: '', pdf_link: '' });
+        renderPapers();
+    }
+
+    function removePaper(index) {
+        if(confirm('Remove this paper?')) {
+            papers.splice(index, 1);
+            renderPapers();
+        }
+    }
+
+    function updatePaper(index, field, value) {
+        papers[index][field] = value;
+    }
+
+    function submitForm() {
+        document.getElementById('papers_json').value = JSON.stringify(papers);
+        document.getElementById('volumeForm').submit();
+    }
+
+    // Initial render
+    renderPapers();
+</script>
+{% endblock %}

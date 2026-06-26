@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Journals - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Journals{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="card-title mb-1"><i class="bi bi-journal-bookmark-fill me-2"></i>Journals for {{ college.name }}</h2>
+            <small class="text-muted">Manage journals and their static pages</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/admin/colleges/{{ college.id }}/journals/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Journal
+            </a>
+            <a href="/admin/colleges" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Colleges
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        {% if journals %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th>Name</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 350px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for j in journals %}
+                    <tr>
+                        <td><span class="badge bg-light text-dark">{{ j.id }}</span></td>
+                        <td><strong>{{ j.name }}</strong></td>
+                        <td>
+                            {% if j.is_active %}
+                            <span class="badge badge-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                            <span class="badge badge-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="/admin/journals/{{ j.id }}/volumes" class="btn btn-outline-info">
+                                    <i class="bi bi-collection"></i> Manage Volumes
+                                </a>
+                                <a href="/admin/journals/{{ j.id }}/edit" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Edit Details
+                                </a>
+                            </div>
+                            <form method="POST" action="/admin/journals/{{ j.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this journal completely?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-journal-bookmark-fill" style="font-size: 64px; color: #cbd5e1;"></i>
+            <p class="text-muted mt-3 mb-4">No journals found. Create your first journal for this college.</p>
+            <a href="/admin/colleges/{{ college.id }}/journals/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create First Journal
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

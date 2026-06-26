@@ -151,7 +151,6 @@ class SectionUpdate(BaseModel):
     is_active: Optional[bool] = None
     content_json: Optional[Dict[str, Any]] = None
 
-
 class SectionResponse(SectionBase):
     id: int
     college_id: int
@@ -159,7 +158,6 @@ class SectionResponse(SectionBase):
     content: Optional[SectionContentResponse] = None
     
     model_config = ConfigDict(from_attributes=True)
-
 
 # ============= Faculty Schemas =============
 class FacultyBase(BaseModel):
@@ -479,3 +477,78 @@ class ContactCreate(BaseModel):
     message: Optional[str] = None
     c_course: Optional[str] = None
     c_specialization: Optional[str] = None
+
+
+# ============= Journal & Volume Schemas =============
+class JournalBase(BaseModel):
+    name: str
+    logo_url: Optional[str] = None
+    home_html: Optional[str] = None
+    about_html: Optional[str] = None
+    call_for_papers_html: Optional[str] = None
+    policies_html: Optional[str] = None
+    author_guidelines_html: Optional[str] = None
+    contact_us_html: Optional[str] = None
+    is_active: bool = True
+
+class JournalCreate(JournalBase):
+    pass
+
+class JournalUpdate(BaseModel):
+    name: Optional[str] = None
+    logo_url: Optional[str] = None
+    home_html: Optional[str] = None
+    about_html: Optional[str] = None
+    call_for_papers_html: Optional[str] = None
+    policies_html: Optional[str] = None
+    author_guidelines_html: Optional[str] = None
+    contact_us_html: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class JournalResponse(JournalBase):
+    id: int
+    college_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaperItem(BaseModel):
+    title: str
+    authors: str
+    page_range: str
+    pdf_link: Optional[str] = None
+
+class JournalVolumeBase(BaseModel):
+    volume_title: str
+    editorial_link: Optional[str] = None
+    contents_link: Optional[str] = None
+    papers: Optional[List[PaperItem]] = None
+    is_active: bool = True
+
+class JournalVolumeCreate(JournalVolumeBase):
+    journal_id: int
+
+class JournalVolumeUpdate(BaseModel):
+    volume_title: Optional[str] = None
+    editorial_link: Optional[str] = None
+    contents_link: Optional[str] = None
+    papers: Optional[List[PaperItem]] = None
+    is_active: Optional[bool] = None
+
+class JournalVolumeResponse(JournalVolumeBase):
+    id: int
+    college_id: int
+    journal_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class JournalVolumeSummary(BaseModel):
+    id: int
+    journal_id: int
+    volume_title: str
+    
+    model_config = ConfigDict(from_attributes=True)
