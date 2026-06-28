@@ -226,6 +226,7 @@ class Faculty(Base):
     designation = Column(String(255), nullable=True)  # Professor, Assistant Professor, etc.
     department = Column(String(255), nullable=True)  # Computer Science, Management, etc.
     description = Column(Text, nullable=True)
+    sort_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

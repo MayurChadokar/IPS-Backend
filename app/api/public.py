@@ -377,7 +377,7 @@ async def list_faculties_by_college(
     faculties = db.query(Faculty).filter(
         Faculty.college_id == college.id,
         Faculty.is_active == True
-    ).all()
+    ).order_by(Faculty.sort_order.asc()).all()
     
     return [
         {

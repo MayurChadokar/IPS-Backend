@@ -2028,7 +2028,7 @@ async def list_faculties_page(
     if not college:
         raise HTTPException(status_code=404, detail="College not found")
     
-    faculties = db.query(Faculty).filter(Faculty.college_id == college_id).all()
+    faculties = db.query(Faculty).filter(Faculty.college_id == college_id).order_by(Faculty.sort_order.asc()).all()
     
     return templates.TemplateResponse("admin/faculties/list.html", {
         "request": request,
@@ -2191,6 +2191,26 @@ async def delete_faculty(
         return RedirectResponse(url=f"/admin/colleges/{college_id}/faculties", status_code=303)
     
     return RedirectResponse(url="/admin/colleges", status_code=303)
+
+
+@router.post("/colleges/{college_id}/faculties/reorder")
+async def reorder_faculties(
+    college_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Reorder faculties"""
+    data = await request.json()
+    faculty_ids = data.get("faculty_ids", [])
+    
+    for index, faculty_id in enumerate(faculty_ids):
+        faculty = db.query(Faculty).filter(Faculty.id == faculty_id, Faculty.college_id == college_id).first()
+        if faculty:
+            faculty.sort_order = index
+            
+    db.commit()
+    return {"status": "success"}
 
 
 # ============= COURSES MANAGEMENT =============

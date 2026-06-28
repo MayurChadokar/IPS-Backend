@@ -1264,6 +1264,10 @@
         const uniqueId = 'testimonial_preview_' + Date.now();
         setupImagePreview(fileInput, uniqueId);
         initDragAndDrop();
+
+        // Scroll new item into view so it's visible at the bottom
+        newItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        newItem.querySelector('.testimonial-name').focus();
     }
 
     function addContactEmail() {

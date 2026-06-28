@@ -3,12 +3,55 @@
 {% block title %}Faculties - {{ college.name }}{% endblock %}
 {% block page_title %}{{ college.name }} - Faculties{% endblock %}
 
+{% block extra_css %}
+<style>
+    .drag-handle {
+        cursor: grab;
+        color: #94a3b8;
+        font-size: 18px;
+        padding: 0 4px;
+        user-select: none;
+    }
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+    tr.dragging {
+        opacity: 0.4;
+        background: #e0e7ff !important;
+    }
+    tr.drag-over {
+        border-top: 3px solid #4f46e5;
+        background: #f0f4ff !important;
+    }
+    #reorder-status {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 9999;
+        min-width: 220px;
+        font-weight: 600;
+        font-size: 14px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .sort-order-badge {
+        font-size: 11px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 4px;
+        padding: 2px 7px;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
             <h2 class="card-title mb-1"><i class="bi bi-people me-2"></i>Faculties for {{ college.name }}</h2>
-            <small class="text-muted">Manage faculty members for this college</small>
+            <small class="text-muted">Drag rows to reorder faculty members</small>
         </div>
         <div class="d-flex gap-2">
             <a href="/admin/colleges/{{ college.id }}/faculties/new" class="btn btn-primary">
@@ -23,9 +66,10 @@
     <div class="card-body p-0">
         {% if faculties %}
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" id="faculty-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px;"></th>
                         <th style="width: 80px;">Image</th>
                         <th>Name</th>
                         <th>Designation</th>
@@ -35,9 +79,14 @@
                         <th style="width: 150px;" class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="faculty-tbody">
                     {% for faculty in faculties %}
-                    <tr>
+                    <tr data-id="{{ faculty.id }}" draggable="true">
+                        <td>
+                            <span class="drag-handle" title="Drag to reorder">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
+                        </td>
                         <td>
                             {% if faculty.image %}
                             <img src="{{ faculty.image }}" alt="{{ faculty.name }}"
@@ -49,7 +98,9 @@
                             </div>
                             {% endif %}
                         </td>
-                        <td><strong>{{ faculty.name }}</strong><br><small class="text-muted">{{ faculty.email }}</small>
+                        <td>
+                            <strong>{{ faculty.name }}</strong><br>
+                            <small class="text-muted">{{ faculty.email }}</small>
                         </td>
                         <td>{{ faculty.designation }}</td>
                         <td>{{ faculty.department }}</td>
@@ -90,4 +141,107 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Toast notification -->
+<div id="reorder-status" class="alert"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const tbody = document.getElementById('faculty-tbody');
+    if (!tbody) return;
+
+    const collegeId = {{ college.id }};
+    let dragSrc = null;
+
+    tbody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('dragstart', onDragStart);
+        row.addEventListener('dragover', onDragOver);
+        row.addEventListener('dragleave', onDragLeave);
+        row.addEventListener('drop', onDrop);
+        row.addEventListener('dragend', onDragEnd);
+    });
+
+    function onDragStart(e) {
+        dragSrc = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.id);
+    }
+
+    function onDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this !== dragSrc) {
+            this.classList.add('drag-over');
+        }
+    }
+
+    function onDragLeave() {
+        this.classList.remove('drag-over');
+    }
+
+    function onDrop(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        if (this === dragSrc) return;
+
+        // Determine insert position
+        const rows = [...tbody.querySelectorAll('tr')];
+        const srcIdx = rows.indexOf(dragSrc);
+        const tgtIdx = rows.indexOf(this);
+
+        if (srcIdx < tgtIdx) {
+            this.after(dragSrc);
+        } else {
+            this.before(dragSrc);
+        }
+
+        saveOrder();
+    }
+
+    function onDragEnd() {
+        this.classList.remove('dragging');
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+        dragSrc = null;
+    }
+
+    function saveOrder() {
+        const ids = [...tbody.querySelectorAll('tr')].map(r => parseInt(r.dataset.id));
+
+        showStatus('saving');
+
+        fetch(`/admin/colleges/${collegeId}/faculties/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ faculty_ids: ids })
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Server error');
+            return r.json();
+        })
+        .then(() => showStatus('success'))
+        .catch(() => showStatus('error'));
+    }
+
+    function showStatus(state) {
+        const el = document.getElementById('reorder-status');
+        el.style.display = 'block';
+
+        if (state === 'saving') {
+            el.className = 'alert alert-secondary';
+            el.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Saving order...';
+        } else if (state === 'success') {
+            el.className = 'alert alert-success';
+            el.innerHTML = '<i class="bi bi-check-circle me-2"></i>Order saved!';
+            setTimeout(() => { el.style.display = 'none'; }, 2000);
+        } else {
+            el.className = 'alert alert-danger';
+            el.innerHTML = '<i class="bi bi-exclamation-circle me-2"></i>Failed to save order.';
+            setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+    }
+})();
+</script>
 {% endblock %}
