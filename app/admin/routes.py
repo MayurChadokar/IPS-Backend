@@ -2954,6 +2954,7 @@ async def create_journal(
     college_id: int,
     name: str = Form(...),
     logo: Optional[UploadFile] = File(None),
+    home_html: str = Form(""),
     about_html: str = Form(""),
     call_for_papers_html: str = Form(""),
     policies_html: str = Form(""),
