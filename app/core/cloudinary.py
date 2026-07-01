@@ -77,15 +77,29 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
             ext = filename.lower().rsplit('.', 1)[-1]
         elif hasattr(file_path_or_obj, 'name') and file_path_or_obj.name and '.' in str(file_path_or_obj.name):
             ext = str(file_path_or_obj.name).lower().rsplit('.', 1)[-1]
-        
-        is_svg = ext == 'svg'
-        is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv']
-        # ICO and JFIF should skip WebP conversion but upload as image
-        is_skip_conversion = ext in ['svg', 'ico', 'gif']
-        
-        # Ensure file is at the beginning
+
+        # Ensure file is at the beginning before any reads
         if hasattr(file_path_or_obj, 'seek'):
             file_path_or_obj.seek(0)
+
+        # If extension is still unknown, sniff magic bytes to detect PDF
+        if ext is None and hasattr(file_path_or_obj, 'read'):
+            magic = file_path_or_obj.read(4)
+            file_path_or_obj.seek(0)
+            if magic == b'%PDF':
+                ext = 'pdf'
+
+        # Check if this is a Journal PDF to upload to Supabase instead of Cloudinary
+        if ext == 'pdf' and folder and ('journal' in folder.lower() or 'paper' in folder.lower() or 'volume' in folder.lower()):
+            from app.core.supabase import upload_pdf_to_supabase
+            print(f"Routing journal PDF upload ({filename}) to Supabase Storage bucket...")
+            return upload_pdf_to_supabase(file_path_or_obj, folder=folder, filename=filename)
+
+        is_svg = ext == 'svg'
+        is_video = ext in ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv']
+        is_document = ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar']
+        # ICO and GIF should skip WebP conversion but upload as image
+        is_skip_conversion = ext in ['svg', 'ico', 'gif']
         
         # SVG files: upload as raw so Cloudinary preserves the SVG format
         if is_svg:
@@ -95,6 +109,19 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
                 folder=folder,
                 resource_type="raw",
                 format="svg"
+            )
+            return response.get("secure_url")
+        
+        # All documents upload as raw so Cloudinary preserves exact bytes.
+        # PDFs must NOT go through image processing — Cloudinary corrupts them.
+        # However, PDFs are uploaded as 'image' resource type so Cloudinary serves them inline (viewable) instead of forcing a download.
+        if is_document:
+            res_type = "image" if ext == "pdf" else "raw"
+            print(f"Uploading document ({ext}) as {res_type} resource...")
+            response = cloudinary.uploader.upload(
+                file_path_or_obj,
+                folder=folder,
+                resource_type=res_type
             )
             return response.get("secure_url")
         
@@ -141,14 +168,30 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
                     format="webp"
                 )
             except Exception as img_error:
-                # Processing failed — upload as-is with auto resource type detection
-                print(f"Image processing failed ({img_error}), uploading as-is with auto detection")
+                print(f"Image processing failed ({img_error}), uploading as-is")
                 file_path_or_obj.seek(0)
-                response = cloudinary.uploader.upload(
-                    file_path_or_obj,
-                    folder=folder,
-                    resource_type="auto"
-                )
+                # Re-sniff magic bytes in case ext was unknown — PDFs must go as raw
+                _fallback_ext = ext
+                if _fallback_ext is None and hasattr(file_path_or_obj, 'read'):
+                    _magic = file_path_or_obj.read(4)
+                    file_path_or_obj.seek(0)
+                    if _magic == b'%PDF':
+                        _fallback_ext = 'pdf'
+                _doc_exts = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'zip', 'rar'}
+                if _fallback_ext in _doc_exts:
+                    res_type = "image" if _fallback_ext == "pdf" else "raw"
+                    response = cloudinary.uploader.upload(
+                        file_path_or_obj,
+                        folder=folder,
+                        resource_type=res_type
+                    )
+                    return response.get("secure_url")
+                else:
+                    response = cloudinary.uploader.upload(
+                        file_path_or_obj,
+                        folder=folder,
+                        resource_type="auto"
+                    )
         else:
             # No conversion requested or not a file object
             response = cloudinary.uploader.upload(

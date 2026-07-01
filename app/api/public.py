@@ -1,7 +1,10 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import asyncio
+import httpx
+from urllib.parse import quote
 from app.core.database import get_db
 from app.services.meritto_crm import meritto_service
 from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
@@ -18,7 +21,6 @@ from app.schemas.schemas import (
     AlumniListItem,
     AlumniDetail,
     CollegePublicInfo,
-    JournalVolumeResponse,
     JournalVolumeSummary,
     JournalResponse,
 )
@@ -26,6 +28,68 @@ from typing import List, Dict, Any, Optional
 
 
 router = APIRouter()
+
+
+def _pdf_proxy(request: Request, url: Optional[str]) -> Optional[str]:
+    """Wrap a Cloudinary raw PDF URL in the proxy endpoint so browsers open it inline."""
+    if not url or not url.startswith("https://res.cloudinary.com/"):
+        return url
+    base = str(request.base_url).rstrip("/")
+    return f"{base}/api/pdf-view?url={quote(url, safe='')}"
+
+
+def _volume_dict(volume: JournalVolume, request: Request) -> dict:
+    """Serialize a JournalVolume with all PDF URLs rewritten to proxy URLs."""
+    papers = []
+    for p in (volume.papers or []):
+        p = dict(p)
+        p["pdf_link"] = _pdf_proxy(request, p.get("pdf_link"))
+        papers.append(p)
+    return {
+        "id": volume.id,
+        "college_id": volume.college_id,
+        "journal_id": volume.journal_id,
+        "volume_title": volume.volume_title,
+        "editorial_link": _pdf_proxy(request, volume.editorial_link),
+        "contents_link": _pdf_proxy(request, volume.contents_link),
+        "papers": papers,
+        "is_active": volume.is_active,
+        "created_at": volume.created_at,
+        "updated_at": volume.updated_at,
+    }
+
+
+@router.get("/pdf-view")
+async def proxy_pdf_inline(url: str):
+    """
+    Fetch a Cloudinary raw PDF and serve it inline so browsers open the PDF
+    viewer instead of downloading the file.
+    Only Cloudinary URLs are allowed.
+    """
+    if not url.startswith("https://res.cloudinary.com/"):
+        raise HTTPException(status_code=400, detail="Only Cloudinary URLs are supported")
+
+    async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
+        try:
+            resp = await client.get(url)
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Failed to fetch PDF: {e}")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail="PDF not found on Cloudinary")
+
+    filename = url.rstrip("/").split("/")[-1]
+
+    return StreamingResponse(
+        iter([resp.content]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"inline; filename=\"{filename}\"",
+            "Content-Length": str(len(resp.content)),
+            "Cache-Control": "public, max-age=86400",
+        }
+    )
+
 
 
 @router.get("/{college_slug}/pages/{page_slug:path}", response_model=PagePublicResponse)
@@ -869,8 +933,9 @@ async def list_journals_by_college(
     return journals
 
 
-@router.get("/{college_slug}/journal-volumes", response_model=List[JournalVolumeResponse])
+@router.get("/{college_slug}/journal-volumes")
 async def list_journal_volumes_by_college(
+    request: Request,
     college_slug: str,
     journal_id: Optional[int] = Query(None),
     db: Session = Depends(get_db)
@@ -892,13 +957,12 @@ async def list_journal_volumes_by_college(
         JournalVolume.college_id == college.id,
         JournalVolume.is_active == True
     )
-    
+
     if journal_id:
         query = query.filter(JournalVolume.journal_id == journal_id)
 
     volumes = query.order_by(JournalVolume.created_at.desc()).all()
-
-    return volumes
+    return [_volume_dict(v, request) for v in volumes]
 
 @router.get("/{college_slug}/journal-volumes-summary", response_model=List[JournalVolumeSummary])
 async def list_journal_volumes_summary(
@@ -931,8 +995,9 @@ async def list_journal_volumes_summary(
 
     return volumes
 
-@router.get("/{college_slug}/journal-volumes/{volume_id}", response_model=JournalVolumeResponse)
+@router.get("/{college_slug}/journal-volumes/{volume_id}")
 async def get_journal_volume_details(
+    request: Request,
     college_slug: str,
     volume_id: int,
     db: Session = Depends(get_db)
@@ -954,8 +1019,8 @@ async def get_journal_volume_details(
         JournalVolume.college_id == college.id,
         JournalVolume.is_active == True
     ).first()
-    
+
     if not volume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Volume not found")
 
-    return volume
+    return _volume_dict(volume, request)

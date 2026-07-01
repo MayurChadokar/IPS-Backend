@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
     
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
+    SUPABASE_BUCKET: str = "journals"
+    
     # Meritto CRM
     MERITTO_SECRET_KEY: str = ""
     MERITTO_ACCESS_KEY: str = ""
