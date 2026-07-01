@@ -1,0 +1,237 @@
+{% extends "admin/base.html" %}
+
+{% block title %}PDF Uploader{% endblock %}
+{% block page_title %}PDF Uploader (Supabase Bucket){% endblock %}
+
+{% block extra_css %}
+<style>
+    .uploader-card {
+        border: 2px dashed #cbd5e1;
+        border-radius: 16px;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .uploader-card:hover, .uploader-card.dragover {
+        border-color: var(--primary-color);
+        background: #eef2ff;
+    }
+    
+    .uploader-icon {
+        font-size: 48px;
+        color: #64748b;
+        margin-bottom: 16px;
+        transition: color 0.3s ease;
+    }
+    
+    .uploader-card:hover .uploader-icon {
+        color: var(--primary-color);
+    }
+    
+    .result-card {
+        display: none;
+        animation: slideIn 0.4s ease forwards;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <!-- Uploader Form Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>Upload PDF File</h5>
+            </div>
+            <div class="card-body">
+                <form id="pdfUploadForm" enctype="multipart/form-data">
+                    <!-- Target Folder Input -->
+                    <div class="mb-4">
+                        <label for="folder" class="form-label">Target Folder (optional)</label>
+                        <input type="text" class="form-control" id="folder" name="folder" value="journals" placeholder="e.g. journals, volumes, papers">
+                        <small class="text-muted">Determines the directory path inside your Supabase bucket.</small>
+                    </div>
+
+                    <!-- Drag & Drop Uploader -->
+                    <div class="uploader-card p-5 text-center mb-4" id="dropzone">
+                        <input type="file" id="fileInput" name="file" accept=".pdf" class="d-none">
+                        <i class="bi bi-file-earmark-pdf-fill uploader-icon"></i>
+                        <h5 class="fw-bold mb-2">Drag and drop your PDF here</h5>
+                        <p class="text-muted mb-3">or click to browse from your device</p>
+                        <span class="badge bg-secondary">Only PDF Files</span>
+                    </div>
+
+                    <!-- File Info (Hidden by default) -->
+                    <div id="fileInfo" class="alert alert-info py-2 px-3 mb-4 d-none">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span id="fileName" class="text-truncate me-2 fw-medium">filename.pdf</span>
+                            <button type="button" class="btn-close" id="clearFileBtn" aria-label="Close"></button>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary w-100 py-2 fs-5" id="uploadBtn" disabled>
+                        <i class="bi bi-upload me-2"></i>Upload to Supabase
+                    </button>
+                </form>
+
+                <!-- Loading Bar -->
+                <div class="progress mt-4 d-none" id="progressBar" style="height: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Result Card -->
+        <div class="card shadow-sm result-card border-success" id="resultCard">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-check-circle-fill text-success fs-1 mb-3 d-block"></i>
+                <h4 class="fw-bold mb-2">Upload Successful!</h4>
+                <p class="text-muted">Your PDF is now hosted on Supabase Storage.</p>
+                
+                <div class="input-group my-3">
+                    <input type="text" class="form-control bg-light" id="generatedUrl" readonly>
+                    <button class="btn btn-success" type="button" id="copyUrlBtn">
+                        <i class="bi bi-clipboard me-1"></i>Copy
+                    </button>
+                </div>
+                
+                <a href="" id="previewUrlBtn" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye me-1"></i>Open File
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+        const fileInfo = document.getElementById("fileInfo");
+        const fileName = document.getElementById("fileName");
+        const clearFileBtn = document.getElementById("clearFileBtn");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const form = document.getElementById("pdfUploadForm");
+        const progressBar = document.getElementById("progressBar");
+        const resultCard = document.getElementById("resultCard");
+        const generatedUrl = document.getElementById("generatedUrl");
+        const copyUrlBtn = document.getElementById("copyUrlBtn");
+        const previewUrlBtn = document.getElementById("previewUrlBtn");
+
+        // Drag and Drop triggers
+        dropzone.addEventListener("click", () => fileInput.click());
+        
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("dragover");
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener("change", (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.name.toLowerCase().endsWith(".pdf")) {
+                alert("Only PDF files are supported!");
+                return;
+            }
+            // Bind file to input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            
+            // UI Update
+            fileName.textContent = `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+            fileInfo.classList.remove("d-none");
+            dropzone.classList.add("d-none");
+            uploadBtn.removeAttribute("disabled");
+            resultCard.style.display = "none";
+        }
+
+        clearFileBtn.addEventListener("click", () => {
+            fileInput.value = "";
+            fileInfo.classList.add("d-none");
+            dropzone.classList.remove("d-none");
+            uploadBtn.setAttribute("disabled", "true");
+        });
+
+        // Submit flow
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            uploadBtn.setAttribute("disabled", "true");
+            progressBar.classList.remove("d-none");
+            resultCard.style.display = "none";
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch("/admin/pdf-uploader/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    generatedUrl.value = data.url;
+                    previewUrlBtn.href = data.url;
+                    resultCard.style.display = "block";
+                    resultCard.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert(data.error || "Upload failed. Please try again.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during upload.");
+            } finally {
+                uploadBtn.removeAttribute("disabled");
+                progressBar.classList.add("d-none");
+            }
+        });
+
+        // Copy button trigger
+        copyUrlBtn.addEventListener("click", () => {
+            generatedUrl.select();
+            document.execCommand("copy");
+            const originalText = copyUrlBtn.innerHTML;
+            copyUrlBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+            copyUrlBtn.classList.replace("btn-success", "btn-dark");
+            
+            setTimeout(() => {
+                copyUrlBtn.innerHTML = originalText;
+                copyUrlBtn.classList.replace("btn-dark", "btn-success");
+            }, 2000);
+        });
+    });
+</script>
+{% endblock %}

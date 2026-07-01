@@ -3268,3 +3268,40 @@ async def delete_journal_volume(
 
     return RedirectResponse(url=f"/admin/journals/{journal_id}/volumes", status_code=303)
 
+
+# ============= PDF UPLOADER UTILITY =============
+@router.get("/pdf-uploader", response_class=HTMLResponse)
+async def get_pdf_uploader_page(
+    request: Request,
+    current_user: User = Depends(require_admin)
+):
+    """Render the PDF uploader dashboard/utility page"""
+    return templates.TemplateResponse("admin/pdf_uploader.html", {
+        "request": request,
+        "user": current_user
+    })
+
+
+@router.post("/pdf-uploader/upload")
+async def handle_pdf_uploader_upload(
+    request: Request,
+    file: UploadFile = File(...),
+    folder: str = Form("journals"),
+    current_user: User = Depends(require_admin)
+):
+    """Handle PDF upload via Supabase from the uploader page"""
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        return JSONResponse({"error": "Only PDF files are allowed"}, status_code=400)
+    
+    try:
+        from app.core.supabase import upload_pdf_to_supabase
+        url = upload_pdf_to_supabase(file.file, folder=folder, filename=file.filename)
+        return JSONResponse({
+            "success": True,
+            "url": url,
+            "filename": file.filename
+        })
+    except Exception as e:
+        print(f"Manual PDF upload error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+

@@ -9,9 +9,14 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">{{ action }} Journal Volume</h3>
-                <a href="/admin/journals/{{ journal.id }}/volumes" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> Back
-                </a>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-primary btn-sm me-2 animate-pulse" data-bs-toggle="modal" data-bs-target="#pdfUploaderModal">
+                        <i class="bi bi-file-earmark-pdf"></i> Upload PDF & Get Link
+                    </button>
+                    <a href="/admin/journals/{{ journal.id }}/volumes" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <form method="POST" action="{% if volume %}/admin/journal-volumes/{{ volume.id }}/edit{% else %}/admin/journals/{{ journal.id }}/volumes/new{% endif %}" id="volumeForm" enctype="multipart/form-data">
@@ -139,5 +144,177 @@
 
     // Initial render
     renderPapers();
+
+    // PDF Modal Uploader Javascript
+    document.addEventListener("DOMContentLoaded", () => {
+        const dropzone = document.getElementById("modalDropzone");
+        const fileInput = document.getElementById("modalFileInput");
+        const fileInfo = document.getElementById("modalFileInfo");
+        const fileName = document.getElementById("modalFileName");
+        const clearFileBtn = document.getElementById("modalClearFileBtn");
+        const uploadBtn = document.getElementById("modalUploadBtn");
+        const form = document.getElementById("modalPdfUploadForm");
+        const progressBar = document.getElementById("modalProgressBar");
+        const resultCard = document.getElementById("modalResultCard");
+        const generatedUrl = document.getElementById("modalGeneratedUrl");
+        const copyUrlBtn = document.getElementById("modalCopyUrlBtn");
+        const previewUrlBtn = document.getElementById("modalPreviewUrlBtn");
+
+        // Drag and Drop triggers
+        dropzone.addEventListener("click", () => fileInput.click());
+        
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("bg-primary", "bg-opacity-10", "border-primary");
+        });
+
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("bg-primary", "bg-opacity-10", "border-primary");
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("bg-primary", "bg-opacity-10", "border-primary");
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener("change", (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.name.toLowerCase().endsWith(".pdf")) {
+                alert("Only PDF files are supported!");
+                return;
+            }
+            // Bind file to input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            
+            // UI Update
+            fileName.textContent = `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+            fileInfo.classList.remove("d-none");
+            dropzone.classList.add("d-none");
+            uploadBtn.removeAttribute("disabled");
+            resultCard.classList.add("d-none");
+        }
+
+        clearFileBtn.addEventListener("click", () => {
+            fileInput.value = "";
+            fileInfo.classList.add("d-none");
+            dropzone.classList.remove("d-none");
+            uploadBtn.setAttribute("disabled", "true");
+        });
+
+        // Submit flow
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            uploadBtn.setAttribute("disabled", "true");
+            progressBar.classList.remove("d-none");
+            resultCard.classList.add("d-none");
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch("/admin/pdf-uploader/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    generatedUrl.value = data.url;
+                    previewUrlBtn.href = data.url;
+                    resultCard.classList.remove("d-none");
+                } else {
+                    alert(data.error || "Upload failed. Please try again.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during upload.");
+            } finally {
+                uploadBtn.removeAttribute("disabled");
+                progressBar.classList.add("d-none");
+            }
+        });
+
+        // Copy button trigger
+        copyUrlBtn.addEventListener("click", () => {
+            generatedUrl.select();
+            document.execCommand("copy");
+            const originalText = copyUrlBtn.innerHTML;
+            copyUrlBtn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+            copyUrlBtn.classList.replace("btn-success", "btn-dark");
+            
+            setTimeout(() => {
+                copyUrlBtn.innerHTML = originalText;
+                copyUrlBtn.classList.replace("btn-dark", "btn-success");
+            }, 2000);
+        });
+    });
 </script>
+
+<!-- PDF Uploader Modal -->
+<div class="modal fade" id="pdfUploaderModal" tabindex="-1" aria-labelledby="pdfUploaderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfUploaderModalLabel"><i class="bi bi-cloud-arrow-up-fill me-2 text-primary"></i>PDF Uploader & Link Generator</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="modalPdfUploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="modalFolder" class="form-label">Target Folder (optional)</label>
+                        <input type="text" class="form-control" id="modalFolder" name="folder" value="journals" placeholder="e.g. journals, volumes, papers">
+                    </div>
+                    <div class="uploader-card p-4 text-center mb-3 border border-2 rounded bg-light" id="modalDropzone" style="cursor: pointer; border-style: dashed !important; border-color: #cbd5e1 !important;">
+                        <input type="file" id="modalFileInput" name="file" accept=".pdf" class="d-none">
+                        <i class="bi bi-file-earmark-pdf-fill text-muted" style="font-size: 40px;"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Drag & Drop PDF here</h6>
+                        <p class="text-muted small mb-0">or click to browse</p>
+                    </div>
+                    <div id="modalFileInfo" class="alert alert-info py-2 px-3 mb-3 d-none">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span id="modalFileName" class="text-truncate me-2 fw-medium small">filename.pdf</span>
+                            <button type="button" class="btn-close" id="modalClearFileBtn" aria-label="Close"></button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2" id="modalUploadBtn" disabled>
+                        <i class="bi bi-upload me-2"></i>Upload and Generate Link
+                    </button>
+                </form>
+                <div class="progress mt-3 d-none" id="modalProgressBar" style="height: 8px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                </div>
+                <div class="card mt-3 border-success d-none" id="modalResultCard">
+                    <div class="card-body py-3">
+                        <div class="text-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+                            <h6 class="fw-bold mb-0">Upload Successful!</h6>
+                        </div>
+                        <div class="input-group input-group-sm mb-2">
+                            <input type="text" class="form-control bg-light" id="modalGeneratedUrl" readonly>
+                            <button class="btn btn-success" type="button" id="modalCopyUrlBtn">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="" id="modalPreviewUrlBtn" target="_blank" class="btn btn-outline-primary btn-sm px-3 py-1">
+                                <i class="bi bi-eye"></i> View File
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
