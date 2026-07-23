@@ -5,22 +5,16 @@
 
 {% block extra_css %}
 <!-- Include Quill CSS for rich text editing -->
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
-<style>
-    .ql-editor {
-        min-height: 200px;
-    }
-</style>
+
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title mb-0">{{ action }} Journal</h3>
+            <div class="card-header d-flex justify-content-end align-items-center">
                 <div class="d-flex align-items-center">
-                    <button type="button" class="btn btn-primary btn-sm me-2 animate-pulse" data-bs-toggle="modal" data-bs-target="#pdfUploaderModal">
+                    <button type="button" class="btn btn-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#pdfUploaderModal">
                         <i class="bi bi-file-earmark-pdf"></i> Upload PDF & Get Link
                     </button>
                     <a href="/admin/colleges/{{ college.id }}/journals" class="btn btn-outline-secondary btn-sm">
@@ -68,6 +62,55 @@
                     <input type="hidden" name="contact_us_html" id="contact_us_html">
 
                     <!-- Accordion for Editors -->
+                    
+{% macro render_scratch_editor(field_id, initial_html='') %}
+<div class="form-group">
+    <div class="scratch-toolbar" style="margin-bottom:6px; display:flex; gap:4px; flex-wrap:wrap; background:#f8f9fa; border:1px solid #dee2e6; border-bottom:none; padding:6px 8px; border-radius:6px 6px 0 0; align-items:center;">
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Undo" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('undo')"><i class="bi bi-arrow-counterclockwise"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Redo" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('redo')"><i class="bi bi-arrow-clockwise"></i></button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 1" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('formatBlock','H1')"><strong>H1</strong></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 2" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('formatBlock','H2')"><strong>H2</strong></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Heading 3" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('formatBlock','H3')"><strong>H3</strong></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Paragraph" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('formatBlock','P')">¶&nbsp;P</button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Bold" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('bold')"><i class="bi bi-type-bold"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Italic" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('italic')"><i class="bi bi-type-italic"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Underline" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('underline')"><i class="bi bi-type-underline"></i></button>
+        <span class="scratch-sep"></span>
+        <label title="Text Color" style="display:flex;align-items:center;gap:3px;cursor:pointer;margin:0;" class="btn btn-sm btn-outline-secondary scratch-tb-btn">
+            <i class="bi bi-palette"></i>
+            <input type="color" style="width:0;height:0;opacity:0;position:absolute;" onchange="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('foreColor', this.value)">
+        </label>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Bullet List" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('insertUnorderedList')"><i class="bi bi-list-ul"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Numbered List" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('insertOrderedList')"><i class="bi bi-list-ol"></i></button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Link" onclick="window.activeScratchEditorId='editor-{{field_id}}'; insertLink()"><i class="bi bi-link-45deg"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Remove Link" onclick="window.activeScratchEditorId='editor-{{field_id}}'; execCmd('unlink')"><i class="bi bi-link"></i><s style="font-size:8px;">x</s></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Line Break" onclick="window.activeScratchEditorId='editor-{{field_id}}'; insertLineBreak()">BR</button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Table" onclick="window.activeScratchEditorId='editor-{{field_id}}'; insertTablePrompt()"><i class="bi bi-grid-3x3-gap"></i> Table</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Card" onclick="window.activeScratchEditorId='editor-{{field_id}}'; insertCard()"><i class="bi bi-card-text"></i> Card</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Insert Raw HTML" onclick="window.activeScratchEditorId='editor-{{field_id}}'; openHtmlEmbedModal()"><i class="bi bi-code-slash"></i> HTML</button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Upload Image" onclick="window.activeScratchEditorId='editor-{{field_id}}'; document.getElementById('scratch_image_file').click()"><i class="bi bi-image"></i> Image</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary scratch-tb-btn" title="Upload PDF" onclick="window.activeScratchEditorId='editor-{{field_id}}'; document.getElementById('scratch_pdf_file').click()"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        <span class="scratch-sep"></span>
+        <button type="button" class="btn btn-sm btn-outline-danger scratch-tb-btn" title="Clear All" onclick="if(confirm('Clear all content?')) document.getElementById('editor-{{field_id}}').innerHTML=''"><i class="bi bi-trash"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary toggle-btn" onclick="toggleSource('{{field_id}}')"><i class="bi bi-code-slash"></i> Toggle Source</button>
+    </div>
+
+    <div id="editor-{{field_id}}-wrapper">
+        <div id="editor-{{field_id}}" class="scratch-editor-instance" contenteditable="true"
+            style="min-height:280px; border:1px solid #dee2e6; border-radius:0 0 6px 6px; padding:16px; font-size:15px; line-height:1.7; outline:none;"
+            onfocus="window.activeScratchEditorId='editor-{{field_id}}'; this.style.borderColor='#86b7fe'; this.style.boxShadow='0 0 0 0.25rem rgba(13,110,253,.25)';"
+            onblur="this.style.borderColor='#dee2e6'; this.style.boxShadow='none';">{{ initial_html | safe }}</div>
+    </div>
+    <textarea id="source-{{field_id}}" class="form-control d-none" style="font-family: monospace;" rows="15">{{ initial_html }}</textarea>
+</div>
+{% endmacro %}
+
                     <div class="accordion" id="editorsAccordion">
                         <!-- Home -->
                         <div class="accordion-item">
@@ -78,7 +121,7 @@
                             </h2>
                             <div id="collapseHome" class="accordion-collapse collapse show" aria-labelledby="headingHome" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-home">{{ journal.home_html | safe if journal and journal.home_html else '' }}</div>
+                                    {{ render_scratch_editor("home", journal.home_html if journal and journal.home_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -92,7 +135,7 @@
                             </h2>
                             <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-about">{{ journal.about_html | safe if journal and journal.about_html else '' }}</div>
+                                    {{ render_scratch_editor("about", journal.about_html if journal and journal.about_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -106,7 +149,7 @@
                             </h2>
                             <div id="collapseCall" class="accordion-collapse collapse" aria-labelledby="headingCall" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-call">{{ journal.call_for_papers_html | safe if journal and journal.call_for_papers_html else '' }}</div>
+                                    {{ render_scratch_editor("call_for_papers", journal.call_for_papers_html if journal and journal.call_for_papers_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -120,7 +163,7 @@
                             </h2>
                             <div id="collapsePolicies" class="accordion-collapse collapse" aria-labelledby="headingPolicies" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-policies">{{ journal.policies_html | safe if journal and journal.policies_html else '' }}</div>
+                                    {{ render_scratch_editor("policies", journal.policies_html if journal and journal.policies_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -134,7 +177,7 @@
                             </h2>
                             <div id="collapseAuthor" class="accordion-collapse collapse" aria-labelledby="headingAuthor" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-author">{{ journal.author_guidelines_html | safe if journal and journal.author_guidelines_html else '' }}</div>
+                                    {{ render_scratch_editor("author_guidelines", journal.author_guidelines_html if journal and journal.author_guidelines_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -148,7 +191,7 @@
                             </h2>
                             <div id="collapseContact" class="accordion-collapse collapse" aria-labelledby="headingContact" data-bs-parent="#editorsAccordion">
                                 <div class="accordion-body">
-                                    <div id="editor-contact">{{ journal.contact_us_html | safe if journal and journal.contact_us_html else '' }}</div>
+                                    {{ render_scratch_editor("contact_us", journal.contact_us_html if journal and journal.contact_us_html else "") }}
                                 </div>
                             </div>
                         </div>
@@ -166,55 +209,101 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="/static/js/scratch-editor.js"></script>
+<style>
+.scratch-tb-btn { 
+    border-radius: 6px !important; 
+    margin: 2px !important; 
+    border: 1px solid transparent !important;
+    background-color: transparent;
+    color: #4b5563;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 4px 10px !important;
+    font-size: 14px;
+}
+.scratch-tb-btn:hover {
+    background-color: #e5e7eb;
+    color: #111827;
+    border-color: #d1d5db !important;
+}
+.scratch-sep { 
+    width: 1px; 
+    height: 24px; 
+    background: #e5e7eb; 
+    margin: 0 8px; 
+}
+.scratch-toolbar {
+    background: #f9fafb !important;
+    border-color: #e5e7eb !important;
+}
+</style>
 <script>
-    var toolbarOptions = [
-        ['bold', 'italic', 'underline', 'strike'],
-        ['blockquote', 'code-block'],
-        [{ 'header': 1 }, { 'header': 2 }],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'script': 'sub'}, { 'script': 'super' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'direction': 'rtl' }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'font': [] }],
-        [{ 'align': [] }],
-        ['clean'],
-        ['link', 'image', 'video'],
-        [{ 'table': [] }]
-    ];
+    // Include shared inputs for Scratch image/PDF uploads at the body level
+    document.addEventListener("DOMContentLoaded", function() {
+        const uploadInputs = `
+        <input type="file" id="scratch_image_file" name="scratch_media_files" accept="image/*,.svg,.ico,.jfif,.gif,.webp,video/*" style="display:none;" data-skip-preview="true" />
+        <input type="file" id="scratch_block_image_file" name="scratch_block_media_files" accept="image/*,.svg,.ico,.jfif,.gif,.webp,video/*" multiple style="display:none;" data-skip-preview="true" data-multiple="true" />
+        <input type="file" id="scratch_pdf_file" name="scratch_pdf_files" accept="application/pdf" style="display:none;" data-skip-preview="true" />
+        `;
+        document.body.insertAdjacentHTML('beforeend', uploadInputs);
+        if(typeof initScratchEditor === 'function') {
+            initScratchEditor();
+        }
+    });
 
-    var quillHome = new Quill('#editor-home', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
-    var quillAbout = new Quill('#editor-about', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
-    var quillCall = new Quill('#editor-call', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
-    var quillPolicies = new Quill('#editor-policies', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
-    var quillAuthor = new Quill('#editor-author', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
-    var quillContact = new Quill('#editor-contact', { theme: 'snow', modules: { table: true, toolbar: toolbarOptions } });
+    const isSourceMode = {
+        'home': false,
+        'about': false,
+        'call_for_papers': false,
+        'policies': false,
+        'author_guidelines': false,
+        'contact_us': false
+    };
+
+    function toggleSource(field) {
+        let wrapper = document.getElementById('editor-' + field + '-wrapper');
+        let sourceArea = document.getElementById('source-' + field);
+        let editorDiv = document.getElementById('editor-' + field);
+        
+        if (isSourceMode[field]) {
+            editorDiv.innerHTML = sourceArea.value;
+            sourceArea.classList.add('d-none');
+            wrapper.classList.remove('d-none');
+            isSourceMode[field] = false;
+        } else {
+            sourceArea.value = editorDiv.innerHTML;
+            wrapper.classList.add('d-none');
+            sourceArea.classList.remove('d-none');
+            isSourceMode[field] = true;
+        }
+    }
+
+    function getHtmlValue(field) {
+        if (isSourceMode[field]) {
+            return document.getElementById('source-' + field).value;
+        } else {
+            return document.getElementById('editor-' + field).innerHTML;
+        }
+    }
 
     function submitForm() {
-        document.getElementById('home_html').value = quillHome.root.innerHTML;
-        document.getElementById('about_html').value = quillAbout.root.innerHTML;
-        document.getElementById('call_for_papers_html').value = quillCall.root.innerHTML;
-        document.getElementById('policies_html').value = quillPolicies.root.innerHTML;
-        document.getElementById('author_guidelines_html').value = quillAuthor.root.innerHTML;
-        document.getElementById('contact_us_html').value = quillContact.root.innerHTML;
+        document.getElementById('home_html').value = getHtmlValue('home');
+        document.getElementById('about_html').value = getHtmlValue('about');
+        document.getElementById('call_for_papers_html').value = getHtmlValue('call_for_papers');
+        document.getElementById('policies_html').value = getHtmlValue('policies');
+        document.getElementById('author_guidelines_html').value = getHtmlValue('author_guidelines');
+        document.getElementById('contact_us_html').value = getHtmlValue('contact_us');
         
         document.getElementById('journalForm').submit();
     }
 
-    // Active Quill tracking for PDF Insertion
-    let activeEditor = quillHome; // Default
-    [quillHome, quillAbout, quillCall, quillPolicies, quillAuthor, quillContact].forEach(editor => {
-        editor.on('selection-change', function(range) {
-            if (range) {
-                activeEditor = editor;
-            }
-        });
-    });
-
-    // PDF Modal Uploader Javascript
+    // PDF Insertion for the active Scratch Editor
+    let activeEditor = null; // Used by PDF uploader modal
+// PDF Modal Uploader Javascript
     document.addEventListener("DOMContentLoaded", () => {
         const dropzone = document.getElementById("modalDropzone");
         const fileInput = document.getElementById("modalFileInput");
@@ -332,7 +421,25 @@
         // Insert into Quill editor
         insertQuillBtn.addEventListener("click", () => {
             const url = generatedUrl.value;
-            if (activeEditor && url) {
+            
+            const activeScratchEditor = document.getElementById(window.activeScratchEditorId || 'editor-home');
+            if (activeScratchEditor && url) {
+                window.activeScratchEditorId = activeScratchEditor.id; // ensure focus context
+                const linkText = prompt("Enter text for this PDF link:", "View PDF Document");
+                let linkHtml = `<a href="${url}" target="_blank">${linkText || url}</a>`;
+                
+                // fallback if execCmd or insertHtmlAtCursor isn't available
+                if (typeof insertHtmlAtCursor === 'function') {
+                    insertHtmlAtCursor(linkHtml);
+                } else {
+                    activeScratchEditor.focus();
+                    document.execCommand('insertHTML', false, linkHtml);
+                }
+                const modalEl = document.getElementById('pdfUploaderModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            } else if (activeEditor && url) {  // Quill fallback, just in case
+
                 const range = activeEditor.getSelection();
                 if (range) {
                     if (range.length > 0) {

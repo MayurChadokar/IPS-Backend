@@ -3,6 +3,17 @@
 {% block title %}{{ action }} Journal Volume{% endblock %}
 {% block page_title %}{{ action }} Journal Volume{% endblock %}
 
+{% block extra_css %}
+<!-- Include Quill CSS for rich text editing -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+    .paper-abstract-editor .ql-editor {
+        min-height: 150px;
+        background-color: #fff;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10">
@@ -81,7 +92,26 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script>
+    var toolbarOptions = [
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote', 'code-block'],
+        [{ 'header': 1 }, { 'header': 2 }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'direction': 'rtl' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['clean'],
+        ['link', 'image', 'video'],
+        [{ 'table': [] }]
+    ];
+
     let papers = {{ (volume.papers | tojson | safe) if volume and volume.papers else '[]' }};
     const container = document.getElementById('papers-container');
 
@@ -99,6 +129,10 @@
                             <div class="col-md-12 mb-2">
                                 <label class="form-label small">Title *</label>
                                 <input type="text" class="form-control form-control-sm" value="${paper.title || ''}" onchange="updatePaper(${index}, 'title', this.value)" required>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <label class="form-label small">Abstract (HTML) *</label>
+                                <div id="editor-abstract-${index}" class="paper-abstract-editor">${paper.abstract_html || ''}</div>
                             </div>
                             <div class="col-md-5 mb-2">
                                 <label class="form-label small">Authors *</label>
@@ -118,11 +152,20 @@
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
+
+            // Initialize Quill Editor for Abstract
+            const quill = new Quill(`#editor-abstract-${index}`, { 
+                theme: 'snow', 
+                modules: { toolbar: toolbarOptions } 
+            });
+            quill.on('text-change', function() {
+                papers[index].abstract_html = quill.root.innerHTML;
+            });
         });
     }
 
     function addPaper() {
-        papers.push({ title: '', authors: '', page_range: '', pdf_link: '' });
+        papers.push({ title: '', authors: '', page_range: '', pdf_link: '', abstract_html: '' });
         renderPapers();
     }
 

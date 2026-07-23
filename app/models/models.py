@@ -319,9 +319,11 @@ class Contact(Base):
 
 class ActivityType(enum.Enum):
     """Types of activities for colleges"""
-    CULTURAL = "cultural"
-    EVENT_CELEBRATION = "event_celebration"
-    WORKSHOP = "workshop"
+    CULTURAL = "CULTURAL"
+    EVENT_CELEBRATION = "EVENT_CELEBRATION"
+    WORKSHOP = "WORKSHOP"
+    SOCIAL = "SOCIAL"
+    CLUB = "CLUB"
 
 
 class Activity(Base):

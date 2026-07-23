@@ -478,6 +478,98 @@ async def create_activity_form(
     })
 
 
+# ============= SOCIAL MANAGEMENT =============
+@router.get("/colleges/{college_id}/social", response_class=HTMLResponse)
+async def list_social_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List activities for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    activities = db.query(Activity).filter(Activity.college_id == college_id, Activity.activity_type == ActivityType.SOCIAL).order_by(Activity.start_date.desc()).all()
+
+    return templates.TemplateResponse("admin/social/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activities": activities
+    })
+
+
+@router.get("/colleges/{college_id}/social/new", response_class=HTMLResponse)
+async def create_social_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create activity form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/social/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activity": None,
+        "action": "Create",
+        "activity_types": ActivityType
+    })
+
+
+
+# ============= CLUB MANAGEMENT =============
+@router.get("/colleges/{college_id}/clubs", response_class=HTMLResponse)
+async def list_clubs_page(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """List activities for a college"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    activities = db.query(Activity).filter(Activity.college_id == college_id, Activity.activity_type == ActivityType.CLUB).order_by(Activity.start_date.desc()).all()
+
+    return templates.TemplateResponse("admin/clubs/list.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activities": activities
+    })
+
+
+@router.get("/colleges/{college_id}/clubs/new", response_class=HTMLResponse)
+async def create_clubs_form(
+    request: Request,
+    college_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Create activity form"""
+    college = db.query(College).filter(College.id == college_id).first()
+    if not college:
+        raise HTTPException(status_code=404, detail="College not found")
+
+    return templates.TemplateResponse("admin/clubs/form.html", {
+        "request": request,
+        "user": current_user,
+        "college": college,
+        "activity": None,
+        "action": "Create",
+        "activity_types": ActivityType
+    })
+
+
+
 # ============= NEWS MANAGEMENT =============
 @router.get("/colleges/{college_id}/news", response_class=HTMLResponse)
 async def list_news_page(
@@ -1072,7 +1164,7 @@ async def create_activity(
 
     activity = Activity(
         college_id=college_id,
-        activity_type=ActivityType(activity_type),
+        activity_type=ActivityType[activity_type.upper()],
         title=title,
         slug=activity_slug,
         short_description=short_description if short_description else None,
@@ -1192,7 +1284,7 @@ async def update_activity(
         activity_slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
     activity.slug = activity_slug
 
-    activity.activity_type = ActivityType(activity_type)
+    activity.activity_type = ActivityType[activity_type.upper()]
     activity.title = title
     activity.short_description = short_description if short_description else None
     activity.content_html = content_html if content_html else None

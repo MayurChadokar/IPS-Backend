@@ -59,6 +59,8 @@ def _volume_dict(volume: JournalVolume, request: Request) -> dict:
     }
 
 
+pdf_client = None
+
 @router.get("/pdf-view")
 async def proxy_pdf_inline(url: str):
     """
@@ -66,14 +68,17 @@ async def proxy_pdf_inline(url: str):
     viewer instead of downloading the file.
     Only Cloudinary URLs are allowed.
     """
+    global pdf_client
     if not url.startswith("https://res.cloudinary.com/"):
         raise HTTPException(status_code=400, detail="Only Cloudinary URLs are supported")
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=30) as client:
-        try:
-            resp = await client.get(url)
-        except Exception as e:
-            raise HTTPException(status_code=502, detail=f"Failed to fetch PDF: {e}")
+    if pdf_client is None:
+        pdf_client = httpx.AsyncClient(follow_redirects=True, timeout=30)
+
+    try:
+        resp = await pdf_client.get(url)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch PDF: {e}")
 
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail="PDF not found on Cloudinary")
@@ -684,7 +689,9 @@ async def list_activities_by_college(
     )
 
     if activity_type:
-        query = query.filter(Activity.activity_type == activity_type)
+        # Normalize to uppercase to match the DB ENUM values
+        activity_type_upper = activity_type.upper()
+        query = query.filter(Activity.activity_type == activity_type_upper)
 
     items = query.order_by(
         (Activity.start_date == None).asc(),
@@ -694,7 +701,7 @@ async def list_activities_by_college(
     return [
         ActivityListItem(
             id=a.id,
-            activity_type=a.activity_type.value,
+            activity_type=a.activity_type.value.lower(),
             title=a.title,
             slug=a.slug,
             short_description=a.short_description,
@@ -717,8 +724,7 @@ async def get_activity_detail(
 
     Example: GET /api/ipsa/activities/1
     """
-    if activity_type == "events":
-        activity_type = "event_celebration"
+
     college = db.query(College).filter(
         College.slug == college_slug,
         College.is_active == True
@@ -735,7 +741,7 @@ async def get_activity_detail(
 
     return ActivityDetail(
         id=a.id,
-        activity_type=a.activity_type.value,
+        activity_type=a.activity_type.value.lower(),
         title=a.title,
         slug=a.slug,
         short_description=a.short_description,
@@ -847,7 +853,7 @@ async def get_activity_by_slug(
 
     return ActivityDetail(
         id=a.id,
-        activity_type=a.activity_type.value,
+        activity_type=a.activity_type.value.lower(),
         title=a.title,
         slug=a.slug,
         short_description=a.short_description,
