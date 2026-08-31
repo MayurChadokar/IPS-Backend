@@ -1,4 +1,4 @@
-﻿{% extends "admin/base.html" %}
+{% extends "admin/base.html" %}
 
 {% block title %}{{ action }} Section{% endblock %}
 {% block page_title %}{{ action }} Section - {{ page.title }}{% endblock %}
@@ -779,8 +779,7 @@
                             <div class="form-group">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Description</label>
                                 <textarea class="form-control facility-description" rows="2" placeholder="State-of-the-art library...">${fac.description || ''}</textarea>
-                            </div>
-                            <div class="form-group">
+                                  <div class="form-group">
                                 <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Image</label>
                                 ${fac.image && !fac.image.startsWith('__UPLOAD__') ? `
                                     <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
@@ -790,7 +789,9 @@
                                                 <p class="mb-2"><strong>Current Image:</strong></p>
                                                 <small class="d-block text-muted mb-2"><a href="${fac.image}" target="_blank" class="text-primary">${fac.image.split('/').pop()}</a></small>
                                                 <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.facility-item').querySelector('.facility-image-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
-                                                    <i class="bi bi-x-circle"></i> Remove Image
+                       
+
+                           <i class="bi bi-x-circle"></i> Remove Image
                                                 </button>
                                             </div>
                                         </div>
@@ -798,13 +799,40 @@
                                 ` : ''}
                                 <div style="display: flex; gap: 10px;">
                                     <div style="flex: 1;">
-                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">ðŸ“ Upload Image (Cloudinary)</label>
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">ðŸ“  Upload Image (Cloudinary)</label>
                                         <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*,.svg,.ico,.jfif,.gif,.webp,video/*" style="padding: 8px;">
                                     </div>
                                     <div style="flex: 1;">
                                         <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;"> Or Enter URL</label>
                                         <input type="text" class="form-control facility-image-url" placeholder="https://example.com/facility.jpg" value="${fac.image && !fac.image.startsWith('__UPLOAD__') ? fac.image : ''}" style="padding: 10px;">
                                     </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Video (Optional)</label>
+                                ${fac.video && !fac.video.startsWith('__UPLOAD_VIDEO__') ? `
+                                    <div style="margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #10b981; border-radius: 8px;">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="flex-grow-1">
+                                                <p class="mb-2"><strong>Current Video:</strong></p>
+                                                <small class="d-block text-muted mb-2"><a href="${fac.video}" target="_blank" class="text-primary">${fac.video.split('/').pop()}</a></small>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.facility-item').querySelector('.facility-video-url').value=''; this.closest('div[style*=\\'padding: 15px\\']').remove();">
+                                                    <i class="bi bi-x-circle"></i> Remove Video
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; gap: 10px;">
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🎬 Upload Video</label>
+                                        <input type="file" name="facilities_video_files" class="form-control facility-video-file" accept="video/*" style="padding: 8px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;"> Or Enter URL</label>
+                                        <input type="text" class="form-control facility-video-url" placeholder="https://example.com/video.mp4" value="${fac.video && !fac.video.startsWith('__UPLOAD_VIDEO__') ? fac.video : ''}" style="padding: 10px;">
+                                    </div>
+                                </div>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">Remove Facility</button>
@@ -1196,12 +1224,25 @@
             <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Image</label>
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
-                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">ðŸ“ Upload Image (Cloudinary)</label>
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">ðŸ“  Upload Image (Cloudinary)</label>
                     <input type="file" name="facilities_media_files" class="form-control facility-image-file" accept="image/*,.svg,.ico,.jfif,.gif,.webp,video/*" style="padding: 8px;">
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;"> Or Enter URL</label>
                     <input type="text" class="form-control facility-image-url" placeholder="https://example.com/library.jpg" style="padding: 10px;">
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label style="display: block; font-size: 13px; color: #555; margin-bottom: 5px;">Video (Optional)</label>
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;">🎬 Upload Video</label>
+                    <input type="file" name="facilities_video_files" class="form-control facility-video-file" accept="video/*" style="padding: 8px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 12px; color: #777; margin-bottom: 5px;"> Or Enter URL</label>
+                    <input type="text" class="form-control facility-video-url" placeholder="https://example.com/video.mp4" style="padding: 10px;">
                 </div>
             </div>
         </div>
@@ -1582,8 +1623,17 @@
                         image = urlInput.value.trim();
                     }
 
+                    const videoUrlInput = item.querySelector('.facility-video-url');
+                    const videoFileInput = item.querySelector('.facility-video-file');
+                    let video = '';
+                    if (videoFileInput && videoFileInput.files.length > 0) {
+                        video = '__UPLOAD_VIDEO__' + videoFileInput.files[0].name;
+                    } else if (videoUrlInput && videoUrlInput.value.trim()) {
+                        video = videoUrlInput.value.trim();
+                    }
+
                     if (name.trim()) {
-                        facilityList.push({ name, description, image });
+                        facilityList.push({ name, description, image, video });
                     }
                 });
                 jsonData = {
@@ -1882,11 +1932,11 @@
                                 <div class="d-flex align-items-start gap-3">
                                     <img src="${event.target.result}" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 8px; object-fit: cover; border: 2px solid #ddd;">
                                     <div class="flex-grow-1">
-                                        <p class="mb-2"><strong> Image ready for upload</strong></p>
-                                        <small class="d-block text-muted"> Dimensions: ${img.width} Ã— ${img.height}px</small>
-                                        <small class="d-block text-muted"> Size: ${(file.size / 1024).toFixed(2)} KB</small>
-                                        <small class="d-block text-muted"> Format: ${file.type}</small>
-                                        ${!isWebP ? '<small class="d-block text-primary mt-2"><strong>ðŸ”„ Will be converted to WebP on upload</strong></small>' : '<small class="d-block text-success mt-2"><strong>âœ¨ Already in WebP format</strong></small>'}
+                                        <p class="mb-2"><strong>📸 Image ready for upload</strong></p>
+                                        <small class="d-block text-muted">📐 Dimensions: ${img.width} × ${img.height}px</small>
+                                        <small class="d-block text-muted">📦 Size: ${(file.size / 1024).toFixed(2)} KB</small>
+                                        <small class="d-block text-muted">🖼️ Format: ${file.type}</small>
+                                        ${!isWebP ? '<small class="d-block text-primary mt-2"><strong>🔄 Will be converted to WebP on upload</strong></small>' : '<small class="d-block text-success mt-2"><strong>✨ Already in WebP format</strong></small>'}
                                     </div>
                                 </div>
                             </div>
@@ -1898,9 +1948,9 @@
             } else if (file.type.startsWith('video/')) {
                 previewContainer.innerHTML = `
                     <div class="video-preview" style="padding: 15px; background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; margin-top: 10px;">
-                        <p class="mb-2"><strong>ðŸŽ¥ Video ready for upload</strong></p>
-                        <small class="d-block text-muted">ðŸ“¦ Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-                        <small class="d-block text-muted">ðŸŽ¬ Format: ${file.type}</small>
+                        <p class="mb-2"><strong>🎥 Video ready for upload</strong></p>
+                        <small class="d-block text-muted">📦 Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                        <small class="d-block text-muted">🎬 Format: ${file.type}</small>
                     </div>
                 `;
             }

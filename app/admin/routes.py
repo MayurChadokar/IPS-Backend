@@ -1689,6 +1689,7 @@ async def create_section(
     team_media_files: List[UploadFile] = File(None),
     cards_media_files: List[UploadFile] = File(None),
     facilities_media_files: List[UploadFile] = File(None),
+    facilities_video_files: List[UploadFile] = File(None),
     testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
     images_logo_files: List[UploadFile] = File(None),
@@ -1783,20 +1784,36 @@ async def create_section(
                             card['icon'] = uploaded_files[upload_index]
                             upload_index += 1
         
-        elif section_type == 'facilities' and facilities_media_files:
-            for file in facilities_media_files:
-                if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
-                    uploaded_files.append(url)
+        elif section_type == 'facilities':
+            if facilities_media_files:
+                for file in facilities_media_files:
+                    if file and file.filename:
+                        url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
+                        uploaded_files.append(url)
+                
+                # Replace __UPLOAD__ placeholders in facilities array
+                if 'facilities' in content_data:
+                    upload_index = 0
+                    for facility in content_data['facilities']:
+                        if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
+                            if upload_index < len(uploaded_files):
+                                facility['image'] = uploaded_files[upload_index]
+                                upload_index += 1
             
-            # Replace __UPLOAD__ placeholders in facilities array
-            if 'facilities' in content_data:
-                upload_index = 0
-                for facility in content_data['facilities']:
-                    if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
-                        if upload_index < len(uploaded_files):
-                            facility['image'] = uploaded_files[upload_index]
-                            upload_index += 1
+            uploaded_videos = []
+            if facilities_video_files:
+                for file in facilities_video_files:
+                    if file and file.filename:
+                        url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
+                        uploaded_videos.append(url)
+                
+                if 'facilities' in content_data:
+                    upload_index = 0
+                    for facility in content_data['facilities']:
+                        if 'video' in facility and facility['video'].startswith('__UPLOAD_VIDEO__'):
+                            if upload_index < len(uploaded_videos):
+                                facility['video'] = uploaded_videos[upload_index]
+                                upload_index += 1
         
         elif section_type == 'split' and split_media_file and split_media_file.filename:
             url = upload_image(split_media_file.file, folder=f"sections/{section_key}", filename=split_media_file.filename)
@@ -1908,6 +1925,7 @@ async def update_section(
     team_media_files: List[UploadFile] = File(None),
     cards_media_files: List[UploadFile] = File(None),
     facilities_media_files: List[UploadFile] = File(None),
+    facilities_video_files: List[UploadFile] = File(None),
     testimonials_media_files: List[UploadFile] = File(None),
     split_media_file: UploadFile = File(None),
     images_logo_files: List[UploadFile] = File(None),
@@ -2002,20 +2020,36 @@ async def update_section(
                             card['icon'] = uploaded_files[upload_index]
                             upload_index += 1
         
-        elif section_type == 'facilities' and facilities_media_files:
-            for file in facilities_media_files:
-                if file and file.filename:
-                    url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
-                    uploaded_files.append(url)
-            
-            # Replace __UPLOAD__ placeholders in facilities array
-            if 'facilities' in content_data:
-                upload_index = 0
-                for facility in content_data['facilities']:
-                    if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
-                        if upload_index < len(uploaded_files):
-                            facility['image'] = uploaded_files[upload_index]
-                            upload_index += 1
+        elif section_type == 'facilities':
+            if facilities_media_files:
+                for file in facilities_media_files:
+                    if file and file.filename:
+                        url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
+                        uploaded_files.append(url)
+                
+                # Replace __UPLOAD__ placeholders in facilities array
+                if 'facilities' in content_data:
+                    upload_index = 0
+                    for facility in content_data['facilities']:
+                        if 'image' in facility and facility['image'].startswith('__UPLOAD__'):
+                            if upload_index < len(uploaded_files):
+                                facility['image'] = uploaded_files[upload_index]
+                                upload_index += 1
+
+            uploaded_videos = []
+            if facilities_video_files:
+                for file in facilities_video_files:
+                    if file and file.filename:
+                        url = upload_image(file.file, folder=f"sections/{section_key}", filename=file.filename)
+                        uploaded_videos.append(url)
+                
+                if 'facilities' in content_data:
+                    upload_index = 0
+                    for facility in content_data['facilities']:
+                        if 'video' in facility and facility['video'].startswith('__UPLOAD_VIDEO__'):
+                            if upload_index < len(uploaded_videos):
+                                facility['video'] = uploaded_videos[upload_index]
+                                upload_index += 1
         
         elif section_type == 'split' and split_media_file and split_media_file.filename:
             url = upload_image(split_media_file.file, folder=f"sections/{section_key}", filename=split_media_file.filename)
