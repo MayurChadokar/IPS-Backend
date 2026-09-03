@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.database import get_db
 from app.core.security import get_current_active_admin, get_current_admin_with_session_fallback, SECRET_KEY, ALGORITHM
 from jose import JWTError, jwt
+from sqlalchemy.orm.attributes import flag_modified
 from app.models.models import UserRole
 from app.models.models import College, Page, Section, SectionContent, PageTemplate, User, Faculty, Course, SocialMediaLink, CrmSyncAudit, JournalVolume
 from app.schemas.schemas import (
@@ -380,6 +381,7 @@ async def update_section(
         content_json = update_data.pop('content_json')
         if db_section.content:
             db_section.content.content_json = content_json
+            flag_modified(db_section.content, "content_json")
         else:
             db_content = SectionContent(
                 section_id=db_section.id,
@@ -561,6 +563,8 @@ async def update_course(
     update_data = course_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_course, field, value)
+        if field == "fee_structure":
+            flag_modified(db_course, "fee_structure")
     
     db.commit()
     db.refresh(db_course)
