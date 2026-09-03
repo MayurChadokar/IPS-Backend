@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Multi-College CMS"
     VERSION: str = "1.0.0"
     DEBUG: bool = True
+    BASE_URL: str = "https://portal.ipsa.ac.in"
     
     # Database
     DATABASE_URL: str

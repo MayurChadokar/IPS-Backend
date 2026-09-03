@@ -91,7 +91,8 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
                     with open(target_file_path, 'wb') as f:
                         f.write(processed_stream.getvalue())
                     
-                    relative_url = f"/uploads/{clean_folder}/{save_name}"
+                    base_url = getattr(settings, "BASE_URL", "").rstrip("/")
+                    relative_url = f"{base_url}/uploads/{clean_folder}/{save_name}"
                     print(f"Saved local WebP image: {target_file_path} -> {relative_url}")
                     return relative_url
             except Exception as img_err:
@@ -116,7 +117,8 @@ def upload_image(file_path_or_obj: Union[str, BinaryIO], folder: str = "ips_cms"
         else:
             raise ValueError("Invalid file object or path provided")
 
-        relative_url = f"/uploads/{clean_folder}/{save_name}"
+        base_url = getattr(settings, "BASE_URL", "").rstrip("/")
+        relative_url = f"{base_url}/uploads/{clean_folder}/{save_name}"
         print(f"Saved local file: {target_file_path} -> {relative_url}")
         return relative_url
 
