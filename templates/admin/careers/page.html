@@ -1,0 +1,68 @@
+{% extends "admin/base.html" %}
+{% block title %}Career Page Settings{% endblock %}
+{% block page_title %}Career Page Settings - {{ college.name }}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">
+    {% if saved %}<div class="alert alert-success" role="status">Career page saved. Frontend data is available at /api/{{ college.slug }}/pages/career.</div>{% endif %}
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3"><label for="title" class="form-label">Page Title *</label><input id="title" name="title" class="form-control" value="{{ values.title }}" maxlength="255" required></div>
+        <div class="mb-3"><label for="meta_description" class="form-label">SEO Description</label><textarea id="meta_description" name="meta_description" class="form-control" rows="2" maxlength="1000">{{ values.meta_description }}</textarea></div>
+        <div class="mb-3">
+            <label for="banner_image" class="form-label">Upload Banner Image</label>
+            <input type="file" id="banner_image" name="banner_image" class="form-control" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" aria-describedby="banner_upload_help">
+            <div id="banner_upload_help" class="form-text">JPG, PNG or WebP, up to {{ max_upload_size_mb }} MB. The selected image will upload when you save the career page.</div>
+        </div>
+        <div class="mb-3"><label for="hero_image" class="form-label">Banner Image URL (optional)</label><input id="hero_image" name="hero_image" class="form-control" value="{{ values.hero_image }}" maxlength="1000" placeholder="https://... or /uploads/..."><div class="form-text">You can also paste an image URL. A selected upload replaces this banner when saved.</div></div>
+        <figure id="banner_preview_container" class="mb-3" {% if not values.hero_image %}hidden{% endif %}>
+            <img id="banner_preview" {% if values.hero_image %}src="{{ values.hero_image }}"{% endif %} alt="Banner preview" class="img-fluid rounded border" style="max-height:240px;max-width:100%;object-fit:contain;">
+            <figcaption id="banner_preview_caption" class="form-text" aria-live="polite">Current banner</figcaption>
+        </figure>
+        <div class="mb-3"><label for="hero_alt" class="form-label">Banner Alt Text</label><input id="hero_alt" name="hero_alt" class="form-control" value="{{ values.hero_alt }}" maxlength="255"></div>
+        <div class="mb-3"><label for="introduction_title" class="form-label">Introduction Heading *</label><input id="introduction_title" name="introduction_title" class="form-control" value="{{ values.introduction_title }}" maxlength="255" required></div>
+        <div class="mb-3"><label for="introduction_description" class="form-label">Introduction Text *</label><textarea id="introduction_description" name="introduction_description" class="form-control" rows="5" maxlength="10000" required>{{ values.introduction_description }}</textarea></div>
+        <div class="mb-3"><label for="openings_title" class="form-label">Openings Heading *</label><input id="openings_title" name="openings_title" class="form-control" value="{{ values.openings_title }}" maxlength="255" required></div>
+        <div class="row">
+            <div class="col-md-6 mb-3"><label for="categories" class="form-label">Category Options *</label><textarea id="categories" name="categories" class="form-control" rows="5" required>{{ values.categories | join('\n') }}</textarea><div class="form-text">One category per line. You can change these later.</div></div>
+            <div class="col-md-6 mb-3"><label for="job_types" class="form-label">Job Type Options *</label><textarea id="job_types" name="job_types" class="form-control" rows="5" required>{{ values.job_types | join('\n') }}</textarea><div class="form-text">One job type per line. Values used by published openings also appear in filters.</div></div>
+        </div>
+        <div class="form-check form-switch mb-4"><input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="true" {% if values.is_active %}checked{% endif %}><label for="is_active" class="form-check-label">Publish career page content</label></div>
+        <div class="d-flex gap-2"><button type="submit" class="btn btn-success">Save Career Page</button><a href="/admin/colleges/{{ college.id }}/careers" class="btn btn-secondary">Back to Openings</a></div>
+    </form>
+</div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    const bannerUpload = document.getElementById('banner_image');
+    const bannerUrl = document.getElementById('hero_image');
+    const bannerPreview = document.getElementById('banner_preview');
+    const bannerContainer = document.getElementById('banner_preview_container');
+    const bannerCaption = document.getElementById('banner_preview_caption');
+    let bannerObjectUrl = null;
+
+    function updateBannerPreview() {
+        if (bannerObjectUrl) {
+            URL.revokeObjectURL(bannerObjectUrl);
+            bannerObjectUrl = null;
+        }
+        const file = bannerUpload.files[0];
+        const url = bannerUrl.value.trim();
+        if (file) {
+            bannerObjectUrl = URL.createObjectURL(file);
+            bannerPreview.src = bannerObjectUrl;
+            bannerCaption.textContent = 'Selected: ' + file.name + ' (save the page to upload)';
+        } else if (url) {
+            bannerPreview.src = url;
+            bannerCaption.textContent = 'Current banner';
+        } else {
+            bannerPreview.removeAttribute('src');
+        }
+        bannerContainer.hidden = !file && !url;
+    }
+    bannerUpload.addEventListener('change', updateBannerPreview);
+    bannerUrl.addEventListener('input', updateBannerPreview);
+    window.addEventListener('pagehide', () => {
+        if (bannerObjectUrl) URL.revokeObjectURL(bannerObjectUrl);
+    });
+</script>
+{% endblock %}

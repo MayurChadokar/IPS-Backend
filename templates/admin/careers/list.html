@@ -1,0 +1,39 @@
+{% extends "admin/base.html" %}
+{% block title %}Careers - {{ college.name }}{% endblock %}
+{% block page_title %}{{ college.name }} - Careers{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div><h2 class="card-title mb-1"><i class="bi bi-briefcase me-2"></i>Career Openings</h2><small class="text-muted">{{ total }} openings. Published vacancies appear in the frontend API.</small></div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/admin/colleges/{{ college.id }}/careers/new" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Opening</a>
+            <a href="/admin/colleges/{{ college.id }}/careers/page" class="btn btn-outline-primary">Career Page Settings</a>
+            <a href="/admin/colleges" class="btn btn-secondary">Back to Colleges</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p class="text-muted">Page content: <a href="/api/{{ college.slug }}/pages/career" target="_blank" rel="noopener"><code>/api/{{ college.slug }}/pages/career</code></a> &middot; Openings: <a href="/api/{{ college.slug }}/careers" target="_blank" rel="noopener"><code>/api/{{ college.slug }}/careers</code></a></p>
+        {% if not career_page %}<div class="alert alert-info">Save Career Page Settings to create the career page in this college's CMS.</div>{% elif not career_page.is_active %}<div class="alert alert-warning">The career CMS page is inactive. Enable it in Career Page Settings to publish its content.</div>{% endif %}
+        {% if openings %}
+        <div class="table-responsive"><table class="table table-hover align-middle">
+            <thead><tr><th>Opening</th><th>Category / Job Type</th><th>Location</th><th>Post Date</th><th>Closing Date</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>{% for opening in openings %}<tr>
+                <td><strong>{{ opening.title }}</strong><br><small class="text-muted">{{ opening.department or '' }}</small></td>
+                <td>{{ opening.category }}<br><small class="text-muted">{{ opening.job_type }}</small></td>
+                <td>{{ opening.location }}</td><td>{{ opening.posted_date.strftime('%d %b %Y') }}</td><td>{{ opening.closing_date or 'No deadline' }}</td>
+                <td>{% if not opening.is_active %}<span class="badge bg-secondary">Draft</span>{% elif opening.closing_date and opening.closing_date < today %}<span class="badge bg-warning text-dark">Expired</span>{% else %}<span class="badge bg-success">Published</span>{% endif %}</td>
+                <td><div class="d-flex justify-content-end gap-2">
+                    <a href="/admin/colleges/{{ college.id }}/careers/{{ opening.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" action="/admin/colleges/{{ college.id }}/careers/{{ opening.id }}/delete" onsubmit="return confirm('Delete this opening?');"><button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+                </div></td>
+            </tr>{% endfor %}</tbody>
+        </table></div>
+        {% else %}<div class="text-center py-5"><i class="bi bi-briefcase text-muted" style="font-size:48px"></i><p class="text-muted mt-3">No openings yet. Add a vacancy to display it on the career page.</p></div>{% endif %}
+        <div class="d-flex justify-content-between mt-3">
+            <div>{% if page_number > 1 %}<a class="btn btn-outline-secondary" href="?page={{ page_number - 1 }}">Previous</a>{% endif %}</div>
+            <span class="text-muted">Page {{ page_number }}</span>
+            <div>{% if has_next %}<a class="btn btn-outline-secondary" href="?page={{ page_number + 1 }}">Next</a>{% endif %}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

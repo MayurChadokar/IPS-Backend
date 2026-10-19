@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ action }} Career Opening{% endblock %}
+{% block page_title %}{{ action }} Career Opening - {{ college.name }}{% endblock %}
+{% block content %}
+<div class="card"><div class="card-body">
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    <form method="post">
+        <div class="mb-3"><label for="title" class="form-label">Job Title *</label><input id="title" name="title" class="form-control" value="{{ values.title or '' }}" maxlength="255" required placeholder="Assistant Professor - Computer Science and Engineering"></div>
+        <div class="row">
+            <div class="col-md-6 mb-3"><label for="category" class="form-label">Category *</label><input id="category" name="category" list="categories" class="form-control" value="{{ values.category or '' }}" maxlength="100" required><datalist id="categories">{% for value in options.categories %}<option value="{{ value }}">{% endfor %}</datalist><div class="form-text">Choose a suggestion or enter a new category.</div></div>
+            <div class="col-md-6 mb-3"><label for="job_type" class="form-label">Job Type *</label><input id="job_type" name="job_type" list="job-types" class="form-control" value="{{ values.job_type or '' }}" maxlength="100" required><datalist id="job-types">{% for value in options.job_types %}<option value="{{ value }}">{% endfor %}</datalist></div>
+            <div class="col-md-6 mb-3"><label for="location" class="form-label">Location *</label><input id="location" name="location" class="form-control" value="{{ values.location or '' }}" maxlength="255" required></div>
+            <div class="col-md-6 mb-3"><label for="department" class="form-label">Department</label><input id="department" name="department" class="form-control" value="{{ values.department or '' }}" maxlength="255"></div>
+        </div>
+        <div class="mb-3"><label for="short_description" class="form-label">Listing Summary</label><textarea id="short_description" name="short_description" class="form-control" rows="3" maxlength="1000">{{ values.short_description or '' }}</textarea></div>
+        <div class="mb-3"><label for="description" class="form-label">Job Description *</label><textarea id="description" name="description" class="form-control" rows="8" maxlength="50000" required>{{ values.description or '' }}</textarea><div class="form-text">Enter plain text. The frontend can display line breaks.</div></div>
+        <div class="mb-3"><label for="qualifications" class="form-label">Qualifications / Desired Skills</label><textarea id="qualifications" name="qualifications" class="form-control" rows="4" maxlength="20000">{{ values.qualifications or '' }}</textarea></div>
+        <div class="mb-3"><label for="apply_url" class="form-label">Apply Now Link *</label><input id="apply_url" name="apply_url" class="form-control" value="{{ values.apply_url or '' }}" maxlength="1000" required placeholder="https://example.com/apply or mailto:hr@example.com"><div class="form-text">Application form URL, email link, or a path beginning with /.</div></div>
+        <div class="row">
+            <div class="col-md-6 mb-3"><label for="posted_date" class="form-label">Post Date *</label><input type="date" id="posted_date" name="posted_date" class="form-control" value="{{ values.posted_date or '' }}" required><div class="form-text">Choose the date shown as the posting date on the frontend.</div></div>
+            <div class="col-md-6 mb-3"><label for="closing_date" class="form-label">Closing Date</label><input type="date" id="closing_date" name="closing_date" class="form-control" value="{{ values.closing_date or '' }}"><div class="form-text">Expired openings automatically disappear from the public API after this date (India time).</div></div>
+            <div class="col-md-6 mb-3"><label for="sort_order" class="form-label">Sort Order</label><input type="number" id="sort_order" name="sort_order" class="form-control" value="{{ values.sort_order if values.sort_order is defined else 0 }}" min="0" required></div>
+        </div>
+        <div class="form-check form-switch mb-4"><input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="true" {% if values.is_active %}checked{% endif %}><label class="form-check-label" for="is_active">Publish this opening</label></div>
+        <div class="d-flex gap-2"><button type="submit" class="btn btn-success">{{ action }} Opening</button><a href="/admin/colleges/{{ college.id }}/careers" class="btn btn-secondary">Cancel</a></div>
+    </form>
+</div></div>
+{% endblock %}

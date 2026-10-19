@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, Text, JSON, Index, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from app.core.dates import india_today
 import enum
 
 
@@ -98,6 +99,37 @@ class College(Base):
     social_media_links = relationship("SocialMediaLink", back_populates="college", cascade="all, delete-orphan")
     journals = relationship("Journal", back_populates="college", cascade="all, delete-orphan")
     journal_volumes = relationship("JournalVolume", back_populates="college", cascade="all, delete-orphan")
+    career_openings = relationship("CareerOpening", back_populates="college", cascade="all, delete-orphan")
+
+
+class CareerOpening(Base):
+    """Career vacancies, scoped to a college. Categories remain editable strings."""
+    __tablename__ = "career_openings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    college_id = Column(Integer, ForeignKey("colleges.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    category = Column(String(100), nullable=False)
+    job_type = Column(String(100), nullable=False)
+    location = Column(String(255), nullable=False)
+    department = Column(String(255), nullable=True)
+    short_description = Column(String(1000), nullable=True)
+    description = Column(Text, nullable=False)
+    qualifications = Column(Text, nullable=True)
+    apply_url = Column(String(1000), nullable=False)
+    posted_date = Column(Date, nullable=False, default=india_today)
+    closing_date = Column(Date, nullable=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    college = relationship("College", back_populates="career_openings")
+
+    __table_args__ = (
+        Index("ix_career_openings_college_active", "college_id", "is_active"),
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
 
 
 class Page(Base):

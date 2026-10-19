@@ -5,6 +5,8 @@ from fastapi.responses import RedirectResponse
 from app.core.config import settings
 from app.api import public, admin, auth
 from app.admin import routes as admin_ui
+from app.api import careers
+from app.admin import careers as career_ui
 import os
 
 
@@ -40,6 +42,9 @@ app.include_router(public.router, prefix=settings.API_V1_PREFIX, tags=["Public A
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Admin API (Protected)"])
 app.include_router(admin_ui.router, prefix="/admin", tags=["Admin UI"])
+app.include_router(careers.public_router, prefix=settings.API_V1_PREFIX, tags=["Careers"])
+app.include_router(careers.admin_router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Career Management (Protected)"])
+app.include_router(career_ui.router, prefix="/admin", tags=["Career Admin UI"])
 
 
 def get_db():
