@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     # Meritto CRM
     MERITTO_SECRET_KEY: str = ""
     MERITTO_ACCESS_KEY: str = ""
+
+    # Ambition Mic contest email delivery (Mailgun)
+    MAILGUN_API_KEY: str = ""
+    MAILGUN_DOMAIN: str = ""
+    MAILGUN_API_BASE_URL: str = "https://api.mailgun.net"
+    MAILGUN_FROM_EMAIL: str = ""
+    AMBITION_MIC_RECIPIENT: str = "mayurchadokar14@gmail.com"
+    AMBITION_MIC_MAX_VIDEO_SIZE: int = 20 * 1024 * 1024
     
     class Config:
         env_file = ".env"

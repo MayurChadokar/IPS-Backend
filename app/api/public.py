@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, status, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import asyncio
@@ -7,6 +7,12 @@ import httpx
 from urllib.parse import quote
 from app.core.database import get_db
 from app.services.meritto_crm import meritto_service
+from app.services.ambition_mic import (
+    AmbitionMicEmailError,
+    AmbitionMicEntry,
+    send_ambition_mic_entry,
+)
+from app.core.config import settings
 from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
 from app.schemas.schemas import (
     PagePublicResponse,
@@ -28,6 +34,74 @@ from typing import List, Dict, Any, Optional
 
 
 router = APIRouter()
+
+
+ALLOWED_AMBITION_VIDEO_TYPES = {
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+    "video/x-msvideo",
+}
+ALLOWED_AMBITION_VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".avi"}
+
+
+@router.post("/ambition-mic/entries", status_code=status.HTTP_202_ACCEPTED)
+async def submit_ambition_mic_entry(
+    full_name: str = Form(..., alias="fullName", min_length=2, max_length=150),
+    email: str = Form(..., min_length=5, max_length=255),
+    phone_number: str = Form(..., alias="phoneNumber", min_length=10, max_length=20),
+    city: str = Form(..., min_length=2, max_length=100),
+    education_level: str = Form(..., alias="educationLevel", min_length=2, max_length=100),
+    institution_name: str = Form(..., alias="institutionName", min_length=2, max_length=255),
+    video: UploadFile = File(...),
+):
+    """Email an Ambition Mic entry without writing it to the database or uploads directory."""
+    import os
+
+    filename = os.path.basename(video.filename or "")
+    extension = os.path.splitext(filename)[1].lower()
+    content_type = (video.content_type or "").lower()
+
+    if not filename or extension not in ALLOWED_AMBITION_VIDEO_EXTENSIONS:
+        await video.close()
+        raise HTTPException(status_code=415, detail="Video must be MP4, MOV, WEBM, or AVI")
+    if content_type not in ALLOWED_AMBITION_VIDEO_TYPES:
+        await video.close()
+        raise HTTPException(status_code=415, detail="Invalid video content type")
+    if "@" not in email or email.startswith("@") or email.endswith("@"):
+        await video.close()
+        raise HTTPException(status_code=422, detail="Enter a valid email address")
+
+    try:
+        video.file.seek(0, 2)
+        video_size = video.file.tell()
+        await video.seek(0)
+        if video_size <= 0:
+            raise HTTPException(status_code=422, detail="The video file is empty")
+        if video_size > settings.AMBITION_MIC_MAX_VIDEO_SIZE:
+            max_mb = settings.AMBITION_MIC_MAX_VIDEO_SIZE // (1024 * 1024)
+            raise HTTPException(status_code=413, detail=f"Video must not exceed {max_mb} MB")
+
+        entry = AmbitionMicEntry(
+            full_name=full_name.strip(),
+            email=email.strip(),
+            phone_number=phone_number.strip(),
+            city=city.strip(),
+            education_level=education_level.strip(),
+            institution_name=institution_name.strip(),
+        )
+        await send_ambition_mic_entry(
+            entry,
+            video.file,
+            filename,
+            content_type,
+        )
+    except AmbitionMicEmailError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    finally:
+        await video.close()
+
+    return {"message": "Entry submitted successfully"}
 
 
 def _pdf_proxy(request: Request, url: Optional[str]) -> Optional[str]:
