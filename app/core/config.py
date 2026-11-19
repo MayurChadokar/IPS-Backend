@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:4200"]
+    CORS_ORIGIN_REGEX: str = r"https://([a-z0-9-]+\.)*ipsa\.ac\.in"
     
     # File Upload
     UPLOAD_DIR: str = "uploads"
@@ -34,12 +35,12 @@ class Settings(BaseSettings):
     MERITTO_SECRET_KEY: str = ""
     MERITTO_ACCESS_KEY: str = ""
 
-    # Ambition Mic contest email delivery (Mailgun)
-    MAILGUN_API_KEY: str = ""
-    MAILGUN_DOMAIN: str = ""
-    MAILGUN_API_BASE_URL: str = "https://api.mailgun.net"
-    MAILGUN_FROM_EMAIL: str = ""
-    AMBITION_MIC_RECIPIENT: str = "mayurchadokar14@gmail.com"
+    # Ambition Mic contest email delivery (Brevo Transactional Email)
+    BREVO_API_KEY: str = ""
+    BREVO_API_BASE_URL: str = "https://api.brevo.com/v3"
+    BREVO_FROM_NAME: str = "Ambition Mic Contest"
+    BREVO_FROM_EMAIL: str = ""
+    AMBITION_MIC_RECIPIENT: str = ""
     AMBITION_MIC_MAX_VIDEO_SIZE: int = 20 * 1024 * 1024
     
     class Config:

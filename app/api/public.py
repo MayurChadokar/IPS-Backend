@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, status, Query, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 import asyncio
 import httpx
@@ -13,7 +13,7 @@ from app.services.ambition_mic import (
     send_ambition_mic_entry,
 )
 from app.core.config import settings
-from app.models.models import College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
+from app.models.models import AmbitionMicSubmission, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
 from app.schemas.schemas import (
     PagePublicResponse,
     InquiryCreate,
@@ -47,6 +47,7 @@ ALLOWED_AMBITION_VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".avi"}
 
 @router.post("/ambition-mic/entries", status_code=status.HTTP_202_ACCEPTED)
 async def submit_ambition_mic_entry(
+    request: Request,
     full_name: str = Form(..., alias="fullName", min_length=2, max_length=150),
     email: str = Form(..., min_length=5, max_length=255),
     phone_number: str = Form(..., alias="phoneNumber", min_length=10, max_length=20),
@@ -54,9 +55,14 @@ async def submit_ambition_mic_entry(
     education_level: str = Form(..., alias="educationLevel", min_length=2, max_length=100),
     institution_name: str = Form(..., alias="institutionName", min_length=2, max_length=255),
     video: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
-    """Email an Ambition Mic entry without writing it to the database or uploads directory."""
+    """Persist an entry and its video, then email a link to the stored video."""
     import os
+    import shutil
+    from pathlib import Path
+    from uuid import uuid4
+    from starlette.concurrency import run_in_threadpool
 
     filename = os.path.basename(video.filename or "")
     extension = os.path.splitext(filename)[1].lower()
@@ -90,18 +96,88 @@ async def submit_ambition_mic_entry(
             education_level=education_level.strip(),
             institution_name=institution_name.strip(),
         )
-        await send_ambition_mic_entry(
-            entry,
-            video.file,
-            filename,
-            content_type,
+        relative_dir = Path("ambition-mic")
+        upload_dir = Path(settings.UPLOAD_DIR) / relative_dir
+        await run_in_threadpool(upload_dir.mkdir, parents=True, exist_ok=True)
+        stored_name = f"{uuid4().hex}{extension}"
+        stored_path = upload_dir / stored_name
+        await video.seek(0)
+        try:
+            with stored_path.open("wb") as destination:
+                await run_in_threadpool(shutil.copyfileobj, video.file, destination)
+        except OSError as exc:
+            stored_path.unlink(missing_ok=True)
+            raise HTTPException(status_code=500, detail="Unable to store the video") from exc
+
+        relative_path = (relative_dir / stored_name).as_posix()
+        submission = AmbitionMicSubmission(
+            full_name=entry.full_name,
+            email=entry.email,
+            phone_number=entry.phone_number,
+            city=entry.city,
+            education_level=entry.education_level,
+            institution_name=entry.institution_name,
+            video_path=relative_path,
+            video_original_name=filename,
+            video_content_type=content_type,
+            video_size=video_size,
         )
-    except AmbitionMicEmailError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        try:
+            db.add(submission)
+            db.commit()
+            db.refresh(submission)
+        except Exception:
+            db.rollback()
+            stored_path.unlink(missing_ok=True)
+            raise
+
+        # Always use the public production base URL so email recipients do not
+        # receive localhost or an internal reverse-proxy address.
+        video_url = (
+            f"{settings.BASE_URL.rstrip('/')}"
+            f"{settings.API_V1_PREFIX}/ambition-mic/videos/{stored_name}"
+        )
+        try:
+            await send_ambition_mic_entry(entry, video_url)
+            submission.email_status = "sent"
+        except AmbitionMicEmailError as exc:
+            submission.email_status = "failed"
+            submission.email_error = str(exc)[:500]
+        db.commit()
     finally:
         await video.close()
 
     return {"message": "Entry submitted successfully"}
+
+
+@router.get("/ambition-mic/videos/{filename}", response_class=FileResponse)
+def get_ambition_mic_video(filename: str, db: Session = Depends(get_db)):
+    """Serve a submitted video through the API path used by the production proxy."""
+    import os
+    from pathlib import Path
+
+    safe_name = os.path.basename(filename)
+    if safe_name != filename:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    relative_path = f"ambition-mic/{safe_name}"
+    submission = (
+        db.query(AmbitionMicSubmission)
+        .filter(AmbitionMicSubmission.video_path == relative_path)
+        .first()
+    )
+    if not submission:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    file_path = Path(settings.UPLOAD_DIR) / relative_path
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Video file not found")
+    return FileResponse(
+        file_path,
+        media_type=submission.video_content_type,
+        filename=submission.video_original_name,
+        content_disposition_type="inline",
+    )
 
 
 def _pdf_proxy(request: Request, url: Optional[str]) -> Optional[str]:

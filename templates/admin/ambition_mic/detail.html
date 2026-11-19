@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}Ambition Mic Entry #{{ entry.id }}{% endblock %}
+{% block page_title %}Ambition Mic Entry #{{ entry.id }}{% endblock %}
+{% block content %}
+<div class="mb-3"><a href="/admin/ambition-mic" class="btn btn-outline-secondary">&larr; Back to entries</a></div>
+<div class="row g-4">
+  <div class="col-lg-7"><div class="card"><div class="card-header"><h2 class="card-title mb-0">Video</h2></div><div class="card-body">
+    <video controls preload="metadata" class="w-100" style="max-height:520px;background:#000"><source src="/api/ambition-mic/videos/{{ entry.video_path.split('/')[-1] }}" type="{{ entry.video_content_type }}"></video>
+    <div class="mt-3"><a class="btn btn-primary" href="/api/ambition-mic/videos/{{ entry.video_path.split('/')[-1] }}" download>Download original video</a></div>
+  </div></div></div>
+  <div class="col-lg-5"><div class="card"><div class="card-header"><h2 class="card-title mb-0">Participant</h2></div><div class="card-body"><dl class="row mb-0">
+    <dt class="col-sm-5">Name</dt><dd class="col-sm-7">{{ entry.full_name }}</dd>
+    <dt class="col-sm-5">Email</dt><dd class="col-sm-7"><a href="mailto:{{ entry.email }}">{{ entry.email }}</a></dd>
+    <dt class="col-sm-5">Phone</dt><dd class="col-sm-7">{{ entry.phone_number }}</dd>
+    <dt class="col-sm-5">City</dt><dd class="col-sm-7">{{ entry.city }}</dd>
+    <dt class="col-sm-5">Education</dt><dd class="col-sm-7">{{ entry.education_level }}</dd>
+    <dt class="col-sm-5">Institution</dt><dd class="col-sm-7">{{ entry.institution_name }}</dd>
+    <dt class="col-sm-5">File</dt><dd class="col-sm-7">{{ entry.video_original_name }} ({{ '%.1f'|format(entry.video_size / 1048576) }} MB)</dd>
+    <dt class="col-sm-5">Email status</dt><dd class="col-sm-7">{{ entry.email_status }}</dd>
+    {% if entry.email_error %}<dt class="col-sm-5">Email error</dt><dd class="col-sm-7 text-danger">{{ entry.email_error }}</dd>{% endif %}
+  </dl></div></div></div>
+</div>
+{% endblock %}

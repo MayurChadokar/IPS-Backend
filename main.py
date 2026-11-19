@@ -7,6 +7,7 @@ from app.api import public, admin, auth
 from app.admin import routes as admin_ui
 from app.api import careers
 from app.admin import careers as career_ui
+from app.admin import ambition_mic as ambition_mic_ui
 import os
 
 
@@ -25,6 +26,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=settings.CORS_ORIGIN_REGEX or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,6 +47,7 @@ app.include_router(admin_ui.router, prefix="/admin", tags=["Admin UI"])
 app.include_router(careers.public_router, prefix=settings.API_V1_PREFIX, tags=["Careers"])
 app.include_router(careers.admin_router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["Career Management (Protected)"])
 app.include_router(career_ui.router, prefix="/admin", tags=["Career Admin UI"])
+app.include_router(ambition_mic_ui.router, prefix="/admin", tags=["Ambition Mic Admin UI"])
 
 
 def get_db():

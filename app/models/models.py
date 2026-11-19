@@ -132,6 +132,31 @@ class CareerOpening(Base):
     )
 
 
+class AmbitionMicSubmission(Base):
+    """A contest entry with its video stored on this application server."""
+    __tablename__ = "ambition_mic_submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String(150), nullable=False)
+    email = Column(String(255), nullable=False, index=True)
+    phone_number = Column(String(20), nullable=False)
+    city = Column(String(100), nullable=False)
+    education_level = Column(String(100), nullable=False)
+    institution_name = Column(String(255), nullable=False)
+    video_path = Column(String(500), nullable=False)
+    video_original_name = Column(String(255), nullable=False)
+    video_content_type = Column(String(100), nullable=False)
+    video_size = Column(Integer, nullable=False)
+    email_status = Column(String(20), nullable=False, default="pending")
+    email_error = Column(String(500), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        Index("ix_ambition_mic_submissions_created_at", "created_at"),
+        {'mysql_engine': 'InnoDB', 'mysql_charset': 'utf8mb4'}
+    )
+
+
 class Page(Base):
     """
     Pages for each college (Home, About, Contact, etc.)

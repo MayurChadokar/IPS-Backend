@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% block title %}Ambition Mic Entries{% endblock %}
+{% block page_title %}Ambition Mic Entries{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="card-title mb-0">Submissions</h2><span class="badge bg-primary">{{ total }} total</span>
+  </div>
+  <div class="card-body p-0"><div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>City</th><th>Video</th><th>Email</th><th>Submitted</th><th></th></tr></thead>
+      <tbody>{% for entry in entries %}<tr>
+        <td>#{{ entry.id }}</td>
+        <td><strong>{{ entry.full_name }}</strong><br><small class="text-muted">{{ entry.institution_name }}</small></td>
+        <td>{{ entry.email }}<br><small>{{ entry.phone_number }}</small></td><td>{{ entry.city }}</td>
+        <td>{{ '%.1f'|format(entry.video_size / 1048576) }} MB</td>
+        <td><span class="badge {% if entry.email_status == 'sent' %}bg-success{% elif entry.email_status == 'failed' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ entry.email_status }}</span></td>
+        <td>{{ entry.created_at.strftime('%d %b %Y, %I:%M %p') if entry.created_at else '' }}</td>
+        <td><a class="btn btn-sm btn-primary" href="/admin/ambition-mic/{{ entry.id }}">View</a></td>
+      </tr>{% else %}<tr><td colspan="8" class="text-center text-muted py-5">No submissions yet.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div></div>
+</div>
+<div class="d-flex justify-content-between mt-3">
+  {% if page_number > 1 %}<a class="btn btn-outline-primary" href="?page={{ page_number - 1 }}">Previous</a>{% else %}<span></span>{% endif %}
+  {% if has_next %}<a class="btn btn-outline-primary" href="?page={{ page_number + 1 }}">Next</a>{% endif %}
+</div>
+{% endblock %}
