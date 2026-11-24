@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     BREVO_FROM_EMAIL: str = ""
     AMBITION_MIC_RECIPIENT: str = ""
     AMBITION_MIC_MAX_VIDEO_SIZE: int = 20 * 1024 * 1024
+
+    # Read-only Ambition MIC viewer account (used by setup script only)
+    AMBITION_MIC_VIEWER_EMAIL: str = ""
+    AMBITION_MIC_VIEWER_PASSWORD: str = ""
+    AMBITION_MIC_VIEWER_USERNAME: str = "ambition_mic_viewer"
     
     class Config:
         env_file = ".env"

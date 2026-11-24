@@ -37,6 +37,9 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     role = Column(SQLEnum(UserRole), default=UserRole.ADMIN, nullable=False)
+    # Optional UI/API restriction for narrowly scoped development accounts.
+    # Null keeps the existing full-admin behaviour unchanged.
+    access_scope = Column(String(50), nullable=True, index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

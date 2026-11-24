@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Form, File, UploadFile, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
-from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni, SocialMediaLink, JournalVolume, Journal
+from app.models.models import User, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, Activity, ActivityType, News, Event, Alumni, SocialMediaLink, JournalVolume, Journal, AmbitionMicSubmission
 from datetime import timedelta, datetime
+from io import BytesIO
+from zoneinfo import ZoneInfo
 from typing import Optional
 import json
 from pathlib import Path
@@ -21,6 +23,30 @@ templates = Jinja2Templates(directory="templates")
 
 # Session cookie name
 SESSION_COOKIE_NAME = "admin_session"
+AMBITION_MIC_READ_ONLY_SCOPE = "ambition_mic_read_only"
+IST_TIMEZONE = ZoneInfo("Asia/Kolkata")
+DATABASE_TIMEZONE = ZoneInfo("America/New_York")
+
+
+def to_ist(value: Optional[datetime]) -> Optional[datetime]:
+    """Convert the production database's Eastern time to Asia/Kolkata."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        # MySQL uses SYSTEM time (US Eastern) and DATETIME loses timezone info.
+        value = value.replace(tzinfo=DATABASE_TIMEZONE)
+    return value.astimezone(IST_TIMEZONE)
+
+
+def ambition_video_url(path: Optional[str]) -> Optional[str]:
+    """Return the original same-origin API URL for an Ambition MIC video."""
+    if not path or not path.strip():
+        return None
+    path = path.strip()
+    if path.startswith(("https://", "http://")):
+        return path
+    filename = Path(path.replace("\\", "/")).name
+    return f"/api/ambition-mic/videos/{filename}" if filename else None
 
 # Upload directory
 UPLOAD_DIR = Path("uploads")
@@ -70,6 +96,18 @@ def require_admin(request: Request, db: Session = Depends(get_db)) -> User:
     
     if not user:
         raise HTTPException(status_code=303, headers={"Location": "/admin/login"})
+
+    if user.access_scope == AMBITION_MIC_READ_ONLY_SCOPE:
+        allowed_read_paths = (
+            request.url.path == "/admin/ambition-mic-entries"
+            or request.url.path == "/admin/ambition-mic-entries/export"
+            or request.url.path.startswith("/admin/ambition-mic-entries/")
+            or request.url.path == "/admin/logout"
+        )
+        if request.method != "GET":
+            raise HTTPException(status_code=403, detail="This account has read-only Ambition MIC access")
+        if not allowed_read_paths:
+            raise HTTPException(status_code=303, headers={"Location": "/admin/ambition-mic-entries"})
     
     return user
 
@@ -80,7 +118,8 @@ async def admin_root(request: Request, db: Session = Depends(get_db)):
     """Redirect to dashboard if logged in, otherwise to login"""
     current_user = await get_current_admin_from_cookie(request, db)
     if current_user:
-        return RedirectResponse(url="/admin/dashboard", status_code=303)
+        destination = "/admin/ambition-mic-entries" if current_user.access_scope == AMBITION_MIC_READ_ONLY_SCOPE else "/admin/dashboard"
+        return RedirectResponse(url=destination, status_code=303)
     return RedirectResponse(url="/admin/login", status_code=303)
 
 
@@ -124,8 +163,8 @@ async def admin_login(
         expires_delta=timedelta(hours=8)
     )
     
-    # Redirect to dashboard
-    response = RedirectResponse(url="/admin/dashboard", status_code=303)
+    destination = "/admin/ambition-mic-entries" if user.access_scope == AMBITION_MIC_READ_ONLY_SCOPE else "/admin/dashboard"
+    response = RedirectResponse(url=destination, status_code=303)
     response.set_cookie(
         key=SESSION_COOKIE_NAME, 
         value=access_token, 
@@ -2564,6 +2603,135 @@ async def view_inquiry(
         "request": request,
         "user": current_user,
         "inquiry": inquiry
+    })
+
+
+@router.get("/ambition-mic-entries", response_class=HTMLResponse)
+async def list_ambition_mic_entries(
+    request: Request,
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Show Ambition MIC submissions without any mutation controls."""
+    query = db.query(AmbitionMicSubmission)
+    total_count = query.count()
+    entries = (
+        query.order_by(AmbitionMicSubmission.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    for entry in entries:
+        entry.ist_created_at = to_ist(entry.created_at)
+        entry.video_url = ambition_video_url(entry.video_path)
+
+    total_pages = (total_count + limit - 1) // limit if total_count else 1
+    return templates.TemplateResponse("admin/ambition_mic_entries.html", {
+        "request": request,
+        "user": current_user,
+        "entries": entries,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "total_count": total_count,
+    })
+
+
+@router.get("/ambition-mic-entries/export")
+async def export_ambition_mic_entries(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Export all Ambition MIC submissions as an Excel workbook."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    entries = (
+        db.query(AmbitionMicSubmission)
+        .order_by(AmbitionMicSubmission.created_at.desc())
+        .all()
+    )
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Ambition MIC Entries"
+    headers = [
+        "Submitted", "Name", "Email", "Phone", "City", "Education",
+        "Institution", "Video URL", "Video File Name", "Email Status",
+        "Email Error",
+    ]
+    sheet.append(headers)
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    for cell in sheet[1]:
+        cell.fill = header_fill
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    for entry in entries:
+        video_url = ambition_video_url(entry.video_path) or ""
+        sheet.append([
+            to_ist(entry.created_at).strftime("%d-%m-%Y %I:%M %p IST") if entry.created_at else "",
+            entry.full_name or "",
+            entry.email or "",
+            entry.phone_number or "",
+            entry.city or "",
+            entry.education_level or "",
+            entry.institution_name or "",
+            video_url,
+            entry.video_original_name or "",
+            entry.email_status or "",
+            entry.email_error or "",
+        ])
+
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+    widths = [22, 24, 32, 18, 20, 22, 32, 55, 30, 18, 45]
+    for index, width in enumerate(widths, start=1):
+        sheet.column_dimensions[get_column_letter(index)].width = width
+    for row in sheet.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    filename = f"ambition-mic-entries-{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/ambition-mic-entries/{entry_id}", response_class=HTMLResponse)
+async def view_ambition_mic_entry(
+    request: Request,
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Show one Ambition MIC submission with its video and participant details."""
+    entry = (
+        db.query(AmbitionMicSubmission)
+        .filter(AmbitionMicSubmission.id == entry_id)
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Ambition MIC entry not found")
+
+    entry.video_url = ambition_video_url(entry.video_path)
+    entry.ist_created_at = to_ist(entry.created_at)
+    entry.video_size_mb = (
+        f"{entry.video_size / (1024 * 1024):.1f} MB" if entry.video_size else None
+    )
+    return templates.TemplateResponse("admin/ambition_mic_detail.html", {
+        "request": request,
+        "user": current_user,
+        "entry": entry,
     })
 
 

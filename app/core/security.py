@@ -79,7 +79,7 @@ def get_current_user(
 def get_current_active_admin(current_user: User = Depends(get_current_user)) -> User:
     """Ensure user is an admin"""
     from app.models.models import UserRole
-    if current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN] or current_user.access_scope:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -113,7 +113,7 @@ def get_current_admin_with_session_fallback(
             
             user = db.query(User).filter(User.id == user_id).first()
             if user and user.is_active:
-                if user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+                if user.role not in [UserRole.ADMIN, UserRole.SUPER_ADMIN] or user.access_scope:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Not enough permissions"
@@ -132,7 +132,7 @@ def get_current_admin_with_session_fallback(
             if user_id is not None:
                 user = db.query(User).filter(User.id == user_id).first()
                 if user and user.is_active:
-                    if user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+                    if user.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN] and not user.access_scope:
                         return user
         except JWTError:
             pass

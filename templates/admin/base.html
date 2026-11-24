@@ -427,6 +427,14 @@
         </div>
 
         <div class="sidebar-menu">
+            {% if user.access_scope == 'ambition_mic_read_only' %}
+            <div class="menu-section">
+                <div class="menu-section-title">Ambition MIC</div>
+                <a href="/admin/ambition-mic-entries" class="menu-item active">
+                    <i class="bi bi-mic"></i> Entries
+                </a>
+            </div>
+            {% else %}
             <div class="menu-section">
                 <div class="menu-section-title">Main</div>
                 <a href="/admin/dashboard"
@@ -439,12 +447,12 @@
                 <a href="/admin/inquiries" class="menu-item {% if '/inquiries' in request.url.path %}active{% endif %}">
                     <i class="bi bi-envelope"></i> Inquiries
                 </a>
-                <a href="/admin/ambition-mic" class="menu-item {% if '/ambition-mic' in request.url.path %}active{% endif %}">
-                    <i class="bi bi-mic"></i> Ambition Mic Entries
+                <a href="/admin/ambition-mic-entries"
+                    class="menu-item {% if '/ambition-mic-entries' in request.url.path %}active{% endif %}">
+                    <i class="bi bi-mic"></i> Ambition MIC Entries
                 </a>
 
             </div>
-
             <div class="menu-section">
                 <div class="menu-section-title">Management</div>
                 <a href="/admin/colleges" class="menu-item">
@@ -463,6 +471,7 @@
                     <i class="bi bi-file-earmark-pdf"></i> PDF Uploader
                 </a>
             </div>
+            {% endif %}
 
             <div class="menu-section">
                 <div class="menu-section-title">Account</div>

@@ -4,7 +4,10 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 import asyncio
 import httpx
+import os
+from pathlib import Path
 from urllib.parse import quote
+from app.core.config import settings
 from app.core.database import get_db
 from app.services.meritto_crm import meritto_service
 from app.services.ambition_mic import (
@@ -12,7 +15,6 @@ from app.services.ambition_mic import (
     AmbitionMicEntry,
     send_ambition_mic_entry,
 )
-from app.core.config import settings
 from app.models.models import AmbitionMicSubmission, College, Page, Section, SectionContent, Faculty, Course, Inquiry, Contact, News, Event, Activity, Alumni, SocialMediaLink, JournalVolume, Journal
 from app.schemas.schemas import (
     PagePublicResponse,
@@ -153,9 +155,6 @@ async def submit_ambition_mic_entry(
 @router.get("/ambition-mic/videos/{filename}", response_class=FileResponse)
 def get_ambition_mic_video(filename: str, db: Session = Depends(get_db)):
     """Serve a submitted video through the API path used by the production proxy."""
-    import os
-    from pathlib import Path
-
     safe_name = os.path.basename(filename)
     if safe_name != filename:
         raise HTTPException(status_code=404, detail="Video not found")
@@ -174,8 +173,8 @@ def get_ambition_mic_video(filename: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Video file not found")
     return FileResponse(
         file_path,
-        media_type=submission.video_content_type,
-        filename=submission.video_original_name,
+        media_type=submission.video_content_type or "application/octet-stream",
+        filename=submission.video_original_name or safe_name,
         content_disposition_type="inline",
     )
 
